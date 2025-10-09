@@ -9,8 +9,9 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
-	"kadeem/internal/logging"
-	"kadeem/internal/riot"
+	"github.com/galchammat/kadeem/internal/database"
+	"github.com/galchammat/kadeem/internal/logging"
+	"github.com/galchammat/kadeem/internal/riot"
 )
 
 //go:embed all:frontend/dist
@@ -26,9 +27,14 @@ func init() {
 func main() {
 	ctx := context.Background()
 	app := NewApp()
-	riotHandler := riot.NewRiotHandler(ctx)
+	DB, err := database.OpenDB()
+	if err != nil {
+		logging.Error("Failed to open database: %v", err)
+		return
+	}
+	riotHandler := riot.NewRiotClient(ctx, DB)
 
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:  "kadeem",
 		Width:  1024,
 		Height: 768,

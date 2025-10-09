@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'; // Add useEffect import
 import logo from './assets/images/logo-universal.png';
 import './App.css';
 import { Greet } from "../wailsjs/go/main/App";
-import * as RiotHandler from '../wailsjs/go/riot/RiotHandler';
+import * as RiotClient from '../wailsjs/go/riot/RiotClient';
 
 function App() {
   const [resultText, setResultText] = useState("Please enter your name below 👇");
@@ -17,7 +17,7 @@ function App() {
   const [account, setAccount] = useState<string>('Loading...');
 
   useEffect(() => {
-    RiotHandler.GetAccountID("americas", "the thirsty rock", "NA1").then((res: string) => {
+    RiotClient.AddAccount("americas", "the thirsty rock", "NA1").then((res: string) => {
       setAccount(res);
     }).catch((err: any) => {
       setAccount(`Error: ${err}`);

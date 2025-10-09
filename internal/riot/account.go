@@ -38,7 +38,7 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string) error {
 	return nil
 }
 
-func (r *RiotClient) ReconcileAccount(account *models.LeagueOfLegendsAccount) error {
+func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) error {
 	apiRegion, err := GetAPIRegion(account.Region)
 	if err != nil {
 		logging.Error(err.Error())
@@ -77,7 +77,7 @@ func (r *RiotClient) ListAccounts(filter *models.LeagueOfLegendsAccount) ([]mode
 	}
 
 	for _, account := range accounts {
-		err := r.ReconcileAccount(account)
+		err := r.reconcileAccount(account)
 		if err != nil {
 			logging.Error("Failed to reconcile Riot account: %v", err)
 			return nil, err
