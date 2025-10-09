@@ -11,7 +11,11 @@ import (
 
 const defaultKey = "tME-o:mncQYX$*S"
 
-func OpenDB() (*sql.DB, error) {
+type DB struct {
+	SQL *sql.DB
+}
+
+func OpenDB() (*DB, error) {
 	const filePath = "/home/galchammat/code/personal/kadeem/kadeem.db"
 	const DSN = "file://" + filePath + "?cache=shared"
 	const (
@@ -69,7 +73,7 @@ func OpenDB() (*sql.DB, error) {
 		}
 	}
 
-	return db, nil
+	return &DB{SQL: db}, nil
 }
 
 // EnableWAL switches the DB to WAL journal mode and verifies it.

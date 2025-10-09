@@ -3,9 +3,12 @@ package riot
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/galchammat/kadeem/internal/logging"
 )
 
 // Custom RoundTripper that adds API key to all requests
@@ -30,13 +33,13 @@ func (t *riotTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(req)
 }
 
-type RiotHandler struct {
+type RiotClient struct {
 	ctx        context.Context
 	httpClient *http.Client
 	baseUrl    string
 }
 
-func NewRiotHandler(ctx context.Context) *RiotHandler {
+func NewRiotClient(ctx context.Context) *RiotClient {
 	apiKey := os.Getenv("RIOT_API_KEY")
 
 	// Create client with custom transport
@@ -48,23 +51,43 @@ func NewRiotHandler(ctx context.Context) *RiotHandler {
 		},
 	}
 
-	return &RiotHandler{
+	return &RiotClient{
 		ctx:        ctx,
 		httpClient: client,
 		baseUrl:    "https://{region}.api.riotgames.com",
 	}
 }
 
-func (r *RiotHandler) buildURL(region, endpoint string) string {
+func (r *RiotClient) buildURL(region, endpoint string) string {
 	return fmt.Sprintf("https://%s.api.riotgames.com%s", region, endpoint)
 }
 
-func (r *RiotHandler) makeRequest(url string) (*http.Response, error) {
+func (r *RiotClient) makeRequest(url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(r.ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// No need to set headers - transport handles it automatically!
-	return r.httpClient.Do(req)
+	resp, err := r.httpClient.Do(req)
+	// HTTP Error
+	if err != nil {
+		logging.Error(err.Error())
+		return nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		logging.Error(err.Error())
+		return nil, err
+	}
+
+	// Non-200 Status Code
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
+		logging.Error(err.Error())
+		return nil, err
+	}
+
+	return body, nil
 }

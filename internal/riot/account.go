@@ -1,30 +1,33 @@
 package riot
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
-	"kadeem/internal/logging"
+
+	"github.com/galchammat/kadeem/internal/logging"
+	"github.com/galchammat/kadeem/internal/models"
 )
 
-func (r *RiotHandler) GetAccountID(region, gameName, tagLine string) (string, error) {
-	// Placeholder implementation
-	if gameName == "" || tagLine == "" {
-		err := fmt.Errorf("gameName and tagLine cannot be empty")
+func (r *RiotClient) GetAccount(region, gameName, tagLine string) (models.LeagueOfLegendsAccount, error) {
+	var account models.LeagueOfLegendsAccount
+	if gameName == "" || tagLine == "" || region == "" {
+		err := fmt.Errorf("gameName, tagLine, and region cannot be empty")
 		logging.Error(err.Error())
-		return "", err
+		return account, err
 	}
-	url := r.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
-	resp, err := r.makeRequest(url)
+	apiRegion, err := GetAPIRegion(region)
 	if err != nil {
 		logging.Error(err.Error())
-		return "", err
+		return account, err
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+	body, err := r.makeRequest(url)
 	if err != nil {
-		logging.Error(err.Error())
-		return "", err
+		return account, err
 	}
-	// Simulate fetching account ID
-	return string(body), nil
+	if err := json.Unmarshal(body, &account); err != nil {
+		logging.Error("Failed to unmarshal JSON response", "error", err)
+		return account, err
+	}
+	return account, nil
 }
