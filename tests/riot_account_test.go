@@ -9,7 +9,29 @@ import (
 	"github.com/galchammat/kadeem/internal/riot"
 )
 
-func TestSaveRiotAccount(t *testing.T) {
+func testListRiotAccounts(t *testing.T) {
+	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
+	}
+
+	ctx := context.Background()
+
+	db, err := database.OpenDB()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.SQL.Close()
+
+	riotClient := riot.NewRiotClient(ctx, db)
+	accounts, err := riotClient.ListAccounts(nil)
+	if err != nil {
+		t.Fatalf("Failed to list accounts: %v", err)
+	}
+
+	t.Log("Riot accounts listed successfully:", accounts)
+}
+
+func testAddRiotAccount(t *testing.T) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
 		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
 	}
@@ -25,17 +47,16 @@ func TestSaveRiotAccount(t *testing.T) {
 	region := "NA"
 	gameName := "the thirsty rock"
 	tagLine := "NA1"
-	riotClient := riot.NewRiotClient(ctx)
-	account, err := riotClient.GetAccount(region, gameName, tagLine)
+	riotClient := riot.NewRiotClient(ctx, db)
+	err = riotClient.AddAccount(region, gameName, tagLine)
 	if err != nil {
-		t.Fatalf("Failed to get account: %v", err)
-	}
-	t.Log("Fetched Riot account", account)
-	account.Region = region
-
-	if err := db.SaveRiotAccount(&account); err != nil {
-		t.Fatalf("Failed to save Riot account: %v", err)
+		t.Fatalf("Failed to add account: %v", err)
 	}
 
 	t.Log("Riot account saved successfully")
+}
+
+func TestRiotAccounts(t *testing.T) {
+	t.Run("ListRiotAccounts", testListRiotAccounts)
+	t.Run("AddRiotAccount", testAddRiotAccount)
 }

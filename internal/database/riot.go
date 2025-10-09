@@ -1,6 +1,8 @@
 package database
 
 import (
+	"strings"
+
 	"github.com/galchammat/kadeem/internal/models"
 )
 
@@ -27,30 +29,50 @@ func (db *DB) GetRiotAccount(puuid string) (*models.LeagueOfLegendsAccount, erro
 	return &account, nil
 }
 
-// ListRiotAccountsByRegion gets all accounts for a specific region
-func (db *DB) ListRiotAccountsByRegion(region string) ([]models.LeagueOfLegendsAccount, error) {
-	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts WHERE region = ?`
-	rows, err := db.SQL.Query(query, region)
+// ListRiotAccounts lists accounts with optional filtering
+func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models.LeagueOfLegendsAccount, error) {
+	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts`
+	var where []string
+	var args []interface{}
+
+	if filter != nil && filter.PUUID != "" {
+		where = append(where, "puuid = ?")
+		args = append(args, filter.PUUID)
+	}
+	if filter != nil && filter.TagLine != "" {
+		where = append(where, "tag_line = ?")
+		args = append(args, filter.TagLine)
+	}
+	if filter != nil && filter.GameName != "" {
+		where = append(where, "game_name = ?")
+		args = append(args, filter.GameName)
+	}
+	if filter != nil && filter.Region != "" {
+		where = append(where, "region = ?")
+		args = append(args, filter.Region)
+	}
+
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+
+	rows, err := db.SQL.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var accounts []models.LeagueOfLegendsAccount
+	var accounts []*models.LeagueOfLegendsAccount
 	for rows.Next() {
-		var account models.LeagueOfLegendsAccount
+		account := &models.LeagueOfLegendsAccount{}
 		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region); err != nil {
 			return nil, err
 		}
+
 		accounts = append(accounts, account)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return accounts, nil
-}
-
-func (db *DB) DeleteRiotAccount(puuid string) error {
-	_, err := db.SQL.Exec("DELETE FROM league_of_legends_accounts WHERE puuid = ?", puuid)
-	return err
 }

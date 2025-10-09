@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 )
 
@@ -37,9 +38,10 @@ type RiotClient struct {
 	ctx        context.Context
 	httpClient *http.Client
 	baseUrl    string
+	db         *database.DB
 }
 
-func NewRiotClient(ctx context.Context) *RiotClient {
+func NewRiotClient(ctx context.Context, db *database.DB) *RiotClient {
 	apiKey := os.Getenv("RIOT_API_KEY")
 
 	// Create client with custom transport
@@ -55,6 +57,7 @@ func NewRiotClient(ctx context.Context) *RiotClient {
 		ctx:        ctx,
 		httpClient: client,
 		baseUrl:    "https://{region}.api.riotgames.com",
+		db:         db,
 	}
 }
 
