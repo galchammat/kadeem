@@ -5,6 +5,6 @@ import (
 )
 
 func TestLoadMatches(t *testing.T) {
-	DB := database.openDB()
+	// DB := database.openDB()
 
 }
