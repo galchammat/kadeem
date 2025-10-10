@@ -90,3 +90,57 @@ func (r *RiotClient) ListAccounts(filter *models.LeagueOfLegendsAccount) ([]mode
 	}
 	return result, nil
 }
+
+func (r *RiotClient) DeleteAccount(puuid string) error {
+	if puuid == "" {
+		err := fmt.Errorf("puuid cannot be empty")
+		logging.Error(err.Error())
+		return err
+	}
+	if err := r.db.DeleteRiotAccount(puuid); err != nil {
+		logging.Error("Failed to delete Riot account: %v", err)
+		return err
+	}
+	logging.Info("Deleted Riot account", "puuid", puuid)
+	return nil
+}
+
+func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) error {
+	if gameName == "" || tagLine == "" || region == "" || puuid == "" {
+		err := fmt.Errorf("gameName, tagLine, region, and puuid cannot be empty")
+		logging.Error(err.Error())
+		return err
+	}
+
+	// Validate the account exists on Riot's servers
+	apiRegion, err := GetAPIRegion(region)
+	if err != nil {
+		logging.Error(err.Error())
+		return err
+	}
+	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+	body, err := r.makeRequest(url)
+	if err != nil {
+		return fmt.Errorf("account not found on Riot servers: %w", err)
+	}
+
+	var validatedAccount models.LeagueOfLegendsAccount
+	if err := json.Unmarshal(body, &validatedAccount); err != nil {
+		logging.Error("Failed to unmarshal JSON response", "error", err)
+		return err
+	}
+
+	// Check if the validated account PUUID matches
+	if validatedAccount.PUUID != puuid {
+		return fmt.Errorf("the account %s#%s belongs to a different PUUID (%s), cannot update", gameName, tagLine, validatedAccount.PUUID)
+	}
+
+	validatedAccount.Region = region
+	if err := r.db.UpdateRiotAccount(&validatedAccount); err != nil {
+		logging.Error("Failed to update Riot account: %v", err)
+		return err
+	}
+
+	logging.Info("Updated Riot account", "puuid", puuid)
+	return nil
+}
