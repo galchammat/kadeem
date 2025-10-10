@@ -1,3 +1,8 @@
+# Env Vars
+ENV_FILE := $(PWD)/.env
+BIN_DIR := $(PWD)/bin
+export BIN_DIR ENV_FILE
+
 run:
 	wails dev -tags webkit2_41
 build:
@@ -5,10 +10,10 @@ build:
 
 test-integration:
 	@echo "Running integration tests..."
-	ENV_FILE=../.env RUN_INTEGRATION_TESTS=true go test -v -tags=integration ./tests/...
+	RUN_INTEGRATION_TESTS=true go test -v -tags=integration ./tests/...
 
 migrate:
-	ENV_FILE=.env go run cmd/migrate/main.go
+	go run cmd/migrate/main.go
 
 # Usage: make migrate-create name=description_of_migration
 migrate-create:
