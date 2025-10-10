@@ -9,3 +9,11 @@ export function AddAccount(arg1, arg2, arg3) {
 export function ListAccounts(arg1) {
   return window['go']['riot']['RiotClient']['ListAccounts'](arg1);
 }
+
+export function DeleteAccount(arg1) {
+  return window['go']['riot']['RiotClient']['DeleteAccount'](arg1);
+}
+
+export function UpdateAccount(arg1, arg2, arg3, arg4) {
+  return window['go']['riot']['RiotClient']['UpdateAccount'](arg1, arg2, arg3, arg4);
+}
