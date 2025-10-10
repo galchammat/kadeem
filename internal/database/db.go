@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -16,13 +17,17 @@ type DB struct {
 }
 
 func OpenDB() (*DB, error) {
-	const filePath = "/home/galchammat/code/personal/kadeem/kadeem.db"
-	const DSN = "file://" + filePath + "?cache=shared"
-	const (
-		dsn        = DSN
-		busyMillis = 5000
-		dbFile     = filePath
-	)
+	var filePath string
+	if d := os.Getenv("BIN_DIR"); d != "" {
+		if abs, err := filepath.Abs(d); err == nil {
+			filePath = filepath.Join(abs, "kadeem.db")
+		} else {
+			return nil, fmt.Errorf("failed get absolute path of BIN_DIR: %w", err)
+		}
+	}
+	dsn := "file://" + filePath + "?cache=shared"
+	const busyMillis = 5000
+	dbFile := filePath
 
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
