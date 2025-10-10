@@ -76,3 +76,21 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	}
 	return accounts, nil
 }
+
+// DeleteRiotAccount deletes an account by PUUID
+func (db *DB) DeleteRiotAccount(puuid string) error {
+	query := `DELETE FROM league_of_legends_accounts WHERE puuid = ?`
+	_, err := db.SQL.Exec(query, puuid)
+	return err
+}
+
+// UpdateRiotAccount updates an existing account
+func (db *DB) UpdateRiotAccount(account *models.LeagueOfLegendsAccount) error {
+	query := `
+		UPDATE league_of_legends_accounts 
+		SET tag_line = ?, game_name = ?, region = ?
+		WHERE puuid = ?`
+
+	_, err := db.SQL.Exec(query, account.TagLine, account.GameName, account.Region, account.PUUID)
+	return err
+}
