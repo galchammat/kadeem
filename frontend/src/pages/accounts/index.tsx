@@ -13,14 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PencilIcon, TrashIcon, PlusIcon } from 'lucide-react';
-
-interface AccountFormData {
-  gameName: string;
-  tagLine: string;
-  region: string;
-  puuid?: string;
-}
+import { PencilIcon, TrashIcon, PlusIcon, AlertCircle, AlertCircleIcon } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function AccountsPage() {
   const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
@@ -28,7 +22,8 @@ export function AccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<AccountFormData>({
+  const [formData, setFormData] = useState<models.LeagueOfLegendsAccount>({
+    puuid: "",
     gameName: '',
     tagLine: '',
     region: '',
@@ -79,9 +74,10 @@ export function AccountsPage() {
 
   const handleAddAccount = () => {
     setFormData({
+      puuid: '',
       gameName: '',
       tagLine: '',
-      region: 'na1',
+      region: 'NA',
     });
     setFormError(null);
     setAddDialogOpen(true);
@@ -121,7 +117,7 @@ export function AccountsPage() {
       setAddDialogOpen(false);
       await fetchAccounts();
     } catch (err) {
-      setFormError(`Failed to add account: ${err}`);
+      setFormError(String(err));
     } finally {
       setFormLoading(false);
     }
@@ -180,11 +176,15 @@ export function AccountsPage() {
                     id="add-region"
                     value={formData.region}
                     onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                    placeholder="e.g., na1, euw1, kr"
+                    placeholder="e.g, NA, EUW, KR"
                   />
                 </div>
                 {formError && (
-                  <p className="text-sm text-destructive">{formError}</p>
+                  <Alert variant="destructive">
+                    <AlertCircleIcon className="h-4 w-4 mr-2" />
+                    <AlertTitle>Failed to add account.</AlertTitle>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
                 )}
               </div>
               <DialogFooter>
@@ -246,11 +246,15 @@ export function AccountsPage() {
                   id="add-region"
                   value={formData.region}
                   onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  placeholder="e.g., na1, euw1, kr"
+                  placeholder="e.g, NA, EUW, KR"
                 />
               </div>
               {formError && (
-                <p className="text-sm text-destructive">{formError}</p>
+                  <Alert variant="destructive">
+                    <AlertCircleIcon className="h-4 w-4 mr-2" />
+                    <AlertTitle>Failed to add account.</AlertTitle>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
               )}
             </div>
             <DialogFooter>
@@ -345,11 +349,15 @@ export function AccountsPage() {
                 id="edit-region"
                 value={formData.region}
                 onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                placeholder="e.g., na1, euw1, kr"
+                placeholder="e.g, NA, EUW, KR"
               />
             </div>
             {formError && (
-              <p className="text-sm text-destructive">{formError}</p>
+              <Alert variant="destructive">
+                <AlertCircleIcon className="h-4 w-4 mr-2" />
+                <AlertTitle>Failed to update account.</AlertTitle>
+                <AlertDescription>{formError}</AlertDescription>
+              </Alert>
             )}
           </div>
           <DialogFooter>
