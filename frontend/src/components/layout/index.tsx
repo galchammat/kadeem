@@ -19,7 +19,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
-import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react';
+import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon } from 'lucide-react';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -63,15 +63,6 @@ export function Layout() {
                   >
                     <GamepadIcon className="h-4 w-4" />
                     <span>Matches</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => navigate('/about')}
-                    isActive={isActive('/about')}
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    <span>About</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
