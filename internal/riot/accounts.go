@@ -22,9 +22,15 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string) error {
 		return err
 	}
 	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
-	body, err := r.makeRequest(url)
+	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
-		return err
+		logging.Error(err.Error())
+		if statusCode == 404 {
+			err := fmt.Errorf("account not found on Riot servers")
+			return err
+		} else {
+			return fmt.Errorf("failed to fetch account from Riot servers: %v", err)
+		}
 	}
 	if err := json.Unmarshal(body, &account); err != nil {
 		logging.Error("Failed to unmarshal JSON response", "error", err)
@@ -45,7 +51,7 @@ func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) er
 		return err
 	}
 	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", account.PUUID))
-	body, err := r.makeRequest(url)
+	body, _, err := r.makeRequest(url)
 	if err != nil {
 		return err
 	}
@@ -119,9 +125,12 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 		return err
 	}
 	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
-	body, err := r.makeRequest(url)
+	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
-		return fmt.Errorf("account not found on Riot servers: %w", err)
+		if statusCode == 404 {
+			return fmt.Errorf("account not found on Riot servers")
+		}
+		return fmt.Errorf("failed to fetch account from Riot servers: %v", err)
 	}
 
 	var validatedAccount models.LeagueOfLegendsAccount

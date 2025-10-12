@@ -13,8 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PencilIcon, TrashIcon, PlusIcon, AlertCircle, AlertCircleIcon } from 'lucide-react';
+import { PencilIcon, TrashIcon, PlusIcon, AlertCircle, AlertCircleIcon, CheckCircle2Icon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast, Toaster } from 'sonner';
 
 export function AccountsPage() {
   const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
@@ -96,8 +97,20 @@ export function AccountsPage() {
       await RiotClient.UpdateAccount(formData.region, formData.gameName, formData.tagLine, formData.puuid);
       setEditDialogOpen(false);
       await fetchAccounts();
+      toast(
+        <div>
+          <span><CheckCircle2Icon className="h-6 w-6 mr-2 text-green-500 inline" /></span>
+          Updated Account
+        </div>, {
+          description:
+            <div>
+              {formData.gameName}
+              <span className="text-muted-foreground">#{formData.tagLine}</span>
+              <span> {formData.region}</span>
+            </div>
+      });
     } catch (err) {
-      setFormError(`Failed to update account: ${err}`);
+      setFormError(String(err));
     } finally {
       setFormLoading(false);
     }
@@ -116,6 +129,18 @@ export function AccountsPage() {
       await RiotClient.AddAccount(formData.region, formData.gameName, formData.tagLine);
       setAddDialogOpen(false);
       await fetchAccounts();
+      toast(
+        <div>
+          <span><CheckCircle2Icon className="h-6 w-6 mr-2 text-green-500 inline" /></span>
+          Added Account
+        </div>, {
+          description:
+            <div>
+              {formData.gameName}
+              <span className="text-muted-foreground">#{formData.tagLine}</span>
+              <span> {formData.region}</span>
+            </div>
+      });
     } catch (err) {
       setFormError(String(err));
     } finally {
@@ -134,71 +159,15 @@ export function AccountsPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Accounts</h1>
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAddAccount}>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Account
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Account</DialogTitle>
-                <DialogDescription>
-                  Enter the account details. The account will be validated with Riot servers.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="add-gameName">Game Name</Label>
-                  <Input
-                    id="add-gameName"
-                    value={formData.gameName}
-                    onChange={(e) => setFormData({ ...formData, gameName: e.target.value })}
-                    placeholder="Enter game name"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="add-tagLine">Tag Line</Label>
-                  <Input
-                    id="add-tagLine"
-                    value={formData.tagLine}
-                    onChange={(e) => setFormData({ ...formData, tagLine: e.target.value })}
-                    placeholder="Enter tag line"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="add-region">Region</Label>
-                  <Input
-                    id="add-region"
-                    value={formData.region}
-                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                    placeholder="e.g, NA, EUW, KR"
-                  />
-                </div>
-                {formError && (
-                  <Alert variant="destructive">
-                    <AlertCircleIcon className="h-4 w-4 mr-2" />
-                    <AlertTitle>Failed to add account.</AlertTitle>
-                    <AlertDescription>{formError}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmitAdd} disabled={formLoading}>
-                  {formLoading ? 'Adding...' : 'Add Account'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <p className="text-destructive">{error}</p>
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <Alert variant="destructive" className="max-w-md w-full">
+          <AlertCircleIcon className="h-6 w-6 mr-2" />
+          <AlertTitle>Failed to load accounts</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button className="mt-6" onClick={fetchAccounts}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -207,6 +176,7 @@ export function AccountsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Accounts</h1>
+        <Toaster />
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleAddAccount}>
@@ -250,11 +220,11 @@ export function AccountsPage() {
                 />
               </div>
               {formError && (
-                  <Alert variant="destructive">
-                    <AlertCircleIcon className="h-4 w-4 mr-2" />
-                    <AlertTitle>Failed to add account.</AlertTitle>
-                    <AlertDescription>{formError}</AlertDescription>
-                  </Alert>
+                <Alert variant="destructive">
+                  <AlertCircleIcon className="h-4 w-4 mr-2" />
+                  <AlertTitle>Failed to add account.</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
               )}
             </div>
             <DialogFooter>
@@ -268,7 +238,7 @@ export function AccountsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       {accounts.length === 0 ? (
         <p className="text-muted-foreground">No accounts found. Add an account to get started.</p>
       ) : (

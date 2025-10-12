@@ -65,32 +65,32 @@ func (r *RiotClient) buildURL(region, endpoint string) string {
 	return fmt.Sprintf("https://%s.api.riotgames.com%s", region, endpoint)
 }
 
-func (r *RiotClient) makeRequest(url string) ([]byte, error) {
+func (r *RiotClient) makeRequest(url string) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(r.ctx, "GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, 400, err
 	}
 
 	resp, err := r.httpClient.Do(req)
 	// HTTP Error
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, err
+		return nil, 500, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, err
+		return nil, 500, err
 	}
 
 	// Non-200 Status Code
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
 		logging.Error(err.Error())
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
 
-	return body, nil
+	return body, resp.StatusCode, nil
 }
