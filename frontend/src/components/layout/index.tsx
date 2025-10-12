@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
 import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon } from 'lucide-react';
+import { Toaster } from 'sonner';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -102,9 +103,10 @@ export function Layout() {
         <header className="flex h-14 items-center gap-4 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-6" />
-          <h1 className="text-lg font-semibold">League of Legends Tracker</h1>
+          <h1 className="text-lg font-semibold">Page Title Here</h1>
         </header>
         <main className="flex-1 overflow-auto">
+          <Toaster theme='dark' />
           <Outlet />
         </main>
       </SidebarInset>
