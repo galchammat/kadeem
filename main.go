@@ -35,9 +35,10 @@ func main() {
 	riotHandler := riot.NewRiotClient(ctx, DB)
 
 	err = wails.Run(&options.App{
-		Title:  "kadeem",
-		Width:  1024,
-		Height: 768,
+		Title:       "kadeem",
+		Width:       1024,
+		Height:      768,
+		StartHidden: true, // start without showing the window
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

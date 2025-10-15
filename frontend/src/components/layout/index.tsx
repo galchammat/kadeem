@@ -22,6 +22,19 @@ import { Separator } from '@/components/ui/separator';
 import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon } from 'lucide-react';
 import { Toaster } from 'sonner';
 
+function getPageTitle(pathname: string) {
+  switch (pathname) {
+    case '/':
+      return 'Home';
+    case '/accounts':
+      return 'Accounts';
+    case '/matches':
+      return 'Matches';
+    default:
+      return 'Page';
+  }
+}
+
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,7 +83,7 @@ export function Layout() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        
+
         <SidebarFooter>
           <Accordion type="single" collapsible className="w-full px-2">
             <AccordionItem value="user-settings" className="border-0">
@@ -98,12 +111,12 @@ export function Layout() {
           </Accordion>
         </SidebarFooter>
       </Sidebar>
-      
+
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-4">
+        <header className="flex h-17 items-center gap-4 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-6" />
-          <h1 className="text-lg font-semibold">Page Title Here</h1>
+          <h1 className="text-3xl font-semibold">{getPageTitle(location.pathname)}</h1>
         </header>
         <main className="flex-1 overflow-auto">
           <Toaster theme='dark' />
