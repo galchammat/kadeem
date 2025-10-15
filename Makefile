@@ -18,3 +18,6 @@ migrate:
 # Usage: make migrate-create name=description_of_migration
 migrate-create:
 	migrate create -seq -digits 3 -dir ./migrations -ext sql ${name}
+
+migrate-force:
+	migrate -database "sqlite3://kadeem.db" -path ./migrations force ${version}

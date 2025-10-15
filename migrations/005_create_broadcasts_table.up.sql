@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS broadcasts (
+    id SERIAL PRIMARY KEY,
+    url VARCHAR(255) NOT NULL,
+    stream_id INTEGER REFERENCES streams(id) ON DELETE CASCADE,
+    started_at TIMESTAMP NOT NULL,
+    ended_at TIMESTAMP
+);
