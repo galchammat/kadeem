@@ -23,7 +23,7 @@ function StreamAccounts() {
             platform: 'twitch',
             channelName: 'tarzaned',
             channelId: '123782776',
-            lastStreamed: '2025-10-01T12:11:11Z',
+            lastStreamed: '3 days ago',
         }
     ]
     return (

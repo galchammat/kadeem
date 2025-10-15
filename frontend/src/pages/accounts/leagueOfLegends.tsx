@@ -251,7 +251,7 @@ export function LeagueOfLegendsAccounts() {
               className="border rounded-lg p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
-                <div className="space-y-1 flex-1">
+                <div className="space-y-1 flex-1 min-w-0">
                   <h3 className="font-semibold text-lg">
                     {account.gameName}
                     <span className="text-muted-foreground">#{account.tagLine}</span>
@@ -260,7 +260,7 @@ export function LeagueOfLegendsAccounts() {
                   {account.streamer && (
                     <p className="text-sm text-muted-foreground">Streamer: {account.streamer}</p>
                   )}
-                  <p className="text-xs text-muted-foreground font-mono mt-2 break-all">
+                  <p className="text-xs text-muted-foreground font-mono mt-2 truncate">
                     {account.puuid}
                   </p>
                 </div>
