@@ -1,7 +1,7 @@
 export function StreamersPage() {
   return (
     <div>
-        <h1>Streamers Page</h1>
+      <h1>Streamers Page</h1>
     </div>
   );
 }
