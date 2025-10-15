@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS streamers (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(30) NOT NULL
 )
