@@ -1,22 +1,31 @@
 package models
 
 type Streamer struct {
-	Name    string   `json:"name" db:"name"`
-	Streams []Stream `json:"streams,omitempty" db:"-"`
+	ID   int64  `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
 }
 
 type StreamID int64
 
 type Stream struct {
-	ID       StreamID
-	Platform string
-	Username string
-	Streamer string
+	ID          StreamID `db:"id"`
+	StreamerID  int64    `db:"streamer_id"`
+	Platform    string   `db:"platform"`
+	ChannelName string   `db:"channel_name"`
+	ChannelID   string   `db:"channel_id"`
 }
 
 type Broadcast struct {
-	ID        int64
-	StreamID  StreamID
-	StartTime int64
-	EndTime   int64
+	ID        int64    `db:"id"`
+	StreamID  StreamID `db:"stream_id"`
+	URL       string   `db:"url"`
+	StartedAt int64    `db:"started_at"`
+	EndedAt   int64    `db:"ended_at,omitempty"`
+}
+
+type StreamerView struct {
+	StreamerID   int64    `json:"id" db:"id"`
+	StreamerName string   `json:"name" db:"name"`
+	Streams      []Stream `json:"streams" db:"streams"`
+	LastLive     *int64   `json:"last_live,omitempty" db:"last_live"`
 }
