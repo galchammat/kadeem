@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"log/slog"
 
 	"github.com/joho/godotenv"
 	"github.com/wailsapp/wails/v2"
@@ -21,6 +22,13 @@ func init() {
 	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		logging.Warn("No .env file found or unable to load")
+	}
+
+	// Initialize logging with rotation
+	if err := logging.InitWithRotationFromEnv(slog.LevelDebug, "logs"); err != nil {
+		logging.Error("Failed to initialize logging with rotation", "error", err)
+	} else {
+		logging.Info("Logging initialized with rotation")
 	}
 }
 

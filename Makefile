@@ -21,3 +21,7 @@ migrate-create:
 
 migrate-force:
 	migrate -database "sqlite3://kadeem.db" -path ./migrations force ${version}
+
+fmt:
+	@echo "Formatting Go code..."
+	gofmt -w .
