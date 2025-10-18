@@ -13,10 +13,15 @@ import (
 var logger *slog.Logger
 
 func init() {
-	// sensible default: text handler, INFO level, stderr
-	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
-	logger = slog.New(h)
-	slog.SetDefault(logger)
+	// Initialize with rotation by default
+	if err := InitWithRotationFromEnv(slog.LevelDebug, "logs"); err != nil {
+		// Fallback to stderr if rotation setup fails
+		h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
+		logger = slog.New(h)
+		slog.SetDefault(logger)
+		// Note: we can't use the logger itself to log this error since we're in init
+		os.Stderr.WriteString("Warning: Failed to initialize logging with rotation, falling back to stderr: " + err.Error() + "\n")
+	}
 }
 
 // Init reconfigures the global logger; call once from main for want custom output/level.
