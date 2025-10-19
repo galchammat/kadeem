@@ -10,7 +10,7 @@ build:
 
 test-integration:
 	@echo "Running integration tests..."
-	RUN_INTEGRATION_TESTS=true go test -v -tags=integration ./tests/...
+	RUN_INTEGRATION_TESTS=true go test -v ./tests/...
 
 migrate:
 	go run cmd/migrate/main.go
