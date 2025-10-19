@@ -7,12 +7,12 @@ type Streamer struct {
 
 type StreamID int64
 
-type Stream struct {
+type Channel struct {
 	ID          StreamID `db:"id"`
 	StreamerID  int64    `db:"streamer_id"`
 	Platform    string   `db:"platform"`
-	ChannelName string   `db:"channel_name"`
-	ChannelID   string   `db:"channel_id"`
+	ChannelName string   `json:"display_name" db:"channel_name"`
+	ChannelID   string   `json:"id" db:"channel_id"`
 }
 
 type Broadcast struct {
@@ -24,8 +24,8 @@ type Broadcast struct {
 }
 
 type StreamerView struct {
-	StreamerID   int64    `json:"id" db:"id"`
-	StreamerName string   `json:"name" db:"name"`
-	Streams      []Stream `json:"streams" db:"streams"`
-	LastLive     *int64   `json:"last_live,omitempty" db:"last_live"`
+	StreamerID   int64     `json:"id" db:"id"`
+	StreamerName string    `json:"name" db:"name"`
+	Channels     []Channel `json:"streams" db:"streams"`
+	LastLive     *int64    `json:"last_live,omitempty" db:"last_live"`
 }

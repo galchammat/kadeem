@@ -6,6 +6,18 @@ import (
 	"github.com/galchammat/kadeem/internal/models"
 )
 
+func (db *DB) SaveStreamer(streamer models.Streamer) (bool, error) {
+	res, err := db.SQL.Exec(
+		`INSERT OR IGNORE INTO streamers (name) VALUES (?)`,
+		streamer.Name,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return (n != 0), nil
+}
+
 func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	var streamers []models.Streamer
 	rows, err := db.SQL.Query("SELECT id, name FROM streamers")
@@ -24,8 +36,8 @@ func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	return streamers, nil
 }
 
-func (db *DB) ListStreams(filter *models.Stream) ([]models.Stream, error) {
-	query := `SELECT * FROM streams`
+func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
+	query := `SELECT * FROM channels`
 	var where []string
 	var args []interface{}
 
@@ -60,9 +72,9 @@ func (db *DB) ListStreams(filter *models.Stream) ([]models.Stream, error) {
 	}
 	defer rows.Close()
 
-	var streams []models.Stream
+	var streams []models.Channel
 	for rows.Next() {
-		stream := models.Stream{}
+		stream := models.Channel{}
 		if err := rows.Scan(&stream.ID, &stream.StreamerID, &stream.Platform, &stream.ChannelName, &stream.ChannelID); err != nil {
 			return nil, err
 		}
@@ -74,10 +86,14 @@ func (db *DB) ListStreams(filter *models.Stream) ([]models.Stream, error) {
 	return streams, nil
 }
 
-func (db *DB) SaveStream(stream models.Stream) error {
-	_, err := db.SQL.Exec(
-		`INSERT INTO streams (streamer_id, platform, channel_name, channel_id) VALUES (?, ?, ?, ?)`,
-		stream.StreamerID, stream.Platform, stream.ChannelName, stream.ChannelID,
+func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
+	res, err := db.SQL.Exec(
+		`INSERT OR IGNORE INTO channels (streamer_id, platform, channel_name, channel_id) VALUES (?, ?, ?, ?)`,
+		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ChannelID,
 	)
-	return err
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return (n != 0), nil
 }

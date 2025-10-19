@@ -25,16 +25,16 @@ func NewStreamerClient(ctx context.Context, db database.DB) *StreamerClient {
 	}
 }
 
-func (c *StreamerClient) listBroadcastsByStream(stream models.Stream, limit int) ([]models.Broadcast, error) {
+func (c *StreamerClient) listBroadcastsByStream(stream models.Channel, limit int) ([]models.Broadcast, error) {
 	switch stream.Platform {
 	case "twitch":
 		{
 			return c.twitch.ListBroadcastsByStream(stream.ID, limit)
 		}
-	case "youtube":
-		{
-			return c.youtube.ListBroadcastsByStream(stream.ID, limit)
-		}
+	// case "youtube":
+	// 	{
+	// 		return c.youtube.ListBroadcastsByStream(stream.ID, limit)
+	// 	}
 	default:
 		{
 			return nil, fmt.Errorf("unsupported platform: %s", stream.Platform)
@@ -56,34 +56,31 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 			StreamerID:   streamer.ID,
 			StreamerName: streamer.Name,
 		}
-
-		streams, err := c.db.ListStreamsByStreamer(streamer.ID)
+		var lastLive int64
+		channels, err := c.db.ListChannels(&models.Channel{StreamerID: streamer.ID})
 		if err != nil {
-			logging.Error("Failed to list streams for streamer", "streamer_id", streamer.ID, "error", err)
+			logging.Error("Failed to list channels for streamer", "streamer_id", streamer.ID, "error", err)
 			return nil, err
 		}
 
-		for _, stream := range streams {
-			broadcasts, err := ListBroadcastsByStream(stream.ID, 1)
+		for _, channel := range channels {
+			broadcasts, err := c.listBroadcastsByStream(channel, 1)
 			if err != nil {
-				logging.Error("Failed to get latest broadcast", "stream_id", stream.ID, "error", err)
+				logging.Error("Failed to get latest broadcast", "channel_id", channel.ID, "error", err)
 				return nil, err
 			}
-			var latestBroadcast models.Broadcast
-			if len(broadcasts) == 0 {
-				latestBroadcast = models.Broadcast{}
-			} else {
-				latestBroadcast = broadcasts[0]
+			if (len(broadcasts) > 0) && broadcasts[0].StartedAt > lastLive {
+				lastLive = broadcasts[0].StartedAt
 			}
 
-			streamerView.Streams = append(streamerView.Streams, models.Stream{
-				ID:              stream.ID,
-				Platform:        stream.Platform,
-				ChannelName:     stream.ChannelName,
-				ChannelID:       stream.ChannelID,
-				LatestBroadcast: latestBroadcast,
+			streamerView.Channels = append(streamerView.Channels, models.Channel{
+				ID:          channel.ID,
+				Platform:    channel.Platform,
+				ChannelName: channel.ChannelName,
+				ChannelID:   channel.ChannelID,
 			})
 		}
+		streamerView.LastLive = &lastLive
 
 		streamerViews = append(streamerViews, streamerView)
 	}

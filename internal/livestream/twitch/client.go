@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	oauth2 "golang.org/x/oauth2/clientcredentials"
+	clientcredentials "golang.org/x/oauth2/clientcredentials"
 )
 
 type TwitchClient struct {
@@ -18,15 +18,29 @@ type TwitchClient struct {
 }
 
 func NewTwitchClient(ctx context.Context) *TwitchClient {
-	conf := &oauth2.Config{
-		ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
-		ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"),
+	clientID := os.Getenv("TWITCH_CLIENT_ID")
+	clientSecret := os.Getenv("TWITCH_CLIENT_SECRET")
+
+	conf := clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
 		TokenURL:     "https://id.twitch.tv/oauth2/token",
+	}
+
+	httpClient := conf.Client(ctx)
+
+	// ensure transport exists and wrap it to inject Client-ID header required by Twitch
+	if clientID != "" {
+		base := httpClient.Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		httpClient.Transport = &clientIDTransport{base: base, clientID: clientID}
 	}
 
 	return &TwitchClient{
 		ctx:        ctx,
-		httpClient: conf.Client(ctx),
+		httpClient: httpClient,
 		baseUrl:    "https://api.twitch.tv/helix",
 	}
 }
@@ -43,20 +57,18 @@ func (c *TwitchClient) makeRequest(endpoint string) ([]byte, int, error) {
 	}
 
 	resp, err := c.httpClient.Do(req)
-	// HTTP Error
 	if err != nil {
 		logging.Error(err.Error())
 		return nil, 500, err
 	}
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
 	if err != nil {
 		logging.Error(err.Error())
 		return nil, 500, err
 	}
 
-	// Non-200 Status Code
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
 		logging.Error(err.Error())
@@ -64,4 +76,17 @@ func (c *TwitchClient) makeRequest(endpoint string) ([]byte, int, error) {
 	}
 
 	return body, resp.StatusCode, nil
+}
+
+type clientIDTransport struct {
+	base     http.RoundTripper
+	clientID string
+}
+
+func (t *clientIDTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	if t.clientID != "" {
+		r.Header.Set("Client-ID", t.clientID)
+	}
+	return t.base.RoundTrip(r)
 }
