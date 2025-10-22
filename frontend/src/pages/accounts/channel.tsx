@@ -1,9 +1,24 @@
 import { TvMinimalPlay } from 'lucide-react';
 import Sectionheader from '@/components/sectionHeader';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { PencilIcon, TrashIcon } from 'lucide-react';
-import { Twitch, Youtube } from 'lucide-react';
-
+import { Twitch, Youtube, PlusIcon, AlertCircleIcon } from 'lucide-react';
+import { useState } from 'react';
+import { models } from '@wails/go/models';
+import { useStreamer } from '@/hooks/useStreamer';
+import ChannelForm from './channelForm';
 
 function getPlatformIcon(platform: string) {
     switch (platform) {
@@ -16,8 +31,23 @@ function getPlatformIcon(platform: string) {
     }
 }
 
+function Channels() {
+    const { selectedStreamer } = useStreamer();
+    if (selectedStreamer === null) {
+        return <p className="p-6 text-muted-foreground">No streamer selected.</p>;
+    }
 
-function StreamAccounts() {
+    const defaultChannelFormData: models.Channel = {
+        ID: 0,
+        StreamerID: selectedStreamer.id,
+        Platform: '',
+        ChannelName: '',
+        ChannelID: '',
+        AvatarURL: '',
+    }
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [formData, setFormData] = useState<models.Channel>(defaultChannelFormData)
+
     const accounts = [
         {
             platform: 'twitch',
@@ -30,6 +60,7 @@ function StreamAccounts() {
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
                 <Sectionheader title="Livestream" icon={<TvMinimalPlay size={32} />} />
+                <ChannelForm />
             </div>
             {
                 accounts.length === 0 ? (

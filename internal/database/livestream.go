@@ -75,7 +75,7 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 	var streams []models.Channel
 	for rows.Next() {
 		stream := models.Channel{}
-		if err := rows.Scan(&stream.ID, &stream.StreamerID, &stream.Platform, &stream.ChannelName, &stream.ChannelID); err != nil {
+		if err := rows.Scan(&stream.ID, &stream.StreamerID, &stream.Platform, &stream.ChannelName, &stream.ChannelID, &stream.AvatarURL); err != nil {
 			return nil, err
 		}
 		streams = append(streams, stream)
@@ -88,8 +88,8 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 
 func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
 	res, err := db.SQL.Exec(
-		`INSERT OR IGNORE INTO channels (streamer_id, platform, channel_name, channel_id) VALUES (?, ?, ?, ?)`,
-		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ChannelID,
+		`INSERT OR IGNORE INTO channels (streamer_id, platform, channel_name, channel_id, avatar_url) VALUES (?, ?, ?, ?, ?)`,
+		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ChannelID, channel.AvatarURL,
 	)
 	if err != nil {
 		return false, err

@@ -33,7 +33,7 @@ func testAddStreamer(t *testing.T) {
 	}
 }
 
-func testAddTwitchAccount(t *testing.T) {
+func testAddTwitchChannel(t *testing.T) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
 		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
 	}
@@ -44,7 +44,7 @@ func testAddTwitchAccount(t *testing.T) {
 		t.Fatal("Failed to connect to test database:", err)
 	}
 	defer db.SQL.Close()
-	client := livestream.NewStreamerClient(ctx, *db)
+	client := livestream.NewStreamerClient(ctx, db)
 
 	// get StreamerID
 	streamers, err := db.ListStreamers()
@@ -78,5 +78,5 @@ func testAddTwitchAccount(t *testing.T) {
 
 func TestStreamChannel(t *testing.T) {
 	t.Run("AddStreamer", testAddStreamer)
-	t.Run("AddTwitchAccountToStreamer", testAddTwitchAccount)
+	t.Run("AddTwitchChannelToStreamer", testAddTwitchChannel)
 }

@@ -1,17 +1,19 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react'
-import { type Streamer, Stream, Broadcast } from '@/wailsjs/go/models'
+import { models } from '@wails/go/models' 
+import { ListStreamersWithDetails, AddChannel } from '@wails/go/livestream/StreamerClient'
 
-type EntityContextType = {
-  streamers: Streamer[]
-  selectedEntity: Streamer | null
+type StreamerContextType = {
+  streamers: models.StreamerView[]
+  selectedStreamer: models.StreamerView | null
   loading: boolean
   error: string | null
   setSelectedStreamerName: (streamerName: string) => void
   isStreamerSelected: (streamerName: string) => boolean
   refetchStreamers: () => Promise<void>
+  addChannel: (channel: models.Channel) => Promise<boolean>
 }
 
-export const EntityContext = createContext<EntityContextType | undefined>(undefined)
+export const StreamerContext = createContext<StreamerContextType | undefined>(undefined)
 
 // LocalStorage helpers
 const SELECTED_STREAMER_KEY = 'kadeem:selectedStreamer'
@@ -32,9 +34,9 @@ const setStoredStreamer = (streamerName: string) => {
   }
 }
 
-export function EntityProvider({ children }: { children: ReactNode }) {
-  const [streamers, setStreamers] = useState<Streamer[]>([])
-  const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null)
+export function StreamerProvider({ children }: { children: ReactNode }) {
+  const [streamers, setStreamers] = useState<models.StreamerView[]>([])
+  const [selectedStreamer, setSelectedStreamer] = useState<models.StreamerView | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,33 +45,15 @@ export function EntityProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('http://localhost:8081/entities', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch entities: ${response.status}`)
-      }
-
-      const data = await response.json()
-      const transformedData: Streamer[] = data.map((item: any) => ({
-        Name: item.Name,
-        DisplayName: item.DisplayName,
-        Storage: item.Storage,
-        ItemCount: item.ItemCount,
-        Sources: item.Sources
-      }))
-      setStreamers(transformedData)
+      const data = await ListStreamersWithDetails()
+      setStreamers(data)
 
       // Auto-select streamer based on localStorage or default to first streamer
       const savedStreamerName = getStoredStreamer()
-      let streamerToSelect: Streamer | null = null
+      let streamerToSelect: models.StreamerView | null = null
 
       if (savedStreamerName) {
-        streamerToSelect = data.find((e: Streamer) => e.Name === savedStreamerName) || null
+        streamerToSelect = data.find((e: models.StreamerView) => e.name === savedStreamerName) || null
       }
 
       // If no saved streamer or saved streamer not found, select first streamer
@@ -79,7 +63,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
 
       if (streamerToSelect) {
         setSelectedStreamer(streamerToSelect)
-        setStoredStreamer(streamerToSelect.Name)
+        setStoredStreamer(streamerToSelect.name)
       }
 
     } catch (err) {
@@ -92,7 +76,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
   }
 
   const setSelectedStreamerName = (streamerName: string) => {
-    const streamer = streamers.find(e => e.Name === streamerName)
+    const streamer = streamers.find(e => e.name === streamerName)
     if (streamer) {
       setSelectedStreamer(streamer)
       setStoredStreamer(streamerName)
@@ -100,7 +84,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
   }
 
   const isStreamerSelected = (streamerName: string) => {
-    return selectedStreamer?.Name === streamerName
+    return selectedStreamer?.name === streamerName
   }
 
   // Fetch streamers on mount
@@ -109,16 +93,17 @@ export function EntityProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <EntityContext.Provider value={{
+    <StreamerContext.Provider value={{
       streamers,
       selectedStreamer,
       loading,
       error,
       setSelectedStreamerName,
       isStreamerSelected,
-      refetchStreamers: fetchStreamers
+      refetchStreamers: fetchStreamers,
+      addChannel: AddChannel,
     }}>
       {children}
-    </EntityContext.Provider>
+    </StreamerContext.Provider>
   )
 }

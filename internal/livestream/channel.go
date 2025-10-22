@@ -8,16 +8,16 @@ import (
 )
 
 func (c *StreamerClient) AddChannel(channelInput models.Channel) (bool, error) {
-	channels, err := c.db.ListChannels(&channelInput)
-	if err != nil {
-		errMessage := fmt.Errorf("failed to add channel while checking if channel already exists: %w", err)
-		logging.Error(errMessage.Error())
-		return false, errMessage
-	}
-	if len(channels) > 0 {
-		return false, nil
-	}
-
+	// channels, err := c.db.ListChannels(&channelInput)
+	// if err != nil {
+	// 	errMessage := fmt.Errorf("failed to add channel while checking if channel already exists: %w", err)
+	// 	logging.Error(errMessage.Error())
+	// 	return false, errMessage
+	// }
+	// if len(channels) > 0 {
+	// 	return false, nil
+	// }
+	var err error
 	var channel models.Channel
 	switch channelInput.Platform {
 	case "twitch":

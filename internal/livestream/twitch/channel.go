@@ -44,6 +44,7 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 				Platform:    "twitch",
 				ChannelName: ch.DisplayName,
 				ChannelID:   ch.ID,
+				AvatarURL:   ch.AvatarURL,
 			}
 			return result, nil
 		}

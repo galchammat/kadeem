@@ -10,6 +10,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"github.com/galchammat/kadeem/internal/database"
+	"github.com/galchammat/kadeem/internal/livestream"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/riot"
 )
@@ -33,6 +34,7 @@ func main() {
 		return
 	}
 	riotHandler := riot.NewRiotClient(ctx, DB)
+	livestreamHandler := livestream.NewStreamerClient(ctx, DB)
 
 	err = wails.Run(&options.App{
 		Title:       "kadeem",
@@ -51,6 +53,7 @@ func main() {
 		Bind: []interface{}{
 			app,
 			riotHandler,
+			livestreamHandler,
 		},
 	})
 
