@@ -8,11 +8,12 @@ type Streamer struct {
 type StreamID int64
 
 type Channel struct {
-	ID          StreamID `db:"id"`
-	StreamerID  int64    `db:"streamer_id"`
-	Platform    string   `db:"platform"`
-	ChannelName string   `json:"display_name" db:"channel_name"`
-	ChannelID   string   `json:"id" db:"channel_id"`
+	ID          StreamID `json:"id" db:"id"`
+	StreamerID  int64    `json:"streamerId" db:"streamer_id"`
+	Platform    string   `json:"platform" db:"platform"`
+	ChannelName string   `json:"channelName" db:"channel_name"`
+	ChannelID   string   `json:"channelId" db:"channel_id"`
+	AvatarURL   string   `json:"avatarUrl" db:"avatar_url"`
 }
 
 type Broadcast struct {
@@ -27,5 +28,6 @@ type StreamerView struct {
 	StreamerID   int64     `json:"id" db:"id"`
 	StreamerName string    `json:"name" db:"name"`
 	Channels     []Channel `json:"streams" db:"streams"`
-	LastLive     *int64    `json:"last_live,omitempty" db:"last_live"`
+	LastLive     *int64    `json:"lastLive,omitempty" db:"last_live"`
+	AvatarURL    *string   `json:"avatarUrl,omitempty" db:"avatar_url"`
 }

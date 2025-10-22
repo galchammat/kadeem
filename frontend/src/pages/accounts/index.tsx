@@ -1,11 +1,11 @@
 import { Separator } from "@/components/ui/separator";
 import LeagueOfLegendsAccounts from "./leagueOfLegends";
-import StreamAccounts from "./stream";
+import Channels from "./channel";
 
 export function AccountsPage() {
     return (
         <div>
-            <StreamAccounts />
+            <Channels />
             <Separator />
             <LeagueOfLegendsAccounts />
         </div>

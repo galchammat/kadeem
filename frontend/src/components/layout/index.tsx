@@ -19,7 +19,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
-import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon } from 'lucide-react';
+import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 function getPageTitle(pathname: string) {
@@ -30,6 +30,8 @@ function getPageTitle(pathname: string) {
       return 'Accounts';
     case '/matches':
       return 'Matches';
+    case '/streamers':
+      return 'Streamers';
     default:
       return 'Page';
   }
@@ -47,7 +49,7 @@ export function Layout() {
         <SidebarContent>
           <SidebarGroup>
             <div className="px-4 py-4">
-              <h2 className="text-lg font-semibold">Kadeem</h2>
+              <h2 className="text-lg font-semibold">K A D E E M</h2>
             </div>
             <Separator />
             <SidebarGroupContent className="pt-4">
@@ -85,6 +87,16 @@ export function Layout() {
         </SidebarContent>
 
         <SidebarFooter>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="justify-between"
+              onClick={() => navigate('/streamers')}
+              isActive={isActive('/streamers')}
+            >
+                <span>Tarzaned</span>
+                <ArrowLeftRight />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <Separator />
           <Accordion type="single" collapsible className="w-full px-2">
             <AccordionItem value="user-settings" className="border-0">
               <AccordionTrigger className="hover:no-underline">

@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS channels (
     streamer_id INTEGER REFERENCES streamers(id) ON DELETE CASCADE,
     platform VARCHAR(10) NOT NULL,
     channel_name VARCHAR(30) NOT NULL,
-    channel_id VARCHAR(30) UNIQUE NOT NULL
+    channel_id VARCHAR(30) UNIQUE NOT NULL,
+    avatar_url VARCHAR(255) NOT NULL
 )
