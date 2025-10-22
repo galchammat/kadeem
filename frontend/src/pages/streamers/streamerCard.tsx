@@ -12,10 +12,10 @@ type Props = {
 }
 
 export default function StreamerCard({ streamer, isActive, onSetActive }: Props) {
-  let avatarURL: string = "";
-  streamer.streams.forEach((stream) => {
-    if (stream.AvatarURL !== "") {
-      avatarURL = stream.AvatarURL;
+  let avatarUrl: string = "";
+  streamer.channels.forEach((channel) => {
+    if (channel.avatarUrl !== "") {
+      avatarUrl = channel.avatarUrl;
       return;
     }
   });
@@ -24,8 +24,8 @@ export default function StreamerCard({ streamer, isActive, onSetActive }: Props)
     <Card className="flex flex-row justify-between p-4">
       <CardHeader className="flex gap-4 p-0">
         <Avatar>
-            <AvatarImage src={avatarURL} />
-            <AvatarFallback>{streamer.name.charAt(0).toUpperCase()}</AvatarFallback>
+          <AvatarImage src={avatarUrl} />
+          <AvatarFallback>{streamer.name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 mt-1 flex-1">
           <CardTitle>{streamer.name}</CardTitle>
@@ -34,9 +34,9 @@ export default function StreamerCard({ streamer, isActive, onSetActive }: Props)
 
       <CardContent className="flex flex-row items-center justify-center p-0 gap-2">
         <div className="flex flex-wrap gap-1 justify-center">
-          {streamer.streams.map((stream) => (
-            <Badge key={stream.ID} variant="outline">
-              {stream.Platform === "twitch" ? <Twitch  /> : <Youtube className="inline-block mr-1 h-3 w-3" />}
+          {streamer.channels.map((channel) => (
+            <Badge key={channel.id} variant="outline">
+              {channel.platform === "twitch" ? <Twitch /> : <Youtube className="inline-block mr-1 h-3 w-3" />}
             </Badge>
           ))}
         </div>
