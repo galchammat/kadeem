@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import * as RiotClient from '../../../wailsjs/go/riot/RiotClient';
-import { models } from '../../../wailsjs/go/models';
+import * as RiotClient from '@wails/go/riot/RiotClient';
+import { models } from '@wails/go/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,9 +19,13 @@ import { toast } from 'sonner';
 import SectionHeader from '@/components/sectionHeader';
 import LeagueOfLegendsIcon from '@/components/icons/leagueOfLegends';
 import { type DialogMode } from '@/types';
+import { SkeletonCard } from '@/components/skeletonCard';
 
+type propTypes = {
+  streamerId: number;
+} 
 
-export default function LeagueOfLegendsAccounts() {
+export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export default function LeagueOfLegendsAccounts() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const filter = new models.LeagueOfLegendsAccount();
+      const filter = new models.LeagueOfLegendsAccount(streamerId=streamerId);
       const res = await RiotClient.ListAccounts(filter);
       setAccounts(res);
       setError(null);
@@ -109,7 +113,9 @@ export default function LeagueOfLegendsAccounts() {
     return (
       <div className="p-6">
         <SectionHeader title="League of Legends" icon={<LeagueOfLegendsIcon />} />
-        <p className="text-muted-foreground">Loading accounts...</p>
+        <div className="flex flex-row p-6">
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -146,7 +152,7 @@ export default function LeagueOfLegendsAccounts() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => (
-            <div key={account.puuid} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div key={account.puuid} className="border rounded-lg p-4 hover:shadow-md transition-shadow max-w-md">
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1 min-w-0">
                   <h3 className="font-semibold text-lg">
@@ -154,7 +160,6 @@ export default function LeagueOfLegendsAccounts() {
                     <span className="text-muted-foreground">#{account.tagLine}</span>
                   </h3>
                   <p className="text-sm text-muted-foreground">Region: {account.region}</p>
-                  {account.streamer && <p className="text-sm text-muted-foreground">Streamer: {account.streamer}</p>}
                   <p className="text-xs text-muted-foreground font-mono mt-2 truncate">{account.puuid}</p>
                 </div>
                 <div className="flex gap-2 ml-2">

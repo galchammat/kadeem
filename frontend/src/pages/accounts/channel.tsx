@@ -13,12 +13,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { PencilIcon, TrashIcon } from 'lucide-react';
 import { Twitch, Youtube, PlusIcon, AlertCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { models } from '@wails/go/models';
 import { type DialogMode } from '@/types';
 import { useStreamer } from '@/hooks/useStreamer';
+import { toast } from 'sonner';
 // import ChannelForm from './channelForm';
 
 function getPlatformIcon(platform: string) {
@@ -33,30 +35,99 @@ function getPlatformIcon(platform: string) {
 }
 
 function Channels() {
-  const { selectedStreamer, addChannel, loading } = useStreamer();
+  const { selectedStreamer, addChannel, updateChannel, deleteChannel, refetchStreamers, loading, error } = useStreamer();
   if (selectedStreamer === null) {
     return <p className="p-6 text-muted-foreground">No streamer selected.</p>;
   }
 
-  const defaultFormData: models.Channel = {
-    id: 0,
+  const defaultFormData: Partial<models.Channel> = {
     streamerId: selectedStreamer.id,
-    platform: '',
-    channelName: '',
-    channelId: '',
-    avatarUrl: '',
+    platform: 'twitch',
+    channelName: ''
   }
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
-  const [formData, setFormData] = useState<models.Channel>(defaultFormData);
+  const [formData, setFormData] = useState<Partial<models.Channel>>(defaultFormData);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+
+  const openDialog = (mode: DialogMode, a?: models.Channel) => {
+    if (mode === 'edit' && a) {
+      setFormData({
+        id: a.id,
+        streamerId: a.streamerId,
+        platform: a.platform,
+        channelName: a.channelName,
+      });
+    } else {
+      setFormData(defaultFormData);
+    }
+    setFormError(null);
+    setDialogMode(mode);
+  };
+  const closeDialog = () => setDialogMode(null);
+
+  const handleDelete = async (channelId: number) => {
+    if (!confirm('Are you sure you want to delete this channel?')) return;
+    try {
+      await deleteChannel(channelId);
+      await refetchStreamers();
+    } catch (err) {
+      alert(`Failed to delete channel: ${err}`);
+    }
+  };
+
+  const submit = async () => {
+    if (!formData.channelName || !formData.platform || (dialogMode === 'edit' && !formData.id)) {
+      setFormError('All fields are required');
+      return;
+    }
+    setFormLoading(true);
+    setFormError(null);
+
+    try {
+      if (dialogMode === 'add') {
+        await addChannel(formData as models.Channel);
+        toast('Added channel', { description: `${formData.channelName} ${formData.platform}` });
+      } else if (dialogMode === 'edit') {
+        await updateChannel(formData as models.Channel);
+        toast('Updated channel', { description: `${formData.channelName} ${formData.platform}` });
+      }
+      closeDialog();
+      await refetchStreamers();
+    } catch (err) {
+      setFormError(String(err));
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <Alert variant="destructive" className="max-w-md w-full">
+          <AlertCircleIcon className="h-6 w-6 mr-2" />
+          <AlertTitle>Failed to load channels</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button className="mt-6" onClick={refetchStreamers}>Retry</Button>
+      </div>
+    );
+  } else if (loading) {
+    return (
+      <div className="flex items-center gap-6">
+        <Spinner className="size-6 text-red-500" />
+        <span>Loading Streamers ...</span>
+        <Spinner className="size-6 text-purple-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <Sectionheader title="Livestream" icon={<TvMinimalPlay size={32} />} />
+        <Sectionheader title="Livestream Channels" icon={<TvMinimalPlay size={32} />} />
         <Dialog open={dialogMode === 'add'} onOpenChange={(open) => { if (!open) closeDialog(); }}>
           <DialogTrigger asChild>
             <Button onClick={() => openDialog('add')}>
@@ -67,14 +138,14 @@ function Channels() {
         </Dialog>
       </div>
       {
-        selectedStreamer.channels.length === 0 ? (
-          <p className="text-muted-foreground">No accounts found. Add an account to get started.</p>
+        !selectedStreamer.channels || selectedStreamer.channels.length === 0 ? (
+          <p className="text-muted-foreground">No channels found. Add a channel to get started.</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {selectedStreamer.channels.map((channel) => (
               <div
                 key={channel.channelId}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow max-w-md"
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
@@ -88,10 +159,10 @@ function Channels() {
                     </p>
                   </div>
                   <div className="flex gap-2 ml-2">
-                    <Button variant="ghost" size="icon" onClick={() => openDialog('edit', account)} className="h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={() => openDialog('edit', channel)} className="h-8 w-8">
                       <PencilIcon className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(account.puuid)} className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(channel.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                       <TrashIcon className="h-4 w-4" />
                     </Button>
                   </div>
