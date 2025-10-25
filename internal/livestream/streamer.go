@@ -76,3 +76,15 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 	}
 	return streamerViews, nil
 }
+
+func (c *StreamerClient) AddStreamer(name string) (bool, error) {
+	streamer := models.Streamer{
+		Name: name,
+	}
+	saved, err := c.db.SaveStreamer(streamer)
+	if err != nil {
+		logging.Error("Failed to add streamer", "error", err)
+		return saved, err
+	}
+	return saved, nil
+}
