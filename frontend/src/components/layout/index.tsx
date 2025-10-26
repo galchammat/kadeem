@@ -19,8 +19,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
-import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight } from 'lucide-react';
+import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight, Moon, SunIcon, MoonIcon } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { useStreamer } from '@/hooks/useStreamer';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Switch } from '../ui/switch';
+import { useTheme } from '@/components/themeProvider';
 
 function getPageTitle(pathname: string) {
   switch (pathname) {
@@ -38,6 +42,8 @@ function getPageTitle(pathname: string) {
 }
 
 export function Layout() {
+  const { theme, setTheme } = useTheme()
+  const { selectedStreamer } = useStreamer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -92,17 +98,23 @@ export function Layout() {
               onClick={() => navigate('/streamers')}
               isActive={isActive('/streamers')}
             >
-                <span>Tarzaned</span>
-                <ArrowLeftRight />
+              <div className="flex flex-row items-center gap-2">
+                <Avatar>
+                  <AvatarImage src={selectedStreamer?.avatarUrl} />
+                  <AvatarFallback>{selectedStreamer?.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span>{selectedStreamer?.name}</span>
+              </div>
+              <ArrowLeftRight />
             </SidebarMenuButton>
           </SidebarMenuItem>
           <Separator />
           <Accordion type="single" collapsible className="w-full px-2">
             <AccordionItem value="user-settings" className="border-0">
               <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <UserIcon className="h-4 w-4" />
-                  <span className="text-sm">User Profile</span>
+                <div className="flex flex-row items-center gap-2">
+                  <UserIcon />
+                  <span>yog404</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -118,6 +130,11 @@ export function Layout() {
                     <span>Logout</span>
                   </button>
                 </div>
+                <div className="flex flex-row space-y-1 pl-8 py-2 gap-1 w-full">
+                  <MoonIcon className="h-4 w-4" />
+                  <Switch id="dark-mode" checked={theme === 'light'} onCheckedChange={(checked: boolean) => { setTheme(checked ? 'light' : 'dark') }} />
+                  <SunIcon className="h-4 w-4" />
+                </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -131,7 +148,7 @@ export function Layout() {
           <h1 className="text-3xl font-semibold">{getPageTitle(location.pathname)}</h1>
         </header>
         <main className="flex-1 overflow-auto">
-          <Toaster theme='dark' />
+          <Toaster theme='dark' position="top-center" richColors={true} />
           <Outlet />
         </main>
       </SidebarInset>
