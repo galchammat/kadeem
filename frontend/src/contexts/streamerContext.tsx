@@ -1,6 +1,13 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react'
 import { models } from '@wails/go/models'
-import { ListStreamersWithDetails, AddChannel, AddStreamer, DeleteStreamer } from '@wails/go/livestream/StreamerClient'
+import {
+  ListStreamersWithDetails,
+  AddChannel,
+  DeleteChannel,
+  AddStreamer,
+  DeleteStreamer
+
+} from '@wails/go/livestream/StreamerClient'
 
 type StreamerContextType = {
   streamers: models.StreamerView[]
@@ -112,7 +119,7 @@ export function StreamerProvider({ children }: { children: ReactNode }) {
       refetchStreamers: fetchStreamers,
       addChannel: AddChannel,
       updateChannel: async (channel: models.Channel) => { return Promise.resolve(true) },
-      deleteChannel: async (id: number) => { return Promise.resolve(true) }, // Placeholder
+      deleteChannel: DeleteChannel,
       addStreamer: AddStreamer,
       deleteStreamer: DeleteStreamer,
     }}>
