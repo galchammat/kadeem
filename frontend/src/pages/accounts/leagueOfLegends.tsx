@@ -23,7 +23,7 @@ import { SkeletonCard } from '@/components/skeletonCard';
 
 type propTypes = {
   streamerId: number;
-} 
+}
 
 export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
@@ -42,7 +42,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const filter = new models.LeagueOfLegendsAccount(streamerId=streamerId);
+      const filter = new models.LeagueOfLegendsAccount(streamerId = streamerId);
       const res = await RiotClient.ListAccounts(filter);
       setAccounts(res);
       setError(null);
@@ -94,7 +94,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
 
     try {
       if (dialogMode === 'add') {
-        await RiotClient.AddAccount(formData.region, formData.gameName, formData.tagLine);
+        await RiotClient.AddAccount(formData.region, formData.gameName, formData.tagLine, streamerId);
         toast('Added account', { description: `${formData.gameName}#${formData.tagLine} ${formData.region}` });
       } else if (dialogMode === 'edit') {
         await RiotClient.UpdateAccount(formData.region, formData.gameName, formData.tagLine, formData.puuid);

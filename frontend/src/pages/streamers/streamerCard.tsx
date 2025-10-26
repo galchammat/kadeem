@@ -9,24 +9,15 @@ type Props = {
   streamer: models.StreamerView
   isActive?: boolean
   onSetActive: (id: string) => void
+  onDelete: (name: string) => Promise<boolean>;
 }
 
-export default function StreamerCard({ streamer, isActive, onSetActive }: Props) {
-  let avatarUrl: string = "";
-  if (streamer.channels && streamer.channels.length > 0) {
-    streamer.channels.forEach((channel) => {
-      if (channel.avatarUrl !== "") {
-        avatarUrl = channel.avatarUrl;
-        return;
-      }
-    });
-  }
-
+export default function StreamerCard({ streamer, isActive, onSetActive, onDelete }: Props) {
   return (
     <Card className="flex flex-row justify-between p-4">
       <CardHeader className="flex gap-4 p-0">
         <Avatar>
-          <AvatarImage src={avatarUrl} />
+          <AvatarImage src={streamer.avatarUrl} />
           <AvatarFallback>{streamer.name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 mt-1 flex-1">
@@ -53,7 +44,7 @@ export default function StreamerCard({ streamer, isActive, onSetActive }: Props)
         >
           {isActive ? "Active" : "Set active"}
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => { }} className="h-8 w-8 text-destructive hover:text-destructive">
+        <Button variant="ghost" size="icon" onClick={() => onDelete(streamer.name)} className="h-8 w-8 text-destructive hover:text-destructive">
           <TrashIcon className="h-4 w-4" />
         </Button>
       </CardFooter>

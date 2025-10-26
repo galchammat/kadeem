@@ -18,6 +18,18 @@ func (db *DB) SaveStreamer(streamer models.Streamer) (bool, error) {
 	return (n != 0), nil
 }
 
+func (db *DB) DeleteStreamer(name string) (bool, error) {
+	res, err := db.SQL.Exec(
+		`DELETE FROM streamers WHERE name = ?`,
+		name,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return (n != 0), nil
+}
+
 func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	var streamers []models.Streamer
 	rows, err := db.SQL.Query("SELECT id, name FROM streamers")

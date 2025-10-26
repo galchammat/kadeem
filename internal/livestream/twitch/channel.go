@@ -34,7 +34,7 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 	}
 
 	if len(ChannelSearchResult.Data) == 0 {
-		return models.Channel{}, fmt.Errorf("no channel found for query %q", query)
+		return models.Channel{}, fmt.Errorf("no twitch channel named %q was found", query)
 	}
 
 	for _, ch := range ChannelSearchResult.Data {

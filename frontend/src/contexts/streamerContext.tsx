@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react'
 import { models } from '@wails/go/models'
-import { ListStreamersWithDetails, AddChannel, AddStreamer } from '@wails/go/livestream/StreamerClient'
+import { ListStreamersWithDetails, AddChannel, AddStreamer, DeleteStreamer } from '@wails/go/livestream/StreamerClient'
 
 type StreamerContextType = {
   streamers: models.StreamerView[]
@@ -14,6 +14,7 @@ type StreamerContextType = {
   updateChannel: (channel: models.Channel) => Promise<boolean>
   deleteChannel: (id: number) => Promise<boolean>
   addStreamer: (streamerName: string) => Promise<boolean>
+  deleteStreamer: (streamerName: string) => Promise<boolean>
 }
 
 export const StreamerContext = createContext<StreamerContextType | undefined>(undefined)
@@ -49,7 +50,9 @@ export function StreamerProvider({ children }: { children: ReactNode }) {
       setError(null)
 
       const data = await ListStreamersWithDetails()
-      if (!data || data.length === 0) {
+      if (!data) {
+        setStreamers([])
+        setSelectedStreamer(null)
         return
       }
       setStreamers(data)
@@ -110,7 +113,8 @@ export function StreamerProvider({ children }: { children: ReactNode }) {
       addChannel: AddChannel,
       updateChannel: async (channel: models.Channel) => { return Promise.resolve(true) },
       deleteChannel: async (id: number) => { return Promise.resolve(true) }, // Placeholder
-      addStreamer: AddStreamer
+      addStreamer: AddStreamer,
+      deleteStreamer: DeleteStreamer,
     }}>
       {children}
     </StreamerContext.Provider>

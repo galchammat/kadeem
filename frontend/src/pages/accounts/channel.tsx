@@ -139,7 +139,7 @@ function Channels() {
       </div>
       {
         !selectedStreamer.channels || selectedStreamer.channels.length === 0 ? (
-          <p className="text-muted-foreground">No channels found. Add a channel to get started.</p>
+          <p className="text-muted-foreground">{`No channels found for ${selectedStreamer.name}. Add a channel to get started.`}</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {selectedStreamer.channels.map((channel) => (
