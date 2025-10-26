@@ -25,24 +25,27 @@ type propTypes = {
   streamerId: number;
 }
 
+const defaultAccount = {
+  puuid: '',
+  gameName: '',
+  tagLine: '',
+  region: '',
+}
+
 export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
-  const [formData, setFormData] = useState<models.LeagueOfLegendsAccount>({
-    puuid: '',
-    gameName: '',
-    tagLine: '',
-    region: '',
-  });
+  const [formData, setFormData] = useState<models.LeagueOfLegendsAccount>(defaultAccount);
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const filter = new models.LeagueOfLegendsAccount(streamerId = streamerId);
+      const filter: models.LeagueOfLegendsAccount = { streamerId: streamerId, ...defaultAccount };
+      console.log('Fetching LoL accounts with filter:', filter);
       const res = await RiotClient.ListAccounts(filter);
       setAccounts(res);
       setError(null);
@@ -150,7 +153,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
       {accounts.length === 0 ? (
         <p className="text-muted-foreground">No accounts found. Add an account to get started.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
           {accounts.map((account) => (
             <div key={account.puuid} className="border rounded-lg p-4 hover:shadow-md transition-shadow max-w-md">
               <div className="flex items-start justify-between">

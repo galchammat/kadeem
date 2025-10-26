@@ -109,3 +109,15 @@ func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
 	n, _ := res.RowsAffected()
 	return (n != 0), nil
 }
+
+func (db *DB) DeleteChannel(channelId int) (bool, error) {
+	res, err := db.SQL.Exec(
+		`DELETE FROM channels WHERE id = ?`,
+		channelId,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return (n != 0), nil
+}

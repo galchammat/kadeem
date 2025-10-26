@@ -3,6 +3,7 @@ package database
 import (
 	"strings"
 
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
 
@@ -10,10 +11,10 @@ import (
 func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
 	query := `
         INSERT OR REPLACE INTO league_of_legends_accounts 
-        (puuid, tag_line, game_name, region) 
-        VALUES (?, ?, ?, ?)`
+        (puuid, streamer_id, tag_line, game_name, region) 
+        VALUES (?, ?, ?, ?, ?)`
 
-	_, err := db.SQL.Exec(query, account.PUUID, account.TagLine, account.GameName, account.Region)
+	_, err := db.SQL.Exec(query, account.PUUID, account.StreamerID, account.TagLine, account.GameName, account.Region)
 	return err
 }
 
@@ -34,7 +35,7 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts`
 	var where []string
 	var args []interface{}
-
+	logging.Debug("Listing Riot accounts with filter", "filter", filter)
 	if filter != nil && filter.PUUID != "" {
 		where = append(where, "puuid = ?")
 		args = append(args, filter.PUUID)
@@ -50,6 +51,10 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	if filter != nil && filter.Region != "" {
 		where = append(where, "region = ?")
 		args = append(args, filter.Region)
+	}
+	if filter != nil && filter.StreamerID != 0 {
+		where = append(where, "streamer_id = ?")
+		args = append(args, filter.StreamerID)
 	}
 
 	if len(where) > 0 {
