@@ -21,6 +21,7 @@ import { models } from '@wails/go/models';
 import { type DialogMode } from '@/types';
 import { useStreamer } from '@/hooks/useStreamer';
 import { toast } from 'sonner';
+import { useConfirm } from '@/components/confirmDialog';
 // import ChannelForm from './channelForm';
 
 function getPlatformIcon(platform: string) {
@@ -51,6 +52,8 @@ function Channels() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
 
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const openDialog = (mode: DialogMode, a?: models.Channel) => {
     if (mode === 'edit' && a) {
       setFormData({
@@ -68,7 +71,11 @@ function Channels() {
   const closeDialog = () => setDialogMode(null);
 
   const handleDelete = async (channelId: number) => {
-    if (!confirm('Are you sure you want to delete this channel?')) return;
+    const ok = await confirm({
+      title: "Delete channel?",
+      description: "Deleting a channel will permanently delete all associated broadcast data including vods managed by this app."
+    });
+    if (!ok) return;
     try {
       await deleteChannel(channelId);
       await refetchStreamers();
@@ -137,6 +144,7 @@ function Channels() {
           {/* empty DialogContent here because form is shared below in single dialog */}
         </Dialog>
       </div>
+      {ConfirmDialog}
       {
         !selectedStreamer.channels || selectedStreamer.channels.length === 0 ? (
           <p className="text-muted-foreground">{`No channels found for ${selectedStreamer.name}. Add a channel to get started.`}</p>
@@ -196,7 +204,7 @@ function Channels() {
             {formError && (
               <Alert variant="destructive">
                 <AlertCircleIcon className="h-4 w-4 mr-2" />
-                <AlertTitle>{dialogMode === 'add' ? 'Failed to add account.' : 'Failed to update account.'}</AlertTitle>
+                <AlertTitle>{dialogMode === 'add' ? 'Failed to add channel.' : 'Failed to update channel.'}</AlertTitle>
                 <AlertDescription>{formError}</AlertDescription>
               </Alert>
             )}
@@ -205,7 +213,7 @@ function Channels() {
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
             <Button onClick={submit} disabled={formLoading}>
-              {formLoading ? (dialogMode === 'add' ? 'Adding...' : 'Updating...') : (dialogMode === 'add' ? 'Add Account' : 'Update Account')}
+              {formLoading ? (dialogMode === 'add' ? 'Adding...' : 'Updating...') : (dialogMode === 'add' ? 'Add Channel' : 'Update Channel')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -20,6 +20,7 @@ import SectionHeader from '@/components/sectionHeader';
 import LeagueOfLegendsIcon from '@/components/icons/leagueOfLegends';
 import { type DialogMode } from '@/types';
 import { SkeletonCard } from '@/components/skeletonCard';
+import { useConfirm } from '@/components/confirmDialog';
 
 type propTypes = {
   streamerId: number;
@@ -40,6 +41,8 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const [formData, setFormData] = useState<models.LeagueOfLegendsAccount>(defaultAccount);
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const fetchAccounts = async () => {
     try {
@@ -78,7 +81,12 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const closeDialog = () => setDialogMode(null);
 
   const handleDelete = async (puuid: string) => {
-    if (!confirm('Are you sure you want to delete this account?')) return;
+    if (! await confirm({
+      title: 'Delete account?',
+      description: 'Are you sure you want to delete this League of Legends account? This will permanently delete all associated match data.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+    })) return;
     try {
       await RiotClient.DeleteAccount(puuid);
       await fetchAccounts();
@@ -149,6 +157,8 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
           {/* empty DialogContent here because form is shared below in single dialog */}
         </Dialog>
       </div>
+
+      {ConfirmDialog}
 
       {accounts.length === 0 ? (
         <p className="text-muted-foreground">No accounts found. Add an account to get started.</p>
