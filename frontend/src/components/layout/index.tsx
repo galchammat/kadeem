@@ -19,7 +19,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
-import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight, Moon, SunIcon, MoonIcon } from 'lucide-react';
+import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight, SunIcon, MoonIcon } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { useStreamer } from '@/hooks/useStreamer';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';

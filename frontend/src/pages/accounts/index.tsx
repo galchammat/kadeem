@@ -5,6 +5,7 @@ import { useStreamer } from "@/hooks/useStreamer";
 import { AlertCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
+import StreamerTimeline from "./timeline";
 
 export function AccountsPage() {
   const { selectedStreamer } = useStreamer();
@@ -30,6 +31,8 @@ export function AccountsPage() {
       <Channels />
       <Separator />
       <LeagueOfLegendsAccounts streamerId={selectedStreamer.id} />
+      <Separator />
+      <StreamerTimeline />
     </div>
   );
 }
