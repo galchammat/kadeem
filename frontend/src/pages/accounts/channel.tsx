@@ -36,7 +36,7 @@ function getPlatformIcon(platform: string) {
 }
 
 function Channels() {
-  const { selectedStreamer, addChannel, updateChannel, deleteChannel, refetchStreamers, loading, error } = useStreamer();
+  const { selectedStreamer, addChannel, deleteChannel, refetchStreamers, loading, error } = useStreamer();
   if (selectedStreamer === null) {
     return <p className="p-6 text-muted-foreground">No streamer selected.</p>;
   }
@@ -56,13 +56,6 @@ function Channels() {
 
   const openDialog = (mode: DialogMode, a?: models.Channel) => {
     if (mode === 'edit' && a) {
-      setFormData({
-        id: a.id,
-        streamerId: a.streamerId,
-        platform: a.platform,
-        channelName: a.channelName,
-      });
-    } else {
       setFormData(defaultFormData);
     }
     setFormError(null);
@@ -85,7 +78,7 @@ function Channels() {
   };
 
   const submit = async () => {
-    if (!formData.channelName || !formData.platform || (dialogMode === 'edit' && !formData.id)) {
+    if (!formData.channelName || !formData.platform) {
       setFormError('All fields are required');
       return;
     }
@@ -96,9 +89,6 @@ function Channels() {
       if (dialogMode === 'add') {
         await addChannel(formData as models.Channel);
         toast('Added channel', { description: `${formData.channelName} ${formData.platform}` });
-      } else if (dialogMode === 'edit') {
-        await updateChannel(formData as models.Channel);
-        toast('Updated channel', { description: `${formData.channelName} ${formData.platform}` });
       }
       closeDialog();
       await refetchStreamers();
@@ -167,9 +157,6 @@ function Channels() {
                     </p>
                   </div>
                   <div className="flex gap-2 ml-2">
-                    <Button variant="ghost" size="icon" onClick={() => openDialog('edit', channel)} className="h-8 w-8">
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(channel.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                       <TrashIcon className="h-4 w-4" />
                     </Button>
@@ -179,11 +166,11 @@ function Channels() {
             ))}
           </div>
         )}
-      {/* Shared dialog for add/edit */}
+      {/* Dialog for add */}
       <Dialog open={dialogMode !== null} onOpenChange={(open) => { if (!open) closeDialog(); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{dialogMode === 'add' ? 'Add New Channel' : 'Edit Channel'}</DialogTitle>
+            <DialogTitle>{dialogMode === 'add' ? 'Add New Channel' : ''}</DialogTitle>
             <DialogDescription>
               {dialogMode === 'add'
                 ? 'Enter the channel details. The channel will be validated with the selected platform.'
