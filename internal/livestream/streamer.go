@@ -76,3 +76,24 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 	}
 	return streamerViews, nil
 }
+
+func (c *StreamerClient) AddStreamer(name string) (bool, error) {
+	streamer := models.Streamer{
+		Name: name,
+	}
+	saved, err := c.db.SaveStreamer(streamer)
+	if err != nil {
+		logging.Error("Failed to add streamer", "error", err)
+		return saved, err
+	}
+	return saved, nil
+}
+
+func (c *StreamerClient) DeleteStreamer(name string) (bool, error) {
+	deleted, err := c.db.DeleteStreamer(name)
+	if err != nil {
+		logging.Error("Failed to delete streamer", "error", err)
+		return deleted, err
+	}
+	return deleted, nil
+}

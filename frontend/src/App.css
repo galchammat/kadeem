@@ -118,3 +118,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Prevent text selection and force default cursor on static elements */
+.nocaret, h1, h2, h3, h4, h5, h6, p, span, div {
+  user-select: none;       /* Prevents text selection */
+  cursor: default;         /* Prevents text cursor */
+}
+
+/* Make sure input fields and textareas are still selectable */
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+  cursor: text;
+}

@@ -1,6 +1,13 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react'
-import { models } from '@wails/go/models' 
-import { ListStreamersWithDetails, AddChannel } from '@wails/go/livestream/StreamerClient'
+import { models } from '@wails/go/models'
+import {
+  ListStreamersWithDetails,
+  AddChannel,
+  DeleteChannel,
+  AddStreamer,
+  DeleteStreamer
+
+} from '@wails/go/livestream/StreamerClient'
 
 type StreamerContextType = {
   streamers: models.StreamerView[]
@@ -11,6 +18,10 @@ type StreamerContextType = {
   isStreamerSelected: (streamerName: string) => boolean
   refetchStreamers: () => Promise<void>
   addChannel: (channel: models.Channel) => Promise<boolean>
+  updateChannel: (channel: models.Channel) => Promise<boolean>
+  deleteChannel: (id: number) => Promise<boolean>
+  addStreamer: (streamerName: string) => Promise<boolean>
+  deleteStreamer: (streamerName: string) => Promise<boolean>
 }
 
 export const StreamerContext = createContext<StreamerContextType | undefined>(undefined)
@@ -46,6 +57,11 @@ export function StreamerProvider({ children }: { children: ReactNode }) {
       setError(null)
 
       const data = await ListStreamersWithDetails()
+      if (!data) {
+        setStreamers([])
+        setSelectedStreamer(null)
+        return
+      }
       setStreamers(data)
 
       // Auto-select streamer based on localStorage or default to first streamer
@@ -102,6 +118,10 @@ export function StreamerProvider({ children }: { children: ReactNode }) {
       isStreamerSelected,
       refetchStreamers: fetchStreamers,
       addChannel: AddChannel,
+      updateChannel: async (channel: models.Channel) => { return Promise.resolve(true) },
+      deleteChannel: DeleteChannel,
+      addStreamer: AddStreamer,
+      deleteStreamer: DeleteStreamer,
     }}>
       {children}
     </StreamerContext.Provider>

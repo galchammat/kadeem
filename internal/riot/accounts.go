@@ -9,7 +9,7 @@ import (
 	"github.com/galchammat/kadeem/internal/models"
 )
 
-func (r *RiotClient) AddAccount(region, gameName, tagLine string) error {
+func (r *RiotClient) AddAccount(region, gameName, tagLine string, streamerID int) error {
 	var account models.LeagueOfLegendsAccount
 	if gameName == "" || tagLine == "" || region == "" {
 		err := fmt.Errorf("gameName, tagLine, and region cannot be empty")
@@ -37,6 +37,7 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string) error {
 		return err
 	}
 	account.Region = region
+	account.StreamerID = streamerID
 	if err := r.db.SaveRiotAccount(&account); err != nil {
 		logging.Error("Failed to save Riot account: %v", err)
 		return err

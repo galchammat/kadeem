@@ -27,7 +27,7 @@ type Broadcast struct {
 type StreamerView struct {
 	StreamerID   int64     `json:"id" db:"id"`
 	StreamerName string    `json:"name" db:"name"`
-	Channels     []Channel `json:"streams" db:"streams"`
+	Channels     []Channel `json:"channels" db:"streams"`
 	LastLive     *int64    `json:"lastLive,omitempty" db:"last_live"`
 	AvatarURL    *string   `json:"avatarUrl,omitempty" db:"avatar_url"`
 }
