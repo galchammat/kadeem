@@ -1,8 +1,10 @@
+import { models } from "@wails/go/models";
+import { SpanChart } from "@/components/charts/spanChart"
 
-function StreamerTimeline() {
+function StreamerTimeline({ channels, LeagueOfLegendsAccounts }: { channels: models.Channel[], LeagueOfLegendsAccounts: models.LeagueOfLegendsAccount[] }) {
     return (
         <div className="p-6">
-            <h2>Streamer Timeline</h2>
+            <SpanChart />
             {/* Timeline content goes here */}
         </div>
     );
