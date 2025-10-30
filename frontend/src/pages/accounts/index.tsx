@@ -32,7 +32,7 @@ export function AccountsPage() {
       <Separator />
       <LeagueOfLegendsAccounts streamerId={selectedStreamer.id} />
       <Separator />
-      <StreamerTimeline />
+      <StreamerTimeline channels={[]} LeagueOfLegendsAccounts={[]} />
     </div>
   );
 }
