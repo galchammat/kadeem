@@ -63,7 +63,7 @@ function Channels() {
   };
   const closeDialog = () => setDialogMode(null);
 
-  const handleDelete = async (channelId: number) => {
+  const handleDelete = async (channelId: string) => {
     const ok = await confirm({
       title: "Delete channel?",
       description: "Deleting a channel will permanently delete all associated broadcast data including vods managed by this app."
@@ -142,14 +142,14 @@ function Channels() {
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
             {selectedStreamer.channels.map((channel) => (
               <div
-                key={channel.channelId}
+                key={channel.id}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow max-w-md"
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
                     <h3 className="font-semibold text-lg">
                       {channel.channelName}
-                      <span className="text-muted-foreground">#{channel.channelId}</span>
+                      <span className="text-muted-foreground">#{channel.id}</span>
                     </h3>
                     <p className="flex flex-row gap-2 text-sm text-muted-foreground">Platform: {channel.platform} {getPlatformIcon(channel.platform)}</p>
                     <p className="text-xs text-muted-foreground font-mono mt-2 break-all">

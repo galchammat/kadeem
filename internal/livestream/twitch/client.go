@@ -2,12 +2,15 @@ package twitch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	"github.com/galchammat/kadeem/internal/logging"
+	"github.com/galchammat/kadeem/internal/models"
+
 	clientcredentials "golang.org/x/oauth2/clientcredentials"
 )
 
@@ -49,33 +52,39 @@ func (c *TwitchClient) buildURL(endpoint string) string {
 	return fmt.Sprintf("%s%s", c.baseUrl, endpoint)
 }
 
-func (c *TwitchClient) makeRequest(endpoint string) ([]byte, int, error) {
+func (c *TwitchClient) makeRequest(endpoint string) (*models.TwitchResponse, error) {
 	url := c.buildURL(endpoint)
 	req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
 	if err != nil {
-		return nil, 400, err
+		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, 500, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, 500, err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
 		logging.Error(err.Error())
-		return nil, resp.StatusCode, err
+		return nil, err
 	}
 
-	return body, resp.StatusCode, nil
+	var response models.TwitchResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		logging.Error("Failed to unmarshal Twitch response", "error", err)
+		return nil, err
+	}
+
+	return &response, nil
 }
 
 type clientIDTransport struct {

@@ -8,6 +8,7 @@ import (
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/livestream"
 	"github.com/galchammat/kadeem/internal/models"
+
 	"github.com/stretchr/testify/assert"
 )
 

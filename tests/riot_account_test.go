@@ -48,7 +48,7 @@ func testAddRiotAccount(t *testing.T) {
 	gameName := "the thirsty rock"
 	tagLine := "NA1"
 	riotClient := riot.NewRiotClient(ctx, db)
-	err = riotClient.AddAccount(region, gameName, tagLine)
+	err = riotClient.AddAccount(region, gameName, tagLine, 0)
 	if err != nil {
 		t.Fatalf("Failed to add account: %v", err)
 	}

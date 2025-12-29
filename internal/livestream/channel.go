@@ -45,8 +45,8 @@ func (c *StreamerClient) AddChannel(channelInput models.Channel) (bool, error) {
 	return saved, nil
 }
 
-func (c *StreamerClient) DeleteChannel(channelId int) (bool, error) {
-	deleted, err := c.db.DeleteChannel(channelId)
+func (c *StreamerClient) DeleteChannel(channelID string) (bool, error) {
+	deleted, err := c.db.DeleteChannel(channelID)
 	if err != nil {
 		errMessage := fmt.Errorf("failed to delete channel: %w", err)
 		logging.Error(errMessage.Error())

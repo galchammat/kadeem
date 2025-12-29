@@ -7,3 +7,6 @@ type LeagueOfLegendsAccount struct {
 	GameName   string `json:"gameName" db:"game_name"`
 	Region     string `json:"region,omitempty" db:"region"`
 }
+
+type MatchSummary struct {
+}
