@@ -14,7 +14,7 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 	// prefer a human-friendly name for search, fall back to ChannelID if provided
 	query := strings.TrimSpace(streamInput.ChannelName)
 	if query == "" {
-		query = strings.TrimSpace(streamInput.ChannelID)
+		query = strings.TrimSpace(streamInput.ID)
 	}
 	if query == "" {
 		return models.Channel{}, fmt.Errorf("missing channel query (channelName or channelID required)")
@@ -43,7 +43,7 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 				StreamerID:  streamInput.StreamerID,
 				Platform:    "twitch",
 				ChannelName: ch.DisplayName,
-				ChannelID:   ch.ID,
+				ID:          ch.ID,
 				AvatarURL:   ch.AvatarURL,
 			}
 			return result, nil

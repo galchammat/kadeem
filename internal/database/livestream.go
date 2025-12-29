@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/models"
@@ -53,7 +54,7 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 	var where []string
 	var args []interface{}
 
-	if filter != nil && filter.ID != 0 {
+	if filter != nil && filter.ID != "" {
 		where = append(where, "id = ?")
 		args = append(args, filter.ID)
 	}
@@ -69,10 +70,6 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 		where = append(where, "channel_name = ?")
 		args = append(args, filter.ChannelName)
 	}
-	if filter != nil && filter.ChannelID != "" {
-		where = append(where, "channel_id = ?")
-		args = append(args, filter.ChannelID)
-	}
 
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
@@ -84,24 +81,30 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 	}
 	defer rows.Close()
 
-	var streams []models.Channel
+	var channels []models.Channel
 	for rows.Next() {
-		stream := models.Channel{}
-		if err := rows.Scan(&stream.ID, &stream.StreamerID, &stream.Platform, &stream.ChannelName, &stream.ChannelID, &stream.AvatarURL); err != nil {
+		channel := models.Channel{}
+		var syncedAt sql.NullTime
+		if err := rows.Scan(&channel.ID, &channel.StreamerID, &channel.Platform, &channel.ChannelName, &channel.AvatarURL, &syncedAt); err != nil {
 			return nil, err
 		}
-		streams = append(streams, stream)
+
+		if syncedAt.Valid {
+			unixTime := syncedAt.Time.Unix()
+			channel.SyncedAt = &unixTime
+		}
+		channels = append(channels, channel)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return streams, nil
+	return channels, nil
 }
 
 func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
 	res, err := db.SQL.Exec(
-		`INSERT OR IGNORE INTO channels (streamer_id, platform, channel_name, channel_id, avatar_url) VALUES (?, ?, ?, ?, ?)`,
-		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ChannelID, channel.AvatarURL,
+		`INSERT OR IGNORE INTO channels (streamer_id, platform, channel_name, id, avatar_url) VALUES (?, ?, ?, ?, ?)`,
+		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ID, channel.AvatarURL,
 	)
 	if err != nil {
 		return false, err
@@ -110,10 +113,30 @@ func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
 	return (n != 0), nil
 }
 
-func (db *DB) DeleteChannel(channelId int) (bool, error) {
+func (db *DB) UpdateChannel(channelID string, updates map[string]interface{}) (bool, error) {
+	var setClauses []string
+	var args []interface{}
+
+	for column, value := range updates {
+		setClauses = append(setClauses, column+" = ?")
+		args = append(args, value)
+	}
+	args = append(args, channelID)
+
+	query := `UPDATE channels SET ` + strings.Join(setClauses, ", ") + ` WHERE id = ?`
+
+	res, err := db.SQL.Exec(query, args...)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return (n != 0), nil
+}
+
+func (db *DB) DeleteChannel(channelID string) (bool, error) {
 	res, err := db.SQL.Exec(
 		`DELETE FROM channels WHERE id = ?`,
-		channelId,
+		channelID,
 	)
 	if err != nil {
 		return false, err

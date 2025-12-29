@@ -14,9 +14,16 @@ run:
 build:
 	wails build -tags webkit2_41
 
-test-integration:
+tests:
 	@echo "Running integration tests..."
-	RUN_INTEGRATION_TESTS=true go test -v ./tests/...
+	go test -v ./tests
+
+test:
+	@echo "Running integration test $(filter-out $@,$(MAKECMDGOALS))..."
+	go test -v ./tests -run "$(filter-out $@,$(MAKECMDGOALS))"
+
+%: 
+	@:
 
 migrate:
 	mkdir -p ./bin
@@ -28,3 +35,6 @@ migrate-create:
 
 migrate-force:
 	migrate -database "sqlite3://kadeem.db" -path ./migrations force ${version}
+
+migrate-reset:
+	rm -f ./bin/kadeem.db && $(MAKE) migrate

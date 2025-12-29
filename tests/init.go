@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/galchammat/kadeem/internal/logging"
+
 	"github.com/joho/godotenv"
 )
 
@@ -14,4 +15,5 @@ func init() {
 		logging.Error("Failed to load .env file", "file", envFile, "error", err)
 		panic(err)
 	}
+	os.Setenv("RUN_INTEGRATION_TESTS", "true") // This package only contains integration tests
 }

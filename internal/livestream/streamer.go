@@ -2,7 +2,6 @@ package livestream
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/livestream/twitch"
@@ -25,23 +24,6 @@ func NewStreamerClient(ctx context.Context, db *database.DB) *StreamerClient {
 	}
 }
 
-func (c *StreamerClient) listBroadcastsByStream(stream models.Channel, limit int) ([]models.Broadcast, error) {
-	switch stream.Platform {
-	case "twitch":
-		{
-			return c.twitch.ListBroadcastsByStream(stream.ID, limit)
-		}
-	// case "youtube":
-	// 	{
-	// 		return c.youtube.ListBroadcastsByStream(stream.ID, limit)
-	// 	}
-	default:
-		{
-			return nil, fmt.Errorf("unsupported platform: %s", stream.Platform)
-		}
-	}
-}
-
 func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, error) {
 	var streamerViews []models.StreamerView
 	streamers, err := c.db.ListStreamers()
@@ -61,7 +43,7 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 			return nil, err
 		}
 		for _, channel := range channels {
-			broadcasts, err := c.listBroadcastsByStream(channel, 1)
+			broadcasts, err := c.ListBroadcasts(&models.Broadcast{ChannelID: channel.ID}, 1, 0)
 			if err != nil {
 				logging.Error("Failed to get latest broadcast", "channel_id", channel.ID, "error", err)
 				return nil, err

@@ -19,7 +19,7 @@ type StreamerContextType = {
   refetchStreamers: () => Promise<void>
   addChannel: (channel: models.Channel) => Promise<boolean>
   updateChannel: (channel: models.Channel) => Promise<boolean>
-  deleteChannel: (id: number) => Promise<boolean>
+  deleteChannel: (id: string) => Promise<boolean>
   addStreamer: (streamerName: string) => Promise<boolean>
   deleteStreamer: (streamerName: string) => Promise<boolean>
 }
