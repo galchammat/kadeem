@@ -70,8 +70,6 @@ func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) er
 			return err
 		}
 		*account = fetchedAccount
-	} else {
-		logging.Debug("Riot account data is up-to-date", "name", account.GameName, "tag", account.TagLine)
 	}
 	return nil
 }

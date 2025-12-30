@@ -35,7 +35,6 @@ func (c *StreamerClient) AddChannel(channelInput models.Channel) (bool, error) {
 		return false, errMessage
 	}
 
-	logging.Debug("Found channel", "channel", channel)
 	saved, err := c.db.SaveChannel(channel)
 	if err != nil {
 		errMessage := fmt.Errorf("failed to save channel: %w", err)
