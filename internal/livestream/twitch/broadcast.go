@@ -39,7 +39,5 @@ func (c *TwitchClient) FetchBroadcasts(channelID string, startTime int64) ([]mod
 		broadcasts = append(broadcasts, b)
 	}
 
-	logging.Debug("Fetched broadcasts from Twitch", "channelID", channelID, "endpoint", endpoint, "broadcasts", broadcasts)
-
 	return broadcasts, nil
 }

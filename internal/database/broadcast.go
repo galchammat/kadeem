@@ -115,8 +115,6 @@ func (db *DB) InsertBroadcasts(broadcasts []models.Broadcast) error {
 		)
 	}
 
-	logging.Debug("args", "args", args)
-
 	query += strings.Join(placeholders, ", ")
 
 	_, err := db.SQL.Exec(query, args...)

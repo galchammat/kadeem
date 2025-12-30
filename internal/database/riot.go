@@ -3,7 +3,6 @@ package database
 import (
 	"strings"
 
-	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
 
@@ -35,7 +34,6 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts`
 	var where []string
 	var args []interface{}
-	logging.Debug("Listing Riot accounts with filter", "filter", filter)
 	if filter != nil && filter.PUUID != "" {
 		where = append(where, "puuid = ?")
 		args = append(args, filter.PUUID)
