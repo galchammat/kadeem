@@ -25,5 +25,5 @@ func TestListBroadcasts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	t.Log("Retrieved broadcasts:", broadcasts)
+	t.Log("Retrieved broadcasts:", "broadcasts", broadcasts)
 }

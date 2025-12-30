@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
 
@@ -16,22 +17,31 @@ func (c *StreamerClient) SyncBroadcasts(channel models.Channel) error {
 	} else {
 		startTime = 0
 	}
-
+	logging.Debug("Syncing broadcasts for channel", "ID", channel.ID, "name", channel.ChannelName)
 	var err error
+	var broadcasts []models.Broadcast
 	switch channel.Platform {
 	case "twitch":
 		{
-			err = c.twitch.FetchBroadcasts(channel)
+			broadcasts, err = c.twitch.FetchBroadcasts(channel.ID, startTime)
 		}
 	default:
 		{
 			err = fmt.Errorf("unsupported platform: %s", channel.Platform)
 		}
 	}
-	if err == nil {
-		c.db.UpdateChannel(channel.ID, map[string]interface{}{"synced_at": time.Now().Unix()})
+	if err != nil {
+		return err
 	}
-	return err
+	err = c.db.InsertBroadcasts(broadcasts)
+	if err != nil {
+		return err
+	}
+	// _, err = c.db.UpdateChannel(channel.ID, map[string]interface{}{"synced_at": time.Now().Unix()})
+	// if err != nil {
+	// 	return err
+	// }
+	return nil
 }
 
 func (c *StreamerClient) ListBroadcasts(filters *models.Broadcast, limit int, offset int) ([]models.Broadcast, error) {
@@ -44,10 +54,14 @@ func (c *StreamerClient) ListBroadcasts(filters *models.Broadcast, limit int, of
 		return nil, err
 	}
 	channel := channels[0]
+	logging.Debug("Fetching broadcasts for channel", "ID", channel.ID, "name", channel.ChannelName)
 
 	// Check if channel needs sync (never synced or stale)
 	if channel.SyncedAt == nil || (offset == 0 && time.Since(time.Unix(*channel.SyncedAt, 0)) > syncRefreshInMinutes*time.Minute) {
-		c.SyncBroadcasts(channel)
+		err = c.SyncBroadcasts(channel)
+		if err != nil {
+			return []models.Broadcast{}, err
+		}
 	}
 
 	broadcasts, err := c.db.ListBroadcasts(filters, limit, &offset)

@@ -30,6 +30,13 @@ func NewTwitchClient(ctx context.Context) *TwitchClient {
 		TokenURL:     "https://id.twitch.tv/oauth2/token",
 	}
 
+	// Explicitly fetch the token and print it
+	token, err := conf.Token(ctx)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get Twitch token: %v", err))
+	}
+	fmt.Println("TWITCH OAUTH TOKEN:", token.AccessToken)
+
 	httpClient := conf.Client(ctx)
 
 	// ensure transport exists and wrap it to inject Client-ID header required by Twitch
@@ -52,39 +59,39 @@ func (c *TwitchClient) buildURL(endpoint string) string {
 	return fmt.Sprintf("%s%s", c.baseUrl, endpoint)
 }
 
-func (c *TwitchClient) makeRequest(endpoint string) (*models.TwitchResponse, error) {
+func (c *TwitchClient) makeRequest(endpoint string) (*models.TwitchResponse, int, error) {
 	url := c.buildURL(endpoint)
 	req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logging.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
 		logging.Error(err.Error())
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
 
 	var response models.TwitchResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		logging.Error("Failed to unmarshal Twitch response", "error", err)
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
 
-	return &response, nil
+	return &response, resp.StatusCode, nil
 }
 
 type clientIDTransport struct {

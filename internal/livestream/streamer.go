@@ -48,8 +48,8 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 				logging.Error("Failed to get latest broadcast", "channel_id", channel.ID, "error", err)
 				return nil, err
 			}
-			if (len(broadcasts) > 0) && broadcasts[0].StartedAt > lastLive {
-				lastLive = broadcasts[0].StartedAt
+			if (len(broadcasts) > 0) && broadcasts[0].CreatedAt > lastLive {
+				lastLive = broadcasts[0].CreatedAt
 			}
 			streamerView.Channels = append(streamerView.Channels, channel)
 		}

@@ -28,16 +28,16 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 	}
 
 	var ChannelSearchResult models.ChannelSearchResponse
-	if err := json.Unmarshal(data, &ChannelSearchResult); err != nil {
+	if err := json.Unmarshal(data.Data, &ChannelSearchResult); err != nil {
 		logging.Error("failed to unmarshal twitch search response", err)
 		return models.Channel{}, fmt.Errorf("invalid twitch response: %w", err)
 	}
 
-	if len(ChannelSearchResult.Data) == 0 {
+	if len(ChannelSearchResult) == 0 {
 		return models.Channel{}, fmt.Errorf("no twitch channel named %q was found", query)
 	}
 
-	for _, ch := range ChannelSearchResult.Data {
+	for _, ch := range ChannelSearchResult {
 		if strings.EqualFold(ch.DisplayName, query) {
 			result := models.Channel{
 				StreamerID:  streamInput.StreamerID,
