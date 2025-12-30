@@ -48,28 +48,28 @@ func Error(msg string, args ...any) {
 }
 
 func logWithSource(level slog.Level, msg string, args ...any) {
-	// Get call stack
-	pcs := make([]uintptr, 10)
-	n := runtime.Callers(3, pcs) // skip: Callers, logWithSource, Error/Info/etc
-	frames := runtime.CallersFrames(pcs[:n])
-
 	// Manually format the log line
 	timestamp := time.Now().Format("2006-01-02T15:04:05.000Z07:00")
 	fmt.Fprintf(os.Stderr, "time=%s level=%s ", timestamp, level)
 
-	// Print call stack
-	var locations []string
-	for {
-		frame, more := frames.Next()
-		if strings.Contains(frame.File, "kadeem") {
-			locations = append(locations, fmt.Sprintf("%s:%d", frame.File, frame.Line))
+	// Only print call stack for error and warn levels
+	if level >= slog.LevelWarn {
+		pcs := make([]uintptr, 10)
+		n := runtime.Callers(3, pcs) // skip: Callers, logWithSource, Error/Info/etc
+		frames := runtime.CallersFrames(pcs[:n])
+		var locations []string
+		for {
+			frame, more := frames.Next()
+			if strings.Contains(frame.File, "kadeem") {
+				locations = append(locations, fmt.Sprintf("%s:%d", frame.File, frame.Line))
+			}
+			if !more {
+				break
+			}
 		}
-		if !more {
-			break
+		if len(locations) > 0 {
+			fmt.Fprintf(os.Stderr, "%s ", strings.Join(locations, " <- "))
 		}
-	}
-	if len(locations) > 0 {
-		fmt.Fprintf(os.Stderr, "%s ", strings.Join(locations, " <- "))
 	}
 
 	fmt.Fprintf(os.Stderr, "msg=%q", msg)
