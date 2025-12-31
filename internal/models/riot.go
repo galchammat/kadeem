@@ -6,7 +6,9 @@ type LeagueOfLegendsAccount struct {
 	TagLine    string `json:"tagLine" db:"tag_line"`
 	GameName   string `json:"gameName" db:"game_name"`
 	Region     string `json:"region,omitempty" db:"region"`
+	SyncedAt   *int64 `json:"syncedAt" db:"synced_at"`
 }
 
-type MatchSummary struct {
+type LeagueOfLegendsMatchSummary struct {
+	AccountID string `json:"accountId" db:"account_id,primarykey"`
 }
