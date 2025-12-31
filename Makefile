@@ -16,11 +16,11 @@ build:
 
 tests:
 	@echo "Running integration tests..."
-	go test -v ./tests
+	go test -v ./tests/integration
 
 test:
 	@echo "Running integration test $(filter-out $@,$(MAKECMDGOALS))..."
-	go test -v ./tests -run "$(filter-out $@,$(MAKECMDGOALS))"
+	go test -v ./tests/integration -run "$(filter-out $@,$(MAKECMDGOALS))"
 
 %: 
 	@:

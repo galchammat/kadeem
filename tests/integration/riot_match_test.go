@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestLoadMatches(t *testing.T) {
+func TestListMatches(t *testing.T) {
 	// DB := database.openDB()
 
 }
