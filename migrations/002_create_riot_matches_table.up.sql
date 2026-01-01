@@ -1,12 +1,6 @@
-CREATE TABLE IF NOT EXISTS league_of_legends_matches (
-    match_id varchar(16) PRIMARY KEY,
-    account_id varchar(78) NOT NULL REFERENCES league_of_legends_accounts(puuid) ON DELETE CASCADE,
-    champion_id integer NOT NULL,
-    kills integer NOT NULL,
-    deaths integer NOT NULL,
-    assists integer NOT NULL,
-    win boolean NOT NULL,
-    game_creation bigint NOT NULL,
-    game_duration integer NOT NULL,
-    damage integer NOT NULL
-)
+CREATE TABLE IF NOT EXISTS matches (
+	id BIGINT PRIMARY KEY,
+	started_at BIGINT NOT NULL,
+	duration INTEGER NOT NULL,
+    replay_synced BOOLEAN NOT NULL DEFAULT FALSE
+);

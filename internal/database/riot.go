@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/models"
@@ -95,5 +96,103 @@ func (db *DB) UpdateRiotAccount(account *models.LeagueOfLegendsAccount) error {
 		WHERE puuid = ?`
 
 	_, err := db.SQL.Exec(query, account.TagLine, account.GameName, account.Region, account.PUUID)
+	return err
+}
+
+func (db *DB) GetLolMatch(matchID string) (*models.LeagueOfLegendsMatchSummary, error) {
+	query := `SELECT id, started_at, duration, replay_synced FROM league_of_legends_matches WHERE id = ?`
+
+	var match models.LeagueOfLegendsMatchSummary
+	err := db.SQL.QueryRow(query, matchID).Scan(&match.ID, &match.StartedAt, &match.Duration, &match.ReplaySynced)
+	if err != nil {
+		return nil, err
+	}
+	return &match, nil
+}
+
+func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary) error {
+	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
+		return fmt.Errorf("match summary is missing required fields")
+	}
+
+	replaySynced := false
+	if summary.ReplaySynced != nil {
+		replaySynced = *summary.ReplaySynced
+	}
+
+	query := `
+		INSERT OR REPLACE INTO league_of_legends_matches
+		(id, started_at, duration, replay_synced)
+		VALUES (?, ?, ?, ?)`
+	_, err := db.SQL.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, replaySynced)
+	return err
+}
+
+func (db *DB) InsertLolMatchParticipantSummary(participant *models.LeagueOfLegendsMatchParticipantSummary) error {
+	if participant == nil {
+		return fmt.Errorf("participant summary cannot be nil")
+	}
+
+	query := `
+		INSERT OR REPLACE INTO participants (
+			game_id,
+			champion_id,
+			kills,
+			deaths,
+			assists,
+			total_minions_killed,
+			double_kills,
+			triple_kills,
+			quadra_kills,
+			penta_kills,
+			item0,
+			item1,
+			item2,
+			item3,
+			item4,
+			item5,
+			item6,
+			summoner1_id,
+			summoner2_id,
+			lane,
+			participant_id,
+			puuid,
+			riot_id_game_name,
+			riot_id_tagline,
+			total_damage_dealt_to_champions,
+			total_damage_taken,
+			win
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	_, err := db.SQL.Exec(
+		query,
+		participant.GameID,
+		participant.ChampionID,
+		participant.Kills,
+		participant.Deaths,
+		participant.Assists,
+		participant.TotalMinionsKilled,
+		participant.DoubleKills,
+		participant.TripleKills,
+		participant.QuadraKills,
+		participant.PentaKills,
+		participant.Item0,
+		participant.Item1,
+		participant.Item2,
+		participant.Item3,
+		participant.Item4,
+		participant.Item5,
+		participant.Item6,
+		participant.Summoner1ID,
+		participant.Summoner2ID,
+		participant.Lane,
+		participant.ParticipantID,
+		participant.PUUID,
+		participant.RiotIDGameName,
+		participant.RiotIDTagline,
+		participant.TotalDamageDealtToChampions,
+		participant.TotalDamageTaken,
+		participant.Win,
+	)
 	return err
 }
