@@ -58,8 +58,8 @@ func (c *RiotClient) SyncMatchReplay(matchID string, url string) error {
 	if err := downloadReplay(matchID, url); err != nil {
 		return fmt.Errorf("error downloading replay: %v", err)
 	}
-	c.db.UpdateLolMatch(matchID, map[string]interface{}{"replay_synced": true})
-	return nil
+	_, err := c.db.UpdateLolMatch(matchID, map[string]interface{}{"replay_synced": true})
+	return err
 }
 
 func (c *RiotClient) FetchReplayURLs(puuid string, region string) ([]string, error) {

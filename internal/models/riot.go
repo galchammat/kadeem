@@ -13,6 +13,20 @@ type LeagueOfLegendsAccount struct {
 	SyncedAt   *int64 `json:"syncedAt" db:"synced_at"`
 }
 
+type LolAccountPatch struct {
+	PUUID    string  `json:"puuid" db:"puuid,primarykey"`
+	TagLine  *string `json:"tagLine,omitempty" db:"tag_line"`
+	GameName *string `json:"gameName,omitempty" db:"game_name"`
+	Region   *string `json:"region,omitempty" db:"region"`
+	SyncedAt *int64  `json:"syncedAt,omitempty" db:"synced_at"`
+}
+
+type LeagueOfLegendsMatch struct {
+	Summary      LeagueOfLegendsMatchSummary              `json:"summary" db:"-"`
+	Participants []LeagueOfLegendsMatchParticipantSummary `json:"participants" db:"-"`
+	Replay       *[]byte                                  `json:"replay,omitempty" db:"replay"`
+}
+
 type LeagueOfLegendsMatchSummary struct {
 	ID           int64  `json:"gameId" db:"game_id"`
 	StartedAt    *int64 `json:"startedAt" db:"started_at"`
@@ -48,4 +62,54 @@ type LeagueOfLegendsMatchParticipantSummary struct {
 	TotalDamageDealtToChampions int    `json:"totalDamageDealtToChampions" db:"total_damage_dealt_to_champions"`
 	TotalDamageTaken            int    `json:"totalDamageTaken" db:"total_damage_taken"`
 	Win                         bool   `json:"win" db:"win"`
+}
+
+// LolMatchFilter provides filtering options for listing League of Legends matches
+type LolMatchFilter struct {
+	// Match/Summary filters
+	MatchID      *int64 `db:"m.game_id" op:"="`
+	StartedAtMin *int64 `db:"m.started_at" op:">="`
+	StartedAtMax *int64 `db:"m.started_at" op:"<="`
+	DurationMin  *int   `db:"m.duration" op:">="`
+	DurationMax  *int   `db:"m.duration" op:"<="`
+	ReplaySynced *bool  `db:"m.replay_synced" op:"="`
+
+	// Participant filters
+	PUUID                          *string `db:"p.puuid" op:"="`
+	Region                         *string `db:"p.region" op:"="`
+	ChampionID                     *int    `db:"p.champion_id" op:"="`
+	Lane                           *string `db:"p.lane" op:"="`
+	Win                            *bool   `db:"p.win" op:"="`
+	ParticipantID                  *int    `db:"p.participant_id" op:"="`
+	RiotIDGameName                 *string `db:"p.riot_id_game_name" op:"="`
+	RiotIDTagline                  *string `db:"p.riot_id_tagline" op:"="`
+	MinKills                       *int    `db:"p.kills" op:">="`
+	MaxKills                       *int    `db:"p.kills" op:"<="`
+	MinDeaths                      *int    `db:"p.deaths" op:">="`
+	MaxDeaths                      *int    `db:"p.deaths" op:"<="`
+	MinAssists                     *int    `db:"p.assists" op:">="`
+	MaxAssists                     *int    `db:"p.assists" op:"<="`
+	MinDoubleKills                 *int    `db:"p.double_kills" op:">="`
+	MaxDoubleKills                 *int    `db:"p.double_kills" op:"<="`
+	MinTripleKills                 *int    `db:"p.triple_kills" op:">="`
+	MaxTripleKills                 *int    `db:"p.triple_kills" op:"<="`
+	MinQuadraKills                 *int    `db:"p.quadra_kills" op:">="`
+	MaxQuadraKills                 *int    `db:"p.quadra_kills" op:"<="`
+	MinPentaKills                  *int    `db:"p.penta_kills" op:">="`
+	MaxPentaKills                  *int    `db:"p.penta_kills" op:"<="`
+	MinTotalDamageDealtToChampions *int    `db:"p.total_damage_dealt_to_champions" op:">="`
+	MaxTotalDamageDealtToChampions *int    `db:"p.total_damage_dealt_to_champions" op:"<="`
+	MinTotalDamageTaken            *int    `db:"p.total_damage_taken" op:">="`
+	MaxTotalDamageTaken            *int    `db:"p.total_damage_taken" op:"<="`
+	MinTotalMinionsKilled          *int    `db:"p.total_minions_killed" op:">="`
+	MaxTotalMinionsKilled          *int    `db:"p.total_minions_killed" op:"<="`
+	Item0                          *int    `db:"p.item0" op:"="`
+	Item1                          *int    `db:"p.item1" op:"="`
+	Item2                          *int    `db:"p.item2" op:"="`
+	Item3                          *int    `db:"p.item3" op:"="`
+	Item4                          *int    `db:"p.item4" op:"="`
+	Item5                          *int    `db:"p.item5" op:"="`
+	Item6                          *int    `db:"p.item6" op:"="`
+	Summoner1ID                    *int    `db:"p.summoner1_id" op:"="`
+	Summoner2ID                    *int    `db:"p.summoner2_id" op:"="`
 }

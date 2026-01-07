@@ -1,10 +1,10 @@
 package riot
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
+	"github.com/galchammat/kadeem/internal/constants"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
@@ -48,33 +48,24 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 		}
 	}
 
-	err = c.db.UpdateRiotAccount(account.PUUID, map[string]interface{}{"synced_at": time.Now().Unix()})
+	_, err = c.db.UpdateRiotAccount(account.PUUID, map[string]interface{}{"synced_at": time.Now().Unix()})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *RiotClient) ListMatches(filters *models.LeagueOfLegendsMatchSummary, limit int, offset int) ([]models.Broadcast, error) {
-	if filters == nil || filters.AccountID == "" {
-		return []models.Broadcast{}, fmt.Errorf("accountID must be specified in filters")
-	}
-
-	accounts, err := c.ListAccounts(&models.LeagueOfLegendsAccount{ID: filters.AccountID})
-	if err != nil || len(accounts) == 0 {
-		return nil, err
-	}
-	account := accounts[0]
-
-	// Check if account needs sync (never synced or stale)
-	if account.SyncedAt == nil || (offset == 0 && time.Since(time.Unix(*account.SyncedAt, 0)) > constants.syncRefreshInMinutes*time.Minute) {
-		err = c.SyncMatches(account)
+// ListMatches retrieves League of Legends matches with optional filtering
+func (c *RiotClient) ListMatches(filter *models.LolMatchFilter, limit int, offset int) ([]models.LeagueOfLegendsMatch, error) {
+	if filter.LeagueOfLegendsAccount != nil &&
+		(filter.LeagueOfLegendsAccount.SyncedAt == nil || time.Since(time.Unix(*filter.LeagueOfLegendsAccount.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
+		err := c.SyncMatches(*filter.LeagueOfLegendsAccount)
 		if err != nil {
-			return []models.Broadcast{}, err
+			logging.Error("Error syncing matches for account", "PUUID", filter.LeagueOfLegendsAccount.PUUID, "Error", err)
 		}
 	}
 
-	matches, err := c.db.ListMatches(filters, limit, &offset)
+	matches, err := c.db.ListLolMatches(filter, limit, offset)
 	if err != nil {
 		return nil, err
 	}

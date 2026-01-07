@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/galchammat/kadeem/internal/constants"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
-
-const syncRefreshInMinutes = 5
 
 func (c *StreamerClient) SyncBroadcasts(channel models.Channel) error {
 	var startTime int64
@@ -56,7 +55,7 @@ func (c *StreamerClient) ListBroadcasts(filters *models.Broadcast, limit int, of
 	channel := channels[0]
 
 	// Check if channel needs sync (never synced or stale)
-	if channel.SyncedAt == nil || (offset == 0 && time.Since(time.Unix(*channel.SyncedAt, 0)) > syncRefreshInMinutes*time.Minute) {
+	if channel.SyncedAt == nil || (offset == 0 && time.Since(time.Unix(*channel.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
 		err = c.SyncBroadcasts(channel)
 		if err != nil {
 			return []models.Broadcast{}, err

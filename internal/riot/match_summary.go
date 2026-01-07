@@ -70,13 +70,13 @@ func (c *RiotClient) SyncMatchSummary(matchID string, region string) error {
 		Duration:  &response.Info.Duration,
 	}
 
-	if err := c.db.InsertLolMatchSummary(c.db, &summary); err != nil {
+	if err := c.db.InsertLolMatchSummary(&summary); err != nil {
 		logging.Error("Failed to insert match summary", "matchID", matchID, "error", err)
 		return err
 	}
 
 	for _, participant := range response.Info.Participants {
-		if err := c.db.InsertLolMatchParticipantSummary(c.db, &participant); err != nil {
+		if err := c.db.InsertLolMatchParticipantSummary(&participant); err != nil {
 			logging.Error("Failed to insert match participant", "matchID", matchID, "participantID", participant.ParticipantID, "error", err)
 			return err
 		}

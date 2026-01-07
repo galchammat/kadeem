@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS league_of_legends_matches;
+DROP TABLE IF EXISTS lol_matches;
