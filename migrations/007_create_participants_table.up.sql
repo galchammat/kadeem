@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS participants (
-	game_id BIGINT NOT NULL REFERENCES matches (game_id) ON DELETE CASCADE,
+	game_id BIGINT NOT NULL REFERENCES lol_matches(id) ON DELETE CASCADE,
 	champion_id INTEGER NOT NULL,
 	kills INTEGER NOT NULL,
 	deaths INTEGER NOT NULL,

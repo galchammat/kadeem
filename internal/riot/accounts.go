@@ -117,7 +117,7 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 		return err
 	}
 
-	// Validate the account exists on Riot's servers
+	// Validate the account exists on Riots servers
 	apiRegion, err := GetAPIRegion(region)
 	if err != nil {
 		logging.Error(err.Error())
@@ -144,7 +144,12 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 	}
 
 	validatedAccount.Region = region
-	if err := r.db.UpdateRiotAccount(&validatedAccount); err != nil {
+	_, err = r.db.UpdateRiotAccount(puuid, map[string]interface{}{
+		"game_name": validatedAccount.GameName,
+		"tag_line":  validatedAccount.TagLine,
+		"region":    validatedAccount.Region,
+	})
+	if err != nil {
 		logging.Error("Failed to update Riot account: %v", err)
 		return err
 	}
