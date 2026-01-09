@@ -18,8 +18,15 @@ func TestListLolMatches(t *testing.T) {
 
 	c := riot.NewRiotClient(ctx, DB)
 	testPuuid := "OXR0AfpBu2Z-fFGu8KCE1sNzJLJbTpgClA42okBn-VsEVTwjJwMZu306s5JTLBmxPkVe2SSBIGe9ww"
+
+	// Fetch account to enable syncing behavior
+	account, err := DB.GetRiotAccount(testPuuid)
+	if err != nil {
+		t.Fatalf("Failed to get riot account: %v", err)
+	}
+
 	filter := models.LolMatchFilter{PUUID: &testPuuid}
-	matches, err := c.ListMatches(&filter, 10, 0)
+	matches, err := c.ListMatches(&filter, account, 10, 0)
 
 	if err != nil {
 		t.Fatalf("Error fetching matches: %v", err)

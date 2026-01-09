@@ -4,5 +4,6 @@ CREATE TABLE
 		streamer_id INTEGER NOT NULL REFERENCES streamers (id) ON DELETE CASCADE,
 		tag_line VARCHAR(5),
 		game_name VARCHAR(16),
-		region VARCHAR(4)
+		region VARCHAR(4),
+		synced_at BIGINT
 	);

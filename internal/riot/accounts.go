@@ -62,11 +62,12 @@ func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) er
 		return err
 	}
 	fetchedAccount.Region = account.Region
+	fetchedAccount.StreamerID = account.StreamerID
 
 	if !reflect.DeepEqual(account, &fetchedAccount) {
 		logging.Info("Riot account data has changed, updating database", "puuid", account.PUUID)
 		if err := r.db.SaveRiotAccount(&fetchedAccount); err != nil {
-			logging.Error("Failed to update Riot account: %v", err)
+			logging.Error("Failed to update Riot account", "error", err)
 			return err
 		}
 		*account = fetchedAccount
@@ -84,7 +85,7 @@ func (r *RiotClient) ListAccounts(filter *models.LeagueOfLegendsAccount) ([]mode
 	for _, account := range accounts {
 		err := r.reconcileAccount(account)
 		if err != nil {
-			logging.Error("Failed to reconcile Riot account: %v", err)
+			logging.Error("Failed to reconcile Riot account", "error", err)
 			return nil, err
 		}
 	}
