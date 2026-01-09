@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
 
 // SaveRiotAccount saves a League of Legends account to the database
 func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
+	logging.Debug("updating account", "account", account)
 	query := `
         INSERT OR REPLACE INTO league_of_legends_accounts 
         (puuid, streamer_id, tag_line, game_name, region) 
@@ -20,10 +22,10 @@ func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
 
 // GetRiotAccount retrieves an account by PUUID
 func (db *DB) GetRiotAccount(puuid string) (*models.LeagueOfLegendsAccount, error) {
-	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts WHERE puuid = ?`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = ?`
 
 	var account models.LeagueOfLegendsAccount
-	err := db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region)
+	err := db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +34,7 @@ func (db *DB) GetRiotAccount(puuid string) (*models.LeagueOfLegendsAccount, erro
 
 // ListRiotAccounts lists accounts with optional filtering
 func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models.LeagueOfLegendsAccount, error) {
-	query := `SELECT puuid, tag_line, game_name, region FROM league_of_legends_accounts`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
 	var where []string
 	var args []interface{}
 	if filter != nil && filter.PUUID != "" {
@@ -69,7 +71,7 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	var accounts []*models.LeagueOfLegendsAccount
 	for rows.Next() {
 		account := &models.LeagueOfLegendsAccount{}
-		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region); err != nil {
+		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			return nil, err
 		}
 

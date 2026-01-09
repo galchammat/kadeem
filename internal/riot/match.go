@@ -56,16 +56,18 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 }
 
 // ListMatches retrieves League of Legends matches with optional filtering
-func (c *RiotClient) ListMatches(filter *models.LolMatchFilter, limit int, offset int) ([]models.LeagueOfLegendsMatch, error) {
-	if filter.LeagueOfLegendsAccount != nil &&
-		(filter.LeagueOfLegendsAccount.SyncedAt == nil || time.Since(time.Unix(*filter.LeagueOfLegendsAccount.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
-		err := c.SyncMatches(*filter.LeagueOfLegendsAccount)
+// If account is provided and needs syncing, it will sync matches before querying
+func (c *RiotClient) ListMatches(filter *models.LolMatchFilter, account *models.LeagueOfLegendsAccount, limit int, offset int) ([]models.LeagueOfLegendsMatch, error) {
+	// Check if account needs syncing
+	if account != nil &&
+		(account.SyncedAt == nil || time.Since(time.Unix(*account.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
+		err := c.SyncMatches(*account)
 		if err != nil {
-			logging.Error("Error syncing matches for account", "PUUID", filter.LeagueOfLegendsAccount.PUUID, "Error", err)
+			logging.Error("Error syncing matches for account", "PUUID", account.PUUID, "Error", err)
 		}
 	}
 
-	matches, err := c.db.ListLolMatches(filter, limit, offset)
+	matches, err := c.db.ListLolMatches(filter, &limit, &offset)
 	if err != nil {
 		return nil, err
 	}
