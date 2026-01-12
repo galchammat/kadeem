@@ -16,12 +16,8 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string, streamerID int
 		logging.Error(err.Error())
 		return err
 	}
-	apiRegion, err := GetAPIRegion(region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+
+	url := r.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
 	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
 		logging.Error(err.Error())
@@ -46,12 +42,7 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string, streamerID int
 }
 
 func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) error {
-	apiRegion, err := GetAPIRegion(account.Region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", account.PUUID))
+	url := r.buildURL(account.Region, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", account.PUUID))
 	body, _, err := r.makeRequest(url)
 	if err != nil {
 		return err
@@ -118,13 +109,7 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 		return err
 	}
 
-	// Validate the account exists on Riots servers
-	apiRegion, err := GetAPIRegion(region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+	url := r.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
 	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
 		if statusCode == 404 {

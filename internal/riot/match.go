@@ -1,6 +1,8 @@
 package riot
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,27 +25,38 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 	for _, url := range replayURLs {
 		start := strings.LastIndex(url, "/") + 1
 		end := strings.Index(url[start:], ".")
-		matchID := url[start : start+end]
-		existingMatch, err := c.db.GetLolMatch(matchID)
+		var matchIdString string = url[start : start+end]
+		matchIdInt, err := strconv.ParseInt(matchIdString, 10, 64)
 		if err != nil {
-			logging.Error("Error checking existing match", "MatchID", matchID, "Error", err)
+			return fmt.Errorf("failed to parse matchID as int. matchID: %s", matchIdString)
+		}
+
+		limit := 1
+		offset := 0
+		existingMatches, err := c.db.ListLolMatches(&models.LolMatchFilter{MatchID: &matchIdInt}, &limit, &offset)
+		if err != nil {
+			return fmt.Errorf("Error while checking for an existing match. MatchID: %d. Error: %w", matchIdInt, err)
+		}
+		var existingMatch *models.LeagueOfLegendsMatch
+		if len(existingMatches) != 0 {
+			existingMatch = &existingMatches[0]
 		}
 
 		// Download the replay if (matchID record does not exist) or (row.replay==nil)
-		if existingMatch == nil || existingMatch.ReplaySynced == nil {
-			logging.Debug("Downloading replay", "MatchID", matchID, "URL", url)
-			err = c.SyncMatchReplay(matchID, url)
+		if existingMatch == nil || existingMatch.ReplayURL == nil {
+			logging.Debug("Downloading replay", "MatchID", matchIdString, "URL", url)
+			err = c.SyncMatchReplay(matchIdString, url)
 			if err != nil {
-				logging.Error("Error downloading replay", "MatchID", matchID, "Error", err)
+				logging.Error("Error downloading replay", "MatchID", matchIdString, "Error", err)
 			}
 		}
 
 		// Fetch the match summary if (matchID record does not exist) or (row.gameStartTimestamp==nil)
-		if existingMatch == nil || existingMatch.StartedAt == nil {
-			logging.Debug("Fetching match summary", "MatchID", matchID)
-			err = c.SyncMatchSummary(matchID, account.Region)
+		if existingMatch == nil || existingMatch.Summary.StartedAt == nil {
+			logging.Debug("Fetching match summary", "MatchID", matchIdString)
+			err = c.SyncMatchSummary(matchIdString, account.Region)
 			if err != nil {
-				logging.Error("Error fetching match summary", "MatchID", matchID, "Error", err)
+				logging.Error("Error fetching match summary", "MatchID", matchIdString, "Error", err)
 			}
 		}
 	}

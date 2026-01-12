@@ -110,17 +110,6 @@ func (db *DB) UpdateRiotAccount(PUUID string, updates map[string]interface{}) (b
 	return (n != 0), nil
 }
 
-func (db *DB) GetLolMatch(matchID string) (*models.LeagueOfLegendsMatchSummary, error) {
-	query := `SELECT id, started_at, duration, replay_synced FROM lol_matches WHERE id = ?`
-
-	var match models.LeagueOfLegendsMatchSummary
-	err := db.SQL.QueryRow(query, matchID).Scan(&match.ID, &match.StartedAt, &match.Duration, &match.ReplaySynced)
-	if err != nil {
-		return nil, err
-	}
-	return &match, nil
-}
-
 func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary) error {
 	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
 		return fmt.Errorf("match summary is missing required fields")
