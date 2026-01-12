@@ -62,7 +62,11 @@ func NewRiotClient(ctx context.Context, db *database.DB) *RiotClient {
 }
 
 func (r *RiotClient) buildURL(region, endpoint string) string {
-	return fmt.Sprintf("https://%s.api.riotgames.com%s", region, endpoint)
+	generalRegion, err := GetAPIRegion(region)
+	if err != nil {
+		logging.Error("Failed to generalize API region", "region", region)
+	}
+	return fmt.Sprintf("https://%s.api.riotgames.com%s", generalRegion, endpoint)
 }
 
 func (r *RiotClient) makeRequest(url string) ([]byte, int, error) {

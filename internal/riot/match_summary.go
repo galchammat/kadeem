@@ -27,12 +27,7 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 		return nil, err
 	}
 
-	apiRegion, err := GetAPIRegion(account.Region)
-	if err != nil {
-		return nil, err
-	}
-
-	url := c.buildURL(apiRegion, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
+	url := c.buildURL(account.Region, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
 		return nil, err

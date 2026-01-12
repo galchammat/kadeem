@@ -24,7 +24,7 @@ type LolAccountPatch struct {
 type LeagueOfLegendsMatch struct {
 	Summary      LeagueOfLegendsMatchSummary              `json:"summary" db:"-"`
 	Participants []LeagueOfLegendsMatchParticipantSummary `json:"participants" db:"-"`
-	Replay       *[]byte                                  `json:"replay,omitempty" db:"replay"`
+	ReplayURL    *string                                  `json:"replay,omitempty" db:"replay"`
 }
 
 type LeagueOfLegendsMatchSummary struct {
