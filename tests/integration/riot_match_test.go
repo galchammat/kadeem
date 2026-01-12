@@ -2,17 +2,20 @@ package tests
 
 import (
 	"context"
+	"testing"
+
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/models"
 	"github.com/galchammat/kadeem/internal/riot"
-	"testing"
+	"github.com/galchammat/kadeem/internal/testlog"
 )
 
 func TestListLolMatches(t *testing.T) {
+	tlog := testlog.New(t)
 	ctx := context.Background()
 	DB, err := database.OpenDB()
 	if err != nil {
-		t.Fatalf("Failed to open database: %v", err)
+		tlog.Fatalf("Failed to open database", "error", err)
 	}
 	defer DB.SQL.Close()
 
@@ -22,19 +25,19 @@ func TestListLolMatches(t *testing.T) {
 	// Fetch account to enable syncing behavior
 	account, err := DB.GetRiotAccount(testPuuid)
 	if err != nil {
-		t.Fatalf("Failed to get riot account: %v", err)
+		tlog.Fatalf("Failed to get riot account", "error", err)
 	}
 
 	filter := models.LolMatchFilter{PUUID: &testPuuid}
 	matches, err := c.ListMatches(&filter, account, 10, 0)
 
 	if err != nil {
-		t.Fatalf("Error fetching matches: %v", err)
+		tlog.Fatalf("Error fetching matches", "error", err)
 	}
 
 	if len(matches) == 0 {
-		t.Fatalf("Expected to fetch at least one match, got 0")
+		tlog.Fatalf("Expected to fetch at least one match, got 0")
 	}
 
-	t.Logf("Fetched %v matches successfully", matches)
+	tlog.Logf("Fetched matches successfully", "count", len(matches))
 }
