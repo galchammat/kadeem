@@ -7,7 +7,7 @@ import (
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/models"
 	"github.com/galchammat/kadeem/internal/riot"
-	"github.com/galchammat/kadeem/internal/testlog"
+	"github.com/galchammat/kadeem/tests/logs"
 )
 
 func TestListLolMatches(t *testing.T) {

@@ -128,7 +128,7 @@ func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary)
 	return err
 }
 
-func (db *DB) UpdateLolMatch(matchID string, updates map[string]interface{}) (bool, error) {
+func (db *DB) UpdateLolMatch(matchID int64, updates map[string]interface{}) (bool, error) {
 	var setClauses []string
 	var args []interface{}
 

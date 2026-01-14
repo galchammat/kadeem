@@ -18,7 +18,12 @@ func replayStorageDir() string {
 	return filepath.Join("bin", "replays")
 }
 
-func downloadReplay(fileName string, replayURL string) error {
+func replayExists(filePath string) bool {
+	info, err := os.Stat(filePath)
+	return err == nil && info.Size() > 1024*1024 // > 1MB
+}
+
+func downloadReplay(matchID int64, replayURL string) error {
 	if replayURL == "" {
 		return fmt.Errorf("replay URL cannot be empty")
 	}
@@ -28,7 +33,10 @@ func downloadReplay(fileName string, replayURL string) error {
 		return err
 	}
 
-	filePath := filepath.Join(replaysDir, fileName+".rofl")
+	filePath := filepath.Join(replaysDir, fmt.Sprintf("%d.rofl", matchID))
+	if replayExists(filePath) {
+		return nil
+	}
 	resp, err := http.Get(replayURL)
 	if err != nil {
 		return err
@@ -54,7 +62,7 @@ func downloadReplay(fileName string, replayURL string) error {
 	return nil
 }
 
-func (c *RiotClient) SyncMatchReplay(matchID string, url string) error {
+func (c *RiotClient) SyncMatchReplay(matchID int64, url string) error {
 	if err := downloadReplay(matchID, url); err != nil {
 		return fmt.Errorf("error downloading replay: %v", err)
 	}
