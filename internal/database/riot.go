@@ -155,7 +155,7 @@ func (db *DB) InsertLolMatchParticipantSummary(participant *models.LeagueOfLegen
 
 	query := `
 		INSERT OR REPLACE INTO participants (
-			game_id,
+			match_id,
 			champion_id,
 			kills,
 			deaths,
@@ -227,7 +227,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	matchIDQuery := `
 		SELECT DISTINCT m.id
 		FROM lol_matches m
-		LEFT JOIN participants p ON m.id = p.game_id
+		LEFT JOIN participants p ON m.id = p.match_id
 	`
 
 	// Build WHERE clauses using BuildQueryArgs
@@ -280,7 +280,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	fullQuery := fmt.Sprintf(`
 		SELECT 
 			m.id, m.started_at, m.duration, m.replay_synced,
-			p.game_id, p.champion_id, p.kills, p.deaths, p.assists,
+			p.match_id, p.champion_id, p.kills, p.deaths, p.assists,
 			p.total_minions_killed, p.double_kills, p.triple_kills,
 			p.quadra_kills, p.penta_kills, p.item0, p.item1, p.item2,
 			p.item3, p.item4, p.item5, p.item6, p.summoner1_id,
@@ -288,7 +288,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 			p.riot_id_game_name, p.riot_id_tagline,
 			p.total_damage_dealt_to_champions, p.total_damage_taken, p.win
 		FROM lol_matches m
-		LEFT JOIN participants p ON m.id = p.game_id
+		LEFT JOIN participants p ON m.id = p.match_id
 		WHERE m.id IN (%s)
 		ORDER BY m.started_at DESC, p.participant_id ASC
 	`, strings.Join(placeholders, ", "))

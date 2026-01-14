@@ -28,14 +28,14 @@ type LeagueOfLegendsMatch struct {
 }
 
 type LeagueOfLegendsMatchSummary struct {
-	ID           int64  `json:"gameId" db:"game_id"`
+	ID           int64  `json:"gameId" db:"match_id"`
 	StartedAt    *int64 `json:"startedAt" db:"started_at"`
 	Duration     *int   `json:"duration" db:"duration"`
 	ReplaySynced *bool  `json:"replaySynced" db:"replay_synced"`
 }
 
 type LeagueOfLegendsMatchParticipantSummary struct {
-	GameID                      int64  `json:"gameId" db:"game_id"`
+	GameID                      int64  `json:"gameId" db:"match_id"`
 	ChampionID                  int    `json:"championId" db:"champion_id"`
 	Kills                       int    `json:"kills" db:"kills"`
 	Deaths                      int    `json:"deaths" db:"deaths"`
@@ -67,7 +67,7 @@ type LeagueOfLegendsMatchParticipantSummary struct {
 // LolMatchFilter provides filtering options for listing League of Legends matches
 type LolMatchFilter struct {
 	// Match/Summary filters
-	MatchID      *int64 `db:"m.game_id" op:"="`
+	MatchID      *int64 `db:"m.match_id" op:"="`
 	StartedAtMin *int64 `db:"m.started_at" op:">="`
 	StartedAtMax *int64 `db:"m.started_at" op:"<="`
 	DurationMin  *int   `db:"m.duration" op:">="`
