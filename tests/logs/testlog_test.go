@@ -3,7 +3,7 @@ package testlog_test
 import (
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/testlog"
+	"github.com/galchammat/kadeem/tests/logs"
 )
 
 func TestLoggingFormat(t *testing.T) {

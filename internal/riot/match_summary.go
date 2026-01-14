@@ -42,12 +42,12 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 	return matchIDs, nil
 }
 
-func (c *RiotClient) SyncMatchSummary(matchID string, region string) error {
-	if matchID == "" {
-		return fmt.Errorf("matchID cannot be empty")
+func (c *RiotClient) SyncMatchSummary(matchID int64, region string) error {
+	if matchID == 0 {
+		return fmt.Errorf("matchID cannot be zero")
 	}
 
-	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", matchID))
+	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%d", matchID))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
 		return err
