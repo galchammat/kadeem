@@ -30,6 +30,7 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 	url := c.buildURL(account.Region, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
 		return nil, err
 	}
 
@@ -50,12 +51,13 @@ func (c *RiotClient) SyncMatchSummary(matchID int64, region string) error {
 	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%d", matchID))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch match summary from Riot API", "matchID", matchID, "url", url, "error", err)
 		return err
 	}
 
 	var response matchSummaryResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		logging.Error("Failed to unmarshal match summary", "error", err)
+		logging.Error("Failed to unmarshal match summary", "matchID", matchID, "error", err)
 		return err
 	}
 
@@ -66,13 +68,11 @@ func (c *RiotClient) SyncMatchSummary(matchID int64, region string) error {
 	}
 
 	if err := c.db.InsertLolMatchSummary(&summary); err != nil {
-		logging.Error("Failed to insert match summary", "matchID", matchID, "error", err)
 		return err
 	}
 
 	for _, participant := range response.Info.Participants {
 		if err := c.db.InsertLolMatchParticipantSummary(&participant); err != nil {
-			logging.Error("Failed to insert match participant", "matchID", matchID, "participantID", participant.ParticipantID, "error", err)
 			return err
 		}
 	}

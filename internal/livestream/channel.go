@@ -8,38 +8,23 @@ import (
 )
 
 func (c *StreamerClient) AddChannel(channelInput models.Channel) (bool, error) {
-	// channels, err := c.db.ListChannels(&channelInput)
-	// if err != nil {
-	// 	errMessage := fmt.Errorf("failed to add channel while checking if channel already exists: %w", err)
-	// 	logging.Error(errMessage.Error())
-	// 	return false, errMessage
-	// }
-	// if len(channels) > 0 {
-	// 	return false, nil
-	// }
 	var err error
 	var channel models.Channel
 	switch channelInput.Platform {
 	case "twitch":
 		channel, err = c.twitch.FindChannel(channelInput)
-	// case "youtube":
-	// 	channel, err = c.youtube.FindChannel(channelInput)
 	default:
-		errMessage := fmt.Errorf("unsupported platform: %s", channelInput.Platform)
-		logging.Error(errMessage.Error())
-		return false, errMessage
+		err := fmt.Errorf("unsupported platform: %s", channelInput.Platform)
+		logging.Error("Unsupported platform requested", "platform", channelInput.Platform)
+		return false, err
 	}
 	if err != nil {
-		errMessage := fmt.Errorf("failed to find channel: %w", err)
-		logging.Error(errMessage.Error())
-		return false, errMessage
+		return false, fmt.Errorf("failed to find channel: %w", err)
 	}
 
 	saved, err := c.db.SaveChannel(channel)
 	if err != nil {
-		errMessage := fmt.Errorf("failed to save channel: %w", err)
-		logging.Error(errMessage.Error())
-		return false, errMessage
+		return false, fmt.Errorf("failed to save channel: %w", err)
 	}
 	return saved, nil
 }
@@ -47,9 +32,7 @@ func (c *StreamerClient) AddChannel(channelInput models.Channel) (bool, error) {
 func (c *StreamerClient) DeleteChannel(channelID string) (bool, error) {
 	deleted, err := c.db.DeleteChannel(channelID)
 	if err != nil {
-		errMessage := fmt.Errorf("failed to delete channel: %w", err)
-		logging.Error(errMessage.Error())
-		return false, errMessage
+		return false, fmt.Errorf("failed to delete channel: %w", err)
 	}
 	return deleted, nil
 }

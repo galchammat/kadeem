@@ -17,6 +17,9 @@ func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
         VALUES (?, ?, ?, ?, ?)`
 
 	_, err := db.SQL.Exec(query, account.PUUID, account.StreamerID, account.TagLine, account.GameName, account.Region)
+	if err != nil {
+		logging.Error("Failed to save Riot account to database", "puuid", account.PUUID, "error", err)
+	}
 	return err
 }
 
@@ -27,6 +30,7 @@ func (db *DB) GetRiotAccount(puuid string) (*models.LeagueOfLegendsAccount, erro
 	var account models.LeagueOfLegendsAccount
 	err := db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err != nil {
+		logging.Error("Failed to get Riot account from database", "puuid", puuid, "error", err)
 		return nil, err
 	}
 	return &account, nil
@@ -64,6 +68,7 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 
 	rows, err := db.SQL.Query(query, args...)
 	if err != nil {
+		logging.Error("Failed to list Riot accounts from database", "error", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -72,12 +77,14 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 	for rows.Next() {
 		account := &models.LeagueOfLegendsAccount{}
 		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
+			logging.Error("Failed to scan Riot account row", "error", err)
 			return nil, err
 		}
 
 		accounts = append(accounts, account)
 	}
 	if err := rows.Err(); err != nil {
+		logging.Error("Error iterating over Riot account rows", "error", err)
 		return nil, err
 	}
 	return accounts, nil
@@ -87,6 +94,9 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]*models
 func (db *DB) DeleteRiotAccount(puuid string) error {
 	query := `DELETE FROM league_of_legends_accounts WHERE puuid = ?`
 	_, err := db.SQL.Exec(query, puuid)
+	if err != nil {
+		logging.Error("Failed to delete Riot account from database", "puuid", puuid, "error", err)
+	}
 	return err
 }
 
@@ -104,6 +114,7 @@ func (db *DB) UpdateRiotAccount(PUUID string, updates map[string]interface{}) (b
 
 	res, err := db.SQL.Exec(query, args...)
 	if err != nil {
+		logging.Error("Failed to update Riot account in database", "puuid", PUUID, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -125,6 +136,9 @@ func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary)
 		(id, started_at, duration, replay_synced)
 		VALUES (?, ?, ?, ?)`
 	_, err := db.SQL.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, replaySynced)
+	if err != nil {
+		logging.Error("Failed to insert match summary into database", "matchID", summary.ID, "error", err)
+	}
 	return err
 }
 
@@ -142,6 +156,7 @@ func (db *DB) UpdateLolMatch(matchID int64, updates map[string]interface{}) (boo
 
 	res, err := db.SQL.Exec(query, args...)
 	if err != nil {
+		logging.Error("Failed to update match in database", "matchID", matchID, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -214,6 +229,9 @@ func (db *DB) InsertLolMatchParticipantSummary(participant *models.LeagueOfLegen
 		participant.TotalDamageTaken,
 		participant.Win,
 	)
+	if err != nil {
+		logging.Error("Failed to insert match participant into database", "matchID", participant.GameID, "participantID", participant.ParticipantID, "error", err)
+	}
 	return err
 }
 
@@ -233,6 +251,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	// Build WHERE clauses using BuildQueryArgs
 	whereClauses, args, err := db.BuildQueryArgs(filter)
 	if err != nil {
+		logging.Error("Failed to build query args for ListLolMatches", "error", err)
 		return nil, fmt.Errorf("failed to build query args: %w", err)
 	}
 
@@ -248,6 +267,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	// Step 2: Execute first query to get match IDs
 	rows, err := db.SQL.Query(matchIDQuery, args...)
 	if err != nil {
+		logging.Error("Failed to query match IDs from database", "error", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -256,11 +276,13 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	for rows.Next() {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
+			logging.Error("Failed to scan match ID row", "error", err)
 			return nil, err
 		}
 		matchIDs = append(matchIDs, id)
 	}
 	if err := rows.Err(); err != nil {
+		logging.Error("Error iterating over match ID rows", "error", err)
 		return nil, err
 	}
 
@@ -296,6 +318,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	// Step 4: Execute second query
 	fullRows, err := db.SQL.Query(fullQuery, fullArgs...)
 	if err != nil {
+		logging.Error("Failed to query full match data from database", "error", err)
 		return nil, err
 	}
 	defer fullRows.Close()
@@ -321,6 +344,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 			&participant.TotalDamageTaken, &participant.Win,
 		)
 		if err != nil {
+			logging.Error("Failed to scan full match data row", "error", err)
 			return nil, err
 		}
 
@@ -340,6 +364,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 		)
 	}
 	if err := fullRows.Err(); err != nil {
+		logging.Error("Error iterating over full match data rows", "error", err)
 		return nil, err
 	}
 

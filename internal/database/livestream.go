@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/models"
 )
 
@@ -13,6 +14,7 @@ func (db *DB) SaveStreamer(streamer models.Streamer) (bool, error) {
 		streamer.Name,
 	)
 	if err != nil {
+		logging.Error("Failed to save streamer to database", "name", streamer.Name, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -25,6 +27,7 @@ func (db *DB) DeleteStreamer(name string) (bool, error) {
 		name,
 	)
 	if err != nil {
+		logging.Error("Failed to delete streamer from database", "name", name, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -35,6 +38,7 @@ func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	var streamers []models.Streamer
 	rows, err := db.SQL.Query("SELECT id, name FROM streamers")
 	if err != nil {
+		logging.Error("Failed to query streamers from database", "error", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -42,6 +46,7 @@ func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	for rows.Next() {
 		var s models.Streamer
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
+			logging.Error("Failed to scan streamer row", "error", err)
 			return nil, err
 		}
 		streamers = append(streamers, s)
@@ -77,6 +82,7 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 
 	rows, err := db.SQL.Query(query, args...)
 	if err != nil {
+		logging.Error("Failed to query channels from database", "error", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -86,6 +92,7 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 		channel := models.Channel{}
 		var syncedAt sql.NullTime
 		if err := rows.Scan(&channel.ID, &channel.StreamerID, &channel.Platform, &channel.ChannelName, &channel.AvatarURL, &syncedAt); err != nil {
+			logging.Error("Failed to scan channel row", "error", err)
 			return nil, err
 		}
 
@@ -96,6 +103,7 @@ func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
 		channels = append(channels, channel)
 	}
 	if err := rows.Err(); err != nil {
+		logging.Error("Error iterating over channel rows", "error", err)
 		return nil, err
 	}
 	return channels, nil
@@ -107,6 +115,7 @@ func (db *DB) SaveChannel(channel models.Channel) (bool, error) {
 		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ID, channel.AvatarURL,
 	)
 	if err != nil {
+		logging.Error("Failed to save channel to database", "channelID", channel.ID, "channelName", channel.ChannelName, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -127,6 +136,7 @@ func (db *DB) UpdateChannel(channelID string, updates map[string]interface{}) (b
 
 	res, err := db.SQL.Exec(query, args...)
 	if err != nil {
+		logging.Error("Failed to update channel in database", "channelID", channelID, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
@@ -139,6 +149,7 @@ func (db *DB) DeleteChannel(channelID string) (bool, error) {
 		channelID,
 	)
 	if err != nil {
+		logging.Error("Failed to delete channel from database", "channelID", channelID, "error", err)
 		return false, err
 	}
 	n, _ := res.RowsAffected()
