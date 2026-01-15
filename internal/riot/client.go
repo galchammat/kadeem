@@ -91,7 +91,7 @@ func (r *RiotClient) makeRequest(url string) ([]byte, int, error) {
 
 	// Non-200 Status Code
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
+		err := fmt.Errorf("HTTP request failed. url %s. status %d. body %s", url, resp.StatusCode, string(body))
 		logging.Error(err.Error())
 		return nil, resp.StatusCode, err
 	}

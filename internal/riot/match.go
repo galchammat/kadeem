@@ -16,18 +16,23 @@ func extractMatchID(url string) (int64, error) {
 	matches := re.FindStringSubmatch(url)
 
 	if len(matches) < 2 {
-		return 0, fmt.Errorf("no match ID found in URL")
+		err := fmt.Errorf("no match ID found in URL: %s", url)
+		logging.Error("Failed to extract match ID from replay URL", "url", url, "error", err)
+		return 0, err
 	}
 
 	// Extract numeric portion after underscore
 	fullMatchID := matches[1] // e.g., "EUW1_7665669531"
 	parts := regexp.MustCompile(`_(\d+)$`).FindStringSubmatch(fullMatchID)
 	if len(parts) < 2 {
-		return 0, fmt.Errorf("invalid match ID format: %s", fullMatchID)
+		err := fmt.Errorf("invalid match ID format: %s", fullMatchID)
+		logging.Error("Invalid match ID format in replay URL", "fullMatchID", fullMatchID, "url", url, "error", err)
+		return 0, err
 	}
 
 	id, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
+		logging.Error("Failed to parse match ID as int64", "matchIDString", parts[1], "url", url, "error", err)
 		return 0, fmt.Errorf("invalid match ID: %v", err)
 	}
 
@@ -42,23 +47,20 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 	var replayURLs []string
 	replayURLs, err = c.FetchReplayURLs(account.PUUID, account.Region)
 	if err != nil {
+		logging.Error("Failed to fetch replay URLs for account", "puuid", account.PUUID, "region", account.Region, "error", err)
 		return err
 	}
 
 	for _, url := range replayURLs {
 		matchID, err := extractMatchID(url)
 		if err != nil {
-			return fmt.Errorf("failed to parse int matchID from replay URL: %s", url)
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to extract full matchID from replay URL: %s", url)
+			return fmt.Errorf("failed to parse matchID from replay URL: %s", url)
 		}
 
 		var limit, offset int = 1, 0
 		existingMatches, err := c.db.ListLolMatches(&models.LolMatchFilter{MatchID: &matchID}, &limit, &offset)
 		if err != nil {
-			return fmt.Errorf("Error while checking for an existing match. MatchID: %d. Error: %w", matchID, err)
+			return fmt.Errorf("error while checking for an existing match. MatchID: %d. Error: %w", matchID, err)
 		}
 		var existingMatch *models.LeagueOfLegendsMatch
 		if len(existingMatches) != 0 {
@@ -70,7 +72,7 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 			logging.Debug("Fetching match summary", "MatchID", matchID)
 			err = c.SyncMatchSummary(matchID, account.Region)
 			if err != nil {
-				logging.Error("Error fetching match summary", "MatchID", matchID, "Error", err)
+				logging.Warn("Skipping match summary sync due to error", "MatchID", matchID)
 			}
 		}
 
@@ -79,7 +81,7 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 			logging.Debug("Downloading replay", "MatchID", matchID, "URL", url)
 			err = c.SyncMatchReplay(matchID, url)
 			if err != nil {
-				logging.Error("Error downloading replay", "MatchID", matchID, "Error", err)
+				logging.Warn("Skipping replay download due to error", "MatchID", matchID)
 			}
 		}
 
@@ -98,7 +100,7 @@ func (c *RiotClient) ListMatches(filter *models.LolMatchFilter, account *models.
 		(account.SyncedAt == nil || time.Since(time.Unix(*account.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
 		err := c.SyncMatches(*account)
 		if err != nil {
-			logging.Error("Error syncing matches for account", "PUUID", account.PUUID, "Error", err)
+			logging.Warn("Failed to sync matches for account, returning cached data", "PUUID", account.PUUID)
 		}
 	}
 

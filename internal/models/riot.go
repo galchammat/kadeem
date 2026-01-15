@@ -67,7 +67,7 @@ type LeagueOfLegendsMatchParticipantSummary struct {
 // LolMatchFilter provides filtering options for listing League of Legends matches
 type LolMatchFilter struct {
 	// Match/Summary filters
-	MatchID      *int64 `db:"m.match_id" op:"="`
+	MatchID      *int64 `db:"m.id" op:"="`
 	StartedAtMin *int64 `db:"m.started_at" op:">="`
 	StartedAtMax *int64 `db:"m.started_at" op:"<="`
 	DurationMin  *int   `db:"m.duration" op:">="`
