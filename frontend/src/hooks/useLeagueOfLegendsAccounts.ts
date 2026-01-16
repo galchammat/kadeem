@@ -42,10 +42,12 @@ export function useLeagueOfLegendsAccounts(): UseLeagueOfLegendsAccountsReturn {
       setLoading(true);
       const filter = new models.LeagueOfLegendsAccount();
       const result = await RiotClient.ListAccounts(filter);
-      setAccounts(result);
+      // Defensive: ensure we always have an array, even if backend returns null
+      setAccounts(result ?? []);
       setError(null);
     } catch (err) {
       setError(`Failed to load accounts: ${err}`);
+      setAccounts([]); // Reset to empty array on error
     } finally {
       setLoading(false);
     }
