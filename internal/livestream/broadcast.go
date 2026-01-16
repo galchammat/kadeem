@@ -48,7 +48,7 @@ func (c *StreamerClient) ListBroadcasts(filters *models.Broadcast, limit int, of
 		return []models.Broadcast{}, fmt.Errorf("channelID must be specified in filters")
 	}
 
-	channels, err := c.db.ListChannels(&models.Channel{ID: filters.ChannelID})
+	channels, err := c.db.ListChannels(&models.ChannelFilter{ID: &filters.ChannelID})
 	if err != nil || len(channels) == 0 {
 		return nil, err
 	}
@@ -62,7 +62,43 @@ func (c *StreamerClient) ListBroadcasts(filters *models.Broadcast, limit int, of
 		}
 	}
 
-	broadcasts, err := c.db.ListBroadcasts(filters, limit, &offset)
+	// Convert Broadcast to BroadcastFilter
+	filterObj := &models.BroadcastFilter{
+		ChannelID: &filters.ChannelID,
+	}
+	if filters.ID != 0 {
+		filterObj.ID = &filters.ID
+	}
+	if filters.Title != "" {
+		filterObj.Title = &filters.Title
+	}
+	if filters.URL != "" {
+		filterObj.URL = &filters.URL
+	}
+	if filters.ThumbnailURL != "" {
+		filterObj.ThumbnailURL = &filters.ThumbnailURL
+	}
+	if filters.Viewable != "" {
+		filterObj.Viewable = &filters.Viewable
+	}
+	if filters.CreatedAt != 0 {
+		// Convert exact match to range (Min=Max for exact timestamp)
+		filterObj.CreatedAtMin = &filters.CreatedAt
+		filterObj.CreatedAtMax = &filters.CreatedAt
+	}
+	if filters.PublishedAt != 0 {
+		// Convert exact match to range (Min=Max for exact timestamp)
+		filterObj.PublishedAtMin = &filters.PublishedAt
+		filterObj.PublishedAtMax = &filters.PublishedAt
+	}
+	if filters.Duration != 0 {
+		// Convert exact match to range (Min=Max for exact duration)
+		d := int(filters.Duration)
+		filterObj.DurationMin = &d
+		filterObj.DurationMax = &d
+	}
+
+	broadcasts, err := c.db.ListBroadcasts(filterObj, limit, &offset)
 	if err != nil {
 		return nil, err
 	}

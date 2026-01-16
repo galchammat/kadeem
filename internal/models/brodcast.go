@@ -53,3 +53,26 @@ type Broadcast struct {
 	PublishedAt  int64           `json:"published_at" db:"published_at"`
 	Duration     DurationSeconds `json:"duration" db:"duration"`
 }
+
+// BroadcastFilter provides filtering options for listing broadcasts
+type BroadcastFilter struct {
+	// Exact matches
+	ID           *int64  `db:"id" op:"="`
+	ChannelID    *string `db:"channel_id" op:"="`
+	URL          *string `db:"url" op:"="`
+	ThumbnailURL *string `db:"thumbnail_url" op:"="`
+	Viewable     *string `db:"viewable" op:"="`
+
+	// Text search (user provides wildcards like "%search%")
+	Title *string `db:"title" op:"like"`
+
+	// Timestamp ranges (Unix timestamps)
+	CreatedAtMin   *int64 `db:"created_at" op:">="`
+	CreatedAtMax   *int64 `db:"created_at" op:"<="`
+	PublishedAtMin *int64 `db:"published_at" op:">="`
+	PublishedAtMax *int64 `db:"published_at" op:"<="`
+
+	// Duration ranges (in seconds)
+	DurationMin *int `db:"duration" op:">="`
+	DurationMax *int `db:"duration" op:"<="`
+}

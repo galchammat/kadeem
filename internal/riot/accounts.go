@@ -70,18 +70,14 @@ func (r *RiotClient) ListAccounts(filter *models.LeagueOfLegendsAccount) ([]mode
 		return nil, err
 	}
 
-	for _, account := range accounts {
-		err := r.reconcileAccount(account)
+	for i := range accounts {
+		err := r.reconcileAccount(&accounts[i])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	result := make([]models.LeagueOfLegendsAccount, len(accounts))
-	for i, acc := range accounts {
-		result[i] = *acc
-	}
-	return result, nil
+	return accounts, nil
 }
 
 func (r *RiotClient) DeleteAccount(puuid string) error {

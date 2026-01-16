@@ -14,6 +14,16 @@ type Channel struct {
 	SyncedAt    *int64 `json:"syncedAt" db:"synced_at"`
 }
 
+// ChannelFilter provides filtering options for listing channels
+type ChannelFilter struct {
+	ID         *string `db:"id" op:"="`
+	StreamerID *int64  `db:"streamer_id" op:"="`
+	Platform   *string `db:"platform" op:"="`
+
+	// Text search (user provides wildcards like "%search%")
+	ChannelName *string `db:"channel_name" op:"like"`
+}
+
 type StreamerView struct {
 	StreamerID   int64     `json:"id" db:"id"`
 	StreamerName string    `json:"name" db:"name"`

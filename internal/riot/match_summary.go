@@ -43,15 +43,15 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 	return matchIDs, nil
 }
 
-func (c *RiotClient) SyncMatchSummary(matchID int64, region string) error {
+func (c *RiotClient) SyncMatchSummary(matchID int64, fullMatchID string, region string) error {
 	if matchID == 0 {
 		return fmt.Errorf("matchID cannot be zero")
 	}
 
-	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%d", matchID))
+	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", fullMatchID))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
-		logging.Error("Failed to fetch match summary from Riot API", "matchID", matchID, "url", url, "error", err)
+		logging.Error("Failed to fetch match summary from Riot API", "matchID", matchID, "fullMatchID", fullMatchID, "url", url, "error", err)
 		return err
 	}
 
@@ -72,6 +72,7 @@ func (c *RiotClient) SyncMatchSummary(matchID int64, region string) error {
 	}
 
 	for _, participant := range response.Info.Participants {
+		logging.Debug("Inserting participant", "details", "participant")
 		if err := c.db.InsertLolMatchParticipantSummary(&participant); err != nil {
 			return err
 		}
