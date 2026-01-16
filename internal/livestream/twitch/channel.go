@@ -29,7 +29,7 @@ func (c *TwitchClient) FindChannel(streamInput models.Channel) (models.Channel, 
 
 	var ChannelSearchResult models.ChannelSearchResponse
 	if err := json.Unmarshal(data.Data, &ChannelSearchResult); err != nil {
-		logging.Error("failed to unmarshal twitch search response", err)
+		logging.Error("Failed to unmarshal Twitch search response", "query", query, "error", err)
 		return models.Channel{}, fmt.Errorf("invalid twitch response: %w", err)
 	}
 

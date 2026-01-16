@@ -1,23 +1,130 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 )
 
 var logger *slog.Logger
+var projectRoot string
+
+// QuickfixHandler wraps slog.Handler to produce quickfix-friendly output with file:line
+type QuickfixHandler struct {
+	out   io.Writer
+	level slog.Level
+}
+
+func findProjectRoot() string {
+	// Start from current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Walk up the directory tree looking for go.mod
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached the root without finding go.mod
+			return ""
+		}
+		dir = parent
+	}
+}
+
+func NewQuickfixHandler(out io.Writer, level slog.Level) *QuickfixHandler {
+	return &QuickfixHandler{out: out, level: level}
+}
+
+func (h *QuickfixHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.level
+}
+
+func (h *QuickfixHandler) Handle(_ context.Context, r slog.Record) error {
+	// Get caller information
+	var file string
+	var line int
+	if r.PC != 0 {
+		fs := runtime.CallersFrames([]uintptr{r.PC})
+		f, _ := fs.Next()
+		// Try to get relative path from project root
+		if projectRoot != "" {
+			if relPath, err := filepath.Rel(projectRoot, f.File); err == nil {
+				file = relPath
+			} else {
+				file = f.File
+			}
+		} else {
+			file = f.File
+		}
+		line = f.Line
+	}
+
+	// Build attributes string as part of the message
+	var attrs strings.Builder
+	r.Attrs(func(a slog.Attr) bool {
+		if attrs.Len() > 0 {
+			attrs.WriteString(", ")
+		}
+		attrs.WriteString(a.Key)
+		attrs.WriteString("=")
+		attrs.WriteString(fmt.Sprint(a.Value))
+		return true
+	})
+
+	// Format: file:line: LEVEL: message attr1=val1, attr2=val2 (timestamp)
+	level := r.Level.String()
+	msg := r.Message
+	timestamp := r.Time.Format("15:04:05.000")
+
+	var output string
+	if file != "" {
+		if attrs.Len() > 0 {
+			output = fmt.Sprintf("%s:%d: %s: %s %s (%s)\n", file, line, level, msg, attrs.String(), timestamp)
+		} else {
+			output = fmt.Sprintf("%s:%d: %s: %s (%s)\n", file, line, level, msg, timestamp)
+		}
+	} else {
+		if attrs.Len() > 0 {
+			output = fmt.Sprintf("%s: %s %s (%s)\n", level, msg, attrs.String(), timestamp)
+		} else {
+			output = fmt.Sprintf("%s: %s (%s)\n", level, msg, timestamp)
+		}
+	}
+
+	_, err := h.out.Write([]byte(output))
+	return err
+}
+
+func (h *QuickfixHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	// For simplicity, we don't support persistent attributes in this implementation
+	// You could extend this to store attrs and prepend them to each log
+	return h
+}
+
+func (h *QuickfixHandler) WithGroup(name string) slog.Handler {
+	// For simplicity, we don't support groups in this implementation
+	return h
+}
 
 func init() {
-	// sensible default: text handler, INFO level, stderr
-	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	})
+	// Find project root by looking for go.mod
+	projectRoot = findProjectRoot()
+
+	// sensible default: quickfix handler, INFO level, stderr
+	h := NewQuickfixHandler(os.Stderr, slog.LevelDebug)
 	logger = slog.New(h)
+	logger = logger.With() // This ensures AddSource works properly
 	slog.SetDefault(logger)
 }
 
@@ -26,62 +133,38 @@ func Init(out io.Writer, level slog.Level) {
 	if out == nil {
 		out = os.Stderr
 	}
-	h := slog.NewTextHandler(out, &slog.HandlerOptions{
-		Level: level,
-	})
+	h := NewQuickfixHandler(out, level)
 	logger = slog.New(h)
+	logger = logger.With() // This ensures AddSource works properly
 	slog.SetDefault(logger)
 }
 
-// Expose level loggers with correct caller source
+// Expose level loggers with caller information
 func Info(msg string, args ...any) {
-	logWithSource(slog.LevelInfo, msg, args...)
+	logWithCaller(slog.LevelInfo, msg, args...)
 }
+
 func Debug(msg string, args ...any) {
-	logWithSource(slog.LevelDebug, msg, args...)
+	logWithCaller(slog.LevelDebug, msg, args...)
 }
+
 func Warn(msg string, args ...any) {
-	logWithSource(slog.LevelWarn, msg, args...)
+	logWithCaller(slog.LevelWarn, msg, args...)
 }
+
 func Error(msg string, args ...any) {
-	logWithSource(slog.LevelError, msg, args...)
+	logWithCaller(slog.LevelError, msg, args...)
 }
 
-func logWithSource(level slog.Level, msg string, args ...any) {
-	// Manually format the log line
-	timestamp := time.Now().Format("2006-01-02T15:04:05.000Z07:00")
-	fmt.Fprintf(os.Stderr, "time=%s level=%s ", timestamp, level)
-
-	// Only print call stack for error and warn levels
-	if level >= slog.LevelWarn {
-		pcs := make([]uintptr, 10)
-		n := runtime.Callers(3, pcs) // skip: Callers, logWithSource, Error/Info/etc
-		frames := runtime.CallersFrames(pcs[:n])
-		var locations []string
-		for {
-			frame, more := frames.Next()
-			if strings.Contains(frame.File, "kadeem") {
-				locations = append(locations, fmt.Sprintf("%s:%d", frame.File, frame.Line))
-			}
-			if !more {
-				break
-			}
-		}
-		if len(locations) > 0 {
-			fmt.Fprintf(os.Stderr, "%s ", strings.Join(locations, " <- "))
-		}
+func logWithCaller(level slog.Level, msg string, args ...any) {
+	if !logger.Enabled(context.Background(), level) {
+		return
 	}
-
-	fmt.Fprintf(os.Stderr, "msg=%q", msg)
-
-	// Print key-value pairs
-	for i := 0; i < len(args); i += 2 {
-		if i+1 < len(args) {
-			fmt.Fprintf(os.Stderr, " %v=%v", args[i], args[i+1])
-		}
-	}
-
-	fmt.Fprintln(os.Stderr)
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:]) // skip [Callers, logWithCaller, Info/Debug/Warn/Error]
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(args...)
+	_ = logger.Handler().Handle(context.Background(), r)
 }
 
 // Expose the underlying logger if needed

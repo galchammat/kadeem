@@ -50,10 +50,12 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
       const filter: models.LeagueOfLegendsAccount = { streamerId: streamerId, ...defaultAccount };
       console.log('Fetching LoL accounts with filter:', filter);
       const res = await RiotClient.ListAccounts(filter);
-      setAccounts(res);
+      // Defensive: ensure we always have an array, even if backend returns null
+      setAccounts(res ?? []);
       setError(null);
     } catch (err) {
       setError(String(err));
+      setAccounts([]); // Reset to empty array on error
     } finally {
       setLoading(false);
     }

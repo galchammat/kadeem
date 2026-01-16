@@ -13,60 +13,50 @@ func (r *RiotClient) AddAccount(region, gameName, tagLine string, streamerID int
 	var account models.LeagueOfLegendsAccount
 	if gameName == "" || tagLine == "" || region == "" {
 		err := fmt.Errorf("gameName, tagLine, and region cannot be empty")
-		logging.Error(err.Error())
+		logging.Error("Invalid parameters for AddAccount", "gameName", gameName, "tagLine", tagLine, "region", region)
 		return err
 	}
-	apiRegion, err := GetAPIRegion(region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+
+	url := r.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
 	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
-		logging.Error(err.Error())
+		logging.Error("Failed to fetch account from Riot API", "gameName", gameName, "tagLine", tagLine, "region", region, "statusCode", statusCode, "error", err)
 		if statusCode == 404 {
-			err := fmt.Errorf("account not found on Riot servers")
-			return err
+			return fmt.Errorf("account not found on Riot servers")
 		} else {
 			return fmt.Errorf("failed to fetch account from Riot servers: %v", err)
 		}
 	}
 	if err := json.Unmarshal(body, &account); err != nil {
-		logging.Error("Failed to unmarshal JSON response", "error", err)
+		logging.Error("Failed to unmarshal account JSON response", "gameName", gameName, "tagLine", tagLine, "error", err)
 		return err
 	}
 	account.Region = region
 	account.StreamerID = streamerID
 	if err := r.db.SaveRiotAccount(&account); err != nil {
-		logging.Error("Failed to save Riot account: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) error {
-	apiRegion, err := GetAPIRegion(account.Region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", account.PUUID))
+	url := r.buildURL(account.Region, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", account.PUUID))
 	body, _, err := r.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch account from Riot API for reconciliation", "puuid", account.PUUID, "region", account.Region, "error", err)
 		return err
 	}
 	var fetchedAccount models.LeagueOfLegendsAccount
 	if err := json.Unmarshal(body, &fetchedAccount); err != nil {
-		logging.Error("Failed to unmarshal JSON response", "error", err)
+		logging.Error("Failed to unmarshal account JSON response during reconciliation", "puuid", account.PUUID, "error", err)
 		return err
 	}
 	fetchedAccount.Region = account.Region
+	fetchedAccount.StreamerID = account.StreamerID
 
 	if !reflect.DeepEqual(account, &fetchedAccount) {
 		logging.Info("Riot account data has changed, updating database", "puuid", account.PUUID)
 		if err := r.db.SaveRiotAccount(&fetchedAccount); err != nil {
-			logging.Error("Failed to update Riot account: %v", err)
 			return err
 		}
 		*account = fetchedAccount
@@ -77,33 +67,26 @@ func (r *RiotClient) reconcileAccount(account *models.LeagueOfLegendsAccount) er
 func (r *RiotClient) ListAccounts(filter *models.LeagueOfLegendsAccount) ([]models.LeagueOfLegendsAccount, error) {
 	accounts, err := r.db.ListRiotAccounts(filter)
 	if err != nil {
-		logging.Error("Failed to list Riot accounts while fetching puuids from database: %v", err)
 		return nil, err
 	}
 
-	for _, account := range accounts {
-		err := r.reconcileAccount(account)
+	for i := range accounts {
+		err := r.reconcileAccount(&accounts[i])
 		if err != nil {
-			logging.Error("Failed to reconcile Riot account: %v", err)
 			return nil, err
 		}
 	}
 
-	result := make([]models.LeagueOfLegendsAccount, len(accounts))
-	for i, acc := range accounts {
-		result[i] = *acc
-	}
-	return result, nil
+	return accounts, nil
 }
 
 func (r *RiotClient) DeleteAccount(puuid string) error {
 	if puuid == "" {
 		err := fmt.Errorf("puuid cannot be empty")
-		logging.Error(err.Error())
+		logging.Error("Invalid parameters for DeleteAccount", "puuid", puuid)
 		return err
 	}
 	if err := r.db.DeleteRiotAccount(puuid); err != nil {
-		logging.Error("Failed to delete Riot account: %v", err)
 		return err
 	}
 	logging.Info("Deleted Riot account", "puuid", puuid)
@@ -113,19 +96,14 @@ func (r *RiotClient) DeleteAccount(puuid string) error {
 func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) error {
 	if gameName == "" || tagLine == "" || region == "" || puuid == "" {
 		err := fmt.Errorf("gameName, tagLine, region, and puuid cannot be empty")
-		logging.Error(err.Error())
+		logging.Error("Invalid parameters for UpdateAccount", "gameName", gameName, "tagLine", tagLine, "region", region, "puuid", puuid)
 		return err
 	}
 
-	// Validate the account exists on Riot's servers
-	apiRegion, err := GetAPIRegion(region)
-	if err != nil {
-		logging.Error(err.Error())
-		return err
-	}
-	url := r.buildURL(apiRegion, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
+	url := r.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-riot-id/%s/%s", gameName, tagLine))
 	body, statusCode, err := r.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch account from Riot API for update", "gameName", gameName, "tagLine", tagLine, "region", region, "statusCode", statusCode, "error", err)
 		if statusCode == 404 {
 			return fmt.Errorf("account not found on Riot servers")
 		}
@@ -134,7 +112,7 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 
 	var validatedAccount models.LeagueOfLegendsAccount
 	if err := json.Unmarshal(body, &validatedAccount); err != nil {
-		logging.Error("Failed to unmarshal JSON response", "error", err)
+		logging.Error("Failed to unmarshal account JSON response during update", "gameName", gameName, "tagLine", tagLine, "error", err)
 		return err
 	}
 
@@ -144,8 +122,12 @@ func (r *RiotClient) UpdateAccount(region, gameName, tagLine, puuid string) erro
 	}
 
 	validatedAccount.Region = region
-	if err := r.db.UpdateRiotAccount(&validatedAccount); err != nil {
-		logging.Error("Failed to update Riot account: %v", err)
+	_, err = r.db.UpdateRiotAccount(puuid, map[string]interface{}{
+		"game_name": validatedAccount.GameName,
+		"tag_line":  validatedAccount.TagLine,
+		"region":    validatedAccount.Region,
+	})
+	if err != nil {
 		return err
 	}
 
