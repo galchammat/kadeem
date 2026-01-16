@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -8,7 +9,18 @@ import (
 	"github.com/galchammat/kadeem/internal/models"
 )
 
+// SQLExecutor interface allows functions to accept either *sql.DB or *sql.Tx
+type SQLExecutor interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
 func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary) error {
+	return db.insertLolMatchSummaryExec(db.SQL, summary)
+}
+
+func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *models.LeagueOfLegendsMatchSummary) error {
 	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
 		return fmt.Errorf("match summary is missing required fields")
 	}
@@ -22,7 +34,7 @@ func (db *DB) InsertLolMatchSummary(summary *models.LeagueOfLegendsMatchSummary)
 		INSERT OR REPLACE INTO lol_matches
 		(id, started_at, duration, replay_synced)
 		VALUES (?, ?, ?, ?)`
-	_, err := db.SQL.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, replaySynced)
+	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, replaySynced)
 	if err != nil {
 		logging.Error("Failed to insert match summary into database", "matchID", summary.ID, "error", err)
 	}
@@ -50,7 +62,54 @@ func (db *DB) UpdateLolMatch(matchID int64, updates map[string]interface{}) (boo
 	return (n != 0), nil
 }
 
+// InsertLolMatchWithParticipants atomically inserts a match summary and all its participants
+// in a single transaction. If any insert fails, the entire transaction is rolled back.
+func (db *DB) InsertLolMatchWithParticipants(
+	summary *models.LeagueOfLegendsMatchSummary,
+	participants []models.LeagueOfLegendsMatchParticipantSummary,
+) error {
+	tx, err := db.SQL.Begin()
+	if err != nil {
+		logging.Error("Failed to begin transaction for match insert", "matchID", summary.ID, "error", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Safe to call even after Commit
+
+	// Insert match summary
+	if err := db.insertLolMatchSummaryExec(tx, summary); err != nil {
+		logging.Error("Failed to insert match summary, rolling back transaction", "matchID", summary.ID, "error", err)
+		return err
+	}
+
+	// Insert all participants
+	for i, participant := range participants {
+		if err := db.insertLolMatchParticipantSummaryExec(tx, &participant); err != nil {
+			logging.Error(
+				"Failed to insert participant, rolling back entire match transaction",
+				"matchID", summary.ID,
+				"participantIndex", i,
+				"participantID", participant.ParticipantID,
+				"error", err,
+			)
+			return err
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		logging.Error("Failed to commit match transaction", "matchID", summary.ID, "error", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	logging.Debug("Successfully inserted match with participants", "matchID", summary.ID, "participantCount", len(participants))
+	return nil
+}
+
 func (db *DB) InsertLolMatchParticipantSummary(participant *models.LeagueOfLegendsMatchParticipantSummary) error {
+	return db.insertLolMatchParticipantSummaryExec(db.SQL, participant)
+}
+
+func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *models.LeagueOfLegendsMatchParticipantSummary) error {
 	if participant == nil {
 		return fmt.Errorf("participant summary cannot be nil")
 	}
@@ -86,7 +145,7 @@ func (db *DB) InsertLolMatchParticipantSummary(participant *models.LeagueOfLegen
 			win
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := db.SQL.Exec(
+	_, err := exec.Exec(
 		query,
 		participant.GameID,
 		participant.ChampionID,
@@ -216,19 +275,49 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 
 	for fullRows.Next() {
 		var summary models.LeagueOfLegendsMatchSummary
-		var participant models.LeagueOfLegendsMatchParticipantSummary
+
+		// Use nullable types for participant fields to handle LEFT JOIN NULLs
+		var (
+			nullMatchID                     sql.NullInt64
+			nullChampionID                  sql.NullInt64
+			nullKills                       sql.NullInt64
+			nullDeaths                      sql.NullInt64
+			nullAssists                     sql.NullInt64
+			nullTotalMinionsKilled          sql.NullInt64
+			nullDoubleKills                 sql.NullInt64
+			nullTripleKills                 sql.NullInt64
+			nullQuadraKills                 sql.NullInt64
+			nullPentaKills                  sql.NullInt64
+			nullItem0                       sql.NullInt64
+			nullItem1                       sql.NullInt64
+			nullItem2                       sql.NullInt64
+			nullItem3                       sql.NullInt64
+			nullItem4                       sql.NullInt64
+			nullItem5                       sql.NullInt64
+			nullItem6                       sql.NullInt64
+			nullSummoner1ID                 sql.NullInt64
+			nullSummoner2ID                 sql.NullInt64
+			nullLane                        sql.NullString
+			nullParticipantID               sql.NullInt64
+			nullPUUID                       sql.NullString
+			nullRiotIDGameName              sql.NullString
+			nullRiotIDTagline               sql.NullString
+			nullTotalDamageDealtToChampions sql.NullInt64
+			nullTotalDamageTaken            sql.NullInt64
+			nullWin                         sql.NullBool
+		)
 
 		err := fullRows.Scan(
 			&summary.ID, &summary.StartedAt, &summary.Duration, &summary.ReplaySynced,
-			&participant.GameID, &participant.ChampionID, &participant.Kills,
-			&participant.Deaths, &participant.Assists, &participant.TotalMinionsKilled,
-			&participant.DoubleKills, &participant.TripleKills, &participant.QuadraKills,
-			&participant.PentaKills, &participant.Item0, &participant.Item1, &participant.Item2,
-			&participant.Item3, &participant.Item4, &participant.Item5, &participant.Item6,
-			&participant.Summoner1ID, &participant.Summoner2ID, &participant.Lane,
-			&participant.ParticipantID, &participant.PUUID, &participant.RiotIDGameName,
-			&participant.RiotIDTagline, &participant.TotalDamageDealtToChampions,
-			&participant.TotalDamageTaken, &participant.Win,
+			&nullMatchID, &nullChampionID, &nullKills,
+			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
+			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
+			&nullPentaKills, &nullItem0, &nullItem1, &nullItem2,
+			&nullItem3, &nullItem4, &nullItem5, &nullItem6,
+			&nullSummoner1ID, &nullSummoner2ID, &nullLane,
+			&nullParticipantID, &nullPUUID, &nullRiotIDGameName,
+			&nullRiotIDTagline, &nullTotalDamageDealtToChampions,
+			&nullTotalDamageTaken, &nullWin,
 		)
 		if err != nil {
 			logging.Error("Failed to scan full match data row", "error", err)
@@ -244,11 +333,45 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 			orderedMatchIDs = append(orderedMatchIDs, summary.ID)
 		}
 
-		// Append participant
-		matchMap[summary.ID].Participants = append(
-			matchMap[summary.ID].Participants,
-			participant,
-		)
+		// Only append participant if data is present (not NULL from LEFT JOIN)
+		// This handles matches that exist without participants (orphaned matches)
+		if nullMatchID.Valid {
+			participant := models.LeagueOfLegendsMatchParticipantSummary{
+				GameID:                      nullMatchID.Int64,
+				ChampionID:                  int(nullChampionID.Int64),
+				Kills:                       int(nullKills.Int64),
+				Deaths:                      int(nullDeaths.Int64),
+				Assists:                     int(nullAssists.Int64),
+				TotalMinionsKilled:          int(nullTotalMinionsKilled.Int64),
+				DoubleKills:                 int(nullDoubleKills.Int64),
+				TripleKills:                 int(nullTripleKills.Int64),
+				QuadraKills:                 int(nullQuadraKills.Int64),
+				PentaKills:                  int(nullPentaKills.Int64),
+				Item0:                       int(nullItem0.Int64),
+				Item1:                       int(nullItem1.Int64),
+				Item2:                       int(nullItem2.Int64),
+				Item3:                       int(nullItem3.Int64),
+				Item4:                       int(nullItem4.Int64),
+				Item5:                       int(nullItem5.Int64),
+				Item6:                       int(nullItem6.Int64),
+				Summoner1ID:                 int(nullSummoner1ID.Int64),
+				Summoner2ID:                 int(nullSummoner2ID.Int64),
+				Lane:                        nullLane.String,
+				ParticipantID:               int(nullParticipantID.Int64),
+				PUUID:                       nullPUUID.String,
+				RiotIDGameName:              nullRiotIDGameName.String,
+				RiotIDTagline:               nullRiotIDTagline.String,
+				TotalDamageDealtToChampions: int(nullTotalDamageDealtToChampions.Int64),
+				TotalDamageTaken:            int(nullTotalDamageTaken.Int64),
+				Win:                         nullWin.Bool,
+			}
+
+			// Append participant
+			matchMap[summary.ID].Participants = append(
+				matchMap[summary.ID].Participants,
+				participant,
+			)
+		}
 	}
 	if err := fullRows.Err(); err != nil {
 		logging.Error("Error iterating over full match data rows", "error", err)

@@ -67,16 +67,23 @@ func (c *RiotClient) SyncMatchSummary(matchID int64, fullMatchID string, region 
 		Duration:  &response.Info.Duration,
 	}
 
-	if err := c.db.InsertLolMatchSummary(&summary); err != nil {
+	// Insert match and all participants atomically in a transaction
+	if err := c.db.InsertLolMatchWithParticipants(&summary, response.Info.Participants); err != nil {
+		logging.Error(
+			"Failed to insert match with participants (transaction rolled back)",
+			"matchID", matchID,
+			"fullMatchID", fullMatchID,
+			"participantCount", len(response.Info.Participants),
+			"error", err,
+		)
 		return err
 	}
 
-	for _, participant := range response.Info.Participants {
-		logging.Debug("Inserting participant", "details", "participant")
-		if err := c.db.InsertLolMatchParticipantSummary(&participant); err != nil {
-			return err
-		}
-	}
+	logging.Debug(
+		"Successfully synced match summary with participants",
+		"matchID", matchID,
+		"participantCount", len(response.Info.Participants),
+	)
 
 	return nil
 }
