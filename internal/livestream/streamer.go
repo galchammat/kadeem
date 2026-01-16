@@ -35,7 +35,7 @@ func (c *StreamerClient) ListStreamersWithDetails() ([]models.StreamerView, erro
 			StreamerName: streamer.Name,
 		}
 		var lastLive int64
-		channels, err := c.db.ListChannels(&models.Channel{StreamerID: streamer.ID})
+		channels, err := c.db.ListChannels(&models.ChannelFilter{StreamerID: &streamer.ID})
 		if err != nil {
 			return nil, err
 		}

@@ -54,30 +54,18 @@ func (db *DB) ListStreamers() ([]models.Streamer, error) {
 	return streamers, nil
 }
 
-func (db *DB) ListChannels(filter *models.Channel) ([]models.Channel, error) {
+func (db *DB) ListChannels(filter *models.ChannelFilter) ([]models.Channel, error) {
 	query := `SELECT * FROM channels`
-	var where []string
-	var args []interface{}
 
-	if filter != nil && filter.ID != "" {
-		where = append(where, "id = ?")
-		args = append(args, filter.ID)
-	}
-	if filter != nil && filter.StreamerID != 0 {
-		where = append(where, "streamer_id = ?")
-		args = append(args, filter.StreamerID)
-	}
-	if filter != nil && filter.Platform != "" {
-		where = append(where, "platform = ?")
-		args = append(args, filter.Platform)
-	}
-	if filter != nil && filter.ChannelName != "" {
-		where = append(where, "channel_name = ?")
-		args = append(args, filter.ChannelName)
+	// Build WHERE clauses using BuildQueryArgs
+	whereClauses, args, err := db.BuildQueryArgs(filter)
+	if err != nil {
+		logging.Error("Failed to build query args for ListChannels", "error", err)
+		return nil, err
 	}
 
-	if len(where) > 0 {
-		query += " WHERE " + strings.Join(where, " AND ")
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
 	rows, err := db.SQL.Query(query, args...)

@@ -11,14 +11,14 @@ import (
 	"github.com/galchammat/kadeem/internal/models"
 )
 
-func extractMatchID(url string) (int64, error) {
+func extractMatchID(url string) (int64, string, error) {
 	re := regexp.MustCompile(`([A-Z0-9]+_\d+)\.replay`)
 	matches := re.FindStringSubmatch(url)
 
 	if len(matches) < 2 {
 		err := fmt.Errorf("no match ID found in URL: %s", url)
 		logging.Error("Failed to extract match ID from replay URL", "url", url, "error", err)
-		return 0, err
+		return 0, "", err
 	}
 
 	// Extract numeric portion after underscore
@@ -27,16 +27,16 @@ func extractMatchID(url string) (int64, error) {
 	if len(parts) < 2 {
 		err := fmt.Errorf("invalid match ID format: %s", fullMatchID)
 		logging.Error("Invalid match ID format in replay URL", "fullMatchID", fullMatchID, "url", url, "error", err)
-		return 0, err
+		return 0, "", err
 	}
 
 	id, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		logging.Error("Failed to parse match ID as int64", "matchIDString", parts[1], "url", url, "error", err)
-		return 0, fmt.Errorf("invalid match ID: %v", err)
+		return 0, "", fmt.Errorf("invalid match ID: %v", err)
 	}
 
-	return id, nil
+	return id, fullMatchID, nil
 }
 
 func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
@@ -52,7 +52,7 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 	}
 
 	for _, url := range replayURLs {
-		matchID, err := extractMatchID(url)
+		matchID, fullMatchID, err := extractMatchID(url)
 		if err != nil {
 			return fmt.Errorf("failed to parse matchID from replay URL: %s", url)
 		}
@@ -69,8 +69,8 @@ func (c *RiotClient) SyncMatches(account models.LeagueOfLegendsAccount) error {
 
 		// Fetch the match summary if (matchID record does not exist) or (row.gameStartTimestamp==nil)
 		if existingMatch == nil || existingMatch.Summary.StartedAt == nil {
-			logging.Debug("Fetching match summary", "MatchID", matchID)
-			err = c.SyncMatchSummary(matchID, account.Region)
+			logging.Debug("Fetching match summary", "MatchID", matchID, "FullMatchID", fullMatchID)
+			err = c.SyncMatchSummary(matchID, fullMatchID, account.Region)
 			if err != nil {
 				logging.Warn("Skipping match summary sync due to error", "MatchID", matchID)
 			}
