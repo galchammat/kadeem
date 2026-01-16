@@ -33,7 +33,7 @@ func extractMatchID(url string) (int64, string, error) {
 	id, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		logging.Error("Failed to parse match ID as int64", "matchIDString", parts[1], "url", url, "error", err)
-		return 0, "", fmt.Errorf("invalid match ID: %v", err)
+		return 0, "", fmt.Errorf("invalid match ID in URL: %s", url)
 	}
 
 	return id, fullMatchID, nil
