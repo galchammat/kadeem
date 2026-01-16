@@ -83,6 +83,7 @@ func (db *DB) InsertLolMatchWithParticipants(
 
 	// Insert all participants
 	for i, participant := range participants {
+		participant.GameID = summary.ID
 		if err := db.insertLolMatchParticipantSummaryExec(tx, &participant); err != nil {
 			logging.Error(
 				"Failed to insert participant, rolling back entire match transaction",
