@@ -8,52 +8,23 @@ import (
 	"github.com/galchammat/kadeem/internal/models"
 )
 
-func (db *DB) ListBroadcasts(filter *models.Broadcast, limit int, offset *int) ([]models.Broadcast, error) {
+func (db *DB) ListBroadcasts(filter *models.BroadcastFilter, limit int, offset *int) ([]models.Broadcast, error) {
 	query := `SELECT * FROM broadcasts`
-	var where []string
-	var args []interface{}
 
-	if filter != nil && filter.ChannelID != "" {
-		where = append(where, "channel_id = ?")
-		args = append(args, filter.ChannelID)
-	} else {
+	// ChannelID is required
+	if filter == nil || filter.ChannelID == nil {
 		return []models.Broadcast{}, fmt.Errorf("ChannelID must be specified when calling ListBroadcasts.")
 	}
 
-	if filter.ID != 0 {
-		where = append(where, "id = ?")
-		args = append(args, filter.ID)
-	}
-	if filter.Title != "" {
-		where = append(where, "title = ?")
-		args = append(args, filter.Title)
-	}
-	if filter.URL != "" {
-		where = append(where, "url = ?")
-		args = append(args, filter.URL)
-	}
-	if filter.ThumbnailURL != "" {
-		where = append(where, "thumbnail_url = ?")
-		args = append(args, filter.ThumbnailURL)
-	}
-	if filter.Viewable != "" {
-		where = append(where, "viewable = ?")
-		args = append(args, filter.Viewable)
-	}
-	if filter.CreatedAt != 0 {
-		where = append(where, "created_at = ?")
-		args = append(args, filter.CreatedAt)
-	}
-	if filter.PublishedAt != 0 {
-		where = append(where, "published_at = ?")
-		args = append(args, filter.PublishedAt)
-	}
-	if filter.Duration != 0 {
-		where = append(where, "duration = ?")
-		args = append(args, filter.Duration)
+	// Build WHERE clauses using BuildQueryArgs
+	whereClauses, args, err := db.BuildQueryArgs(filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query args: %w", err)
 	}
 
-	query += " WHERE " + strings.Join(where, " AND ")
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
 
 	rows, err := db.SQL.Query(query, args...)
 	if err != nil {

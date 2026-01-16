@@ -27,14 +27,10 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 		return nil, err
 	}
 
-	apiRegion, err := GetAPIRegion(account.Region)
-	if err != nil {
-		return nil, err
-	}
-
-	url := c.buildURL(apiRegion, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
+	url := c.buildURL(account.Region, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
 		return nil, err
 	}
 
@@ -47,20 +43,21 @@ func (c *RiotClient) FetchMatchSummary(puuid string) ([]string, error) {
 	return matchIDs, nil
 }
 
-func (c *RiotClient) SyncMatchSummary(matchID string, region string) error {
-	if matchID == "" {
-		return fmt.Errorf("matchID cannot be empty")
+func (c *RiotClient) SyncMatchSummary(matchID int64, fullMatchID string, region string) error {
+	if matchID == 0 {
+		return fmt.Errorf("matchID cannot be zero")
 	}
 
-	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", matchID))
+	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", fullMatchID))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
+		logging.Error("Failed to fetch match summary from Riot API", "matchID", matchID, "fullMatchID", fullMatchID, "url", url, "error", err)
 		return err
 	}
 
 	var response matchSummaryResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		logging.Error("Failed to unmarshal match summary", "error", err)
+		logging.Error("Failed to unmarshal match summary", "matchID", matchID, "error", err)
 		return err
 	}
 
@@ -70,17 +67,23 @@ func (c *RiotClient) SyncMatchSummary(matchID string, region string) error {
 		Duration:  &response.Info.Duration,
 	}
 
-	if err := c.db.InsertLolMatchSummary(c.db, &summary); err != nil {
-		logging.Error("Failed to insert match summary", "matchID", matchID, "error", err)
+	// Insert match and all participants atomically in a transaction
+	if err := c.db.InsertLolMatchWithParticipants(&summary, response.Info.Participants); err != nil {
+		logging.Error(
+			"Failed to insert match with participants (transaction rolled back)",
+			"matchID", matchID,
+			"fullMatchID", fullMatchID,
+			"participantCount", len(response.Info.Participants),
+			"error", err,
+		)
 		return err
 	}
 
-	for _, participant := range response.Info.Participants {
-		if err := c.db.InsertLolMatchParticipantSummary(c.db, &participant); err != nil {
-			logging.Error("Failed to insert match participant", "matchID", matchID, "participantID", participant.ParticipantID, "error", err)
-			return err
-		}
-	}
+	logging.Debug(
+		"Successfully synced match summary with participants",
+		"matchID", matchID,
+		"participantCount", len(response.Info.Participants),
+	)
 
 	return nil
 }

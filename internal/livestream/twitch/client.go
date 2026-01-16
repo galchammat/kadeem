@@ -63,31 +63,32 @@ func (c *TwitchClient) makeRequest(endpoint string) (*models.TwitchResponse, int
 	url := c.buildURL(endpoint)
 	req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
 	if err != nil {
+		logging.Error("Failed to create Twitch HTTP request", "endpoint", endpoint, "error", err)
 		return nil, 0, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		logging.Error(err.Error())
+		logging.Error("Twitch HTTP request failed", "url", url, "error", err)
 		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logging.Error(err.Error())
+		logging.Error("Failed to read Twitch response body", "url", url, "error", err)
 		return nil, 0, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("HTTP request failed with status %d. body %s", resp.StatusCode, string(body))
-		logging.Error(err.Error())
+		logging.Error("Twitch API returned non-200 status", "url", url, "statusCode", resp.StatusCode, "body", string(body))
 		return nil, resp.StatusCode, err
 	}
 
 	var response models.TwitchResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		logging.Error("Failed to unmarshal Twitch response", "error", err)
+		logging.Error("Failed to unmarshal Twitch response", "url", url, "error", err)
 		return nil, resp.StatusCode, err
 	}
 

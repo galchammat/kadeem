@@ -1,9 +1,5 @@
 package riot
 
-import (
-	"fmt"
-)
-
 var apiRegionMap = map[string]string{
 	"NA":   "americas",
 	"EUW":  "europe",
@@ -21,7 +17,7 @@ var apiRegionMap = map[string]string{
 func GetAPIRegion(region string) (string, error) {
 	apiRegion, exists := apiRegionMap[region]
 	if !exists {
-		return "", fmt.Errorf("unsupported region: %s", region)
+		return region, nil // default region
 	}
 	return apiRegion, nil
 }
