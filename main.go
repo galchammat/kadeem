@@ -12,7 +12,7 @@ import (
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/livestream"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/riot"
+	"github.com/galchammat/kadeem/internal/riot/api"
 )
 
 //go:embed all:frontend/dist

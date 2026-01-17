@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/galchammat/kadeem/internal/database"
-	"github.com/galchammat/kadeem/internal/riot"
+	"github.com/galchammat/kadeem/internal/riot/api"
 )
 
 func testListRiotAccounts(t *testing.T) {
