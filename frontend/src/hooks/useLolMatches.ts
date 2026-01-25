@@ -23,7 +23,7 @@ export default function useLolMatches(account: models.LeagueOfLegendsAccount): U
   const fetchMatches = async (props: fetchMatchesProps) => {
     try {
       setLoading(true);
-      const result = await ListMatches(filter, account, limit, offset);
+      const result = await ListMatches(props.filter, account, props.limit, props.offset);
       setMatches(result ?? []);
       setError(null);
     } catch (err) {

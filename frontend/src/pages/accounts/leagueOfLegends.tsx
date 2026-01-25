@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import * as RiotClient from '@wails/go/riot/RiotClient';
 import { models } from '@wails/go/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PencilIcon, TrashIcon, PlusIcon, AlertCircleIcon, CheckCircle2Icon } from 'lucide-react';
+import { PencilIcon, TrashIcon, PlusIcon, AlertCircleIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import SectionHeader from '@/components/sectionHeader';
@@ -21,6 +20,7 @@ import LeagueOfLegendsIcon from '@/components/icons/leagueOfLegends';
 import { type DialogMode } from '@/types';
 import { SkeletonCard } from '@/components/skeletonCard';
 import { useConfirm } from '@/components/confirmDialog';
+import { useLolAccounts } from '@/hooks/useLolAccounts';
 
 type propTypes = {
   streamerId: number;
@@ -34,9 +34,7 @@ const defaultAccount = {
 }
 
 export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
-  const [accounts, setAccounts] = useState<models.LeagueOfLegendsAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { accounts, loading, error, fetchAccounts, addAccount, updateAccount, deleteAccount } = useLolAccounts();
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [formData, setFormData] = useState<models.LeagueOfLegendsAccount>(defaultAccount);
   const [formError, setFormError] = useState<string | null>(null);
@@ -44,27 +42,10 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
 
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const fetchAccounts = async () => {
-    try {
-      setLoading(true);
-      const filter: models.LeagueOfLegendsAccount = { streamerId: streamerId, ...defaultAccount };
-      console.log('Fetching LoL accounts with filter:', filter);
-      const res = await RiotClient.ListAccounts(filter);
-      // Defensive: ensure we always have an array, even if backend returns null
-      setAccounts(res ?? []);
-      setError(null);
-    } catch (err) {
-      setError(String(err));
-      setAccounts([]); // Reset to empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    const timer = setTimeout(fetchAccounts, 100);
+    const timer = setTimeout(() => fetchAccounts(streamerId), 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [streamerId]);
 
   const openDialog = (mode: DialogMode, a?: models.LeagueOfLegendsAccount) => {
     if (mode === 'edit' && a) {
@@ -90,10 +71,10 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
       cancelLabel: 'Cancel',
     })) return;
     try {
-      await RiotClient.DeleteAccount(puuid);
-      await fetchAccounts();
+      await deleteAccount(puuid);
+      await fetchAccounts(streamerId);
     } catch (err) {
-      alert(`Failed to delete account: ${err}`);
+      toast.error('Failed to delete account', { description: String(err) });
     }
   };
 
@@ -107,14 +88,14 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
 
     try {
       if (dialogMode === 'add') {
-        await RiotClient.AddAccount(formData.region, formData.gameName, formData.tagLine, streamerId);
+        await addAccount(formData.region, formData.gameName, formData.tagLine, streamerId);
         toast('Added account', { description: `${formData.gameName}#${formData.tagLine} ${formData.region}` });
       } else if (dialogMode === 'edit') {
-        await RiotClient.UpdateAccount(formData.region, formData.gameName, formData.tagLine, formData.puuid);
+        await updateAccount(formData.region, formData.gameName, formData.tagLine, formData.puuid);
         toast('Updated account', { description: `${formData.gameName}#${formData.tagLine} ${formData.region}` });
       }
       closeDialog();
-      await fetchAccounts();
+      await fetchAccounts(streamerId);
     } catch (err) {
       setFormError(String(err));
     } finally {
@@ -135,13 +116,16 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <Alert variant="destructive" className="max-w-md w-full">
-          <AlertCircleIcon className="h-6 w-6 mr-2" />
-          <AlertTitle>Failed to load accounts</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button className="mt-6" onClick={fetchAccounts}>Retry</Button>
+      <div className="p-6">
+        <SectionHeader title="League of Legends" icon={<LeagueOfLegendsIcon />} />
+        <div className="flex flex-col items-center justify-center p-8">
+          <Alert variant="destructive" className="max-w-md w-full">
+            <AlertCircleIcon className="h-6 w-6 mr-2" />
+            <AlertTitle>Failed to load accounts</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button className="mt-6" onClick={() => fetchAccounts(streamerId)}>Retry</Button>
+        </div>
       </div>
     );
   }
