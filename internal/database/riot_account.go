@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/logging"
@@ -11,9 +12,14 @@ import (
 func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
 	logging.Debug("updating account", "account", account)
 	query := `
-        INSERT OR REPLACE INTO league_of_legends_accounts 
+        INSERT INTO league_of_legends_accounts 
         (puuid, streamer_id, tag_line, game_name, region) 
-        VALUES (?, ?, ?, ?, ?)`
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (puuid) DO UPDATE SET
+			streamer_id = EXCLUDED.streamer_id,
+			tag_line = EXCLUDED.tag_line,
+			game_name = EXCLUDED.game_name,
+			region = EXCLUDED.region`
 
 	_, err := db.SQL.Exec(query, account.PUUID, account.StreamerID, account.TagLine, account.GameName, account.Region)
 	if err != nil {
@@ -24,7 +30,7 @@ func (db *DB) SaveRiotAccount(account *models.LeagueOfLegendsAccount) error {
 
 // GetRiotAccount retrieves an account by PUUID
 func (db *DB) GetRiotAccount(puuid string) (*models.LeagueOfLegendsAccount, error) {
-	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = ?`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = $1`
 
 	var account models.LeagueOfLegendsAccount
 	err := db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
@@ -40,25 +46,32 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]models.
 	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
 	var where []string
 	var args []interface{}
+	argCounter := 1
+
 	if filter != nil && filter.PUUID != "" {
-		where = append(where, "puuid = ?")
+		where = append(where, fmt.Sprintf("puuid = $%d", argCounter))
 		args = append(args, filter.PUUID)
+		argCounter++
 	}
 	if filter != nil && filter.TagLine != "" {
-		where = append(where, "tag_line = ?")
+		where = append(where, fmt.Sprintf("tag_line = $%d", argCounter))
 		args = append(args, filter.TagLine)
+		argCounter++
 	}
 	if filter != nil && filter.GameName != "" {
-		where = append(where, "game_name = ?")
+		where = append(where, fmt.Sprintf("game_name = $%d", argCounter))
 		args = append(args, filter.GameName)
+		argCounter++
 	}
 	if filter != nil && filter.Region != "" {
-		where = append(where, "region = ?")
+		where = append(where, fmt.Sprintf("region = $%d", argCounter))
 		args = append(args, filter.Region)
+		argCounter++
 	}
 	if filter != nil && filter.StreamerID != 0 {
-		where = append(where, "streamer_id = ?")
+		where = append(where, fmt.Sprintf("streamer_id = $%d", argCounter))
 		args = append(args, filter.StreamerID)
+		argCounter++
 	}
 
 	if len(where) > 0 {
@@ -91,7 +104,7 @@ func (db *DB) ListRiotAccounts(filter *models.LeagueOfLegendsAccount) ([]models.
 
 // DeleteRiotAccount deletes an account by PUUID
 func (db *DB) DeleteRiotAccount(puuid string) error {
-	query := `DELETE FROM league_of_legends_accounts WHERE puuid = ?`
+	query := `DELETE FROM league_of_legends_accounts WHERE puuid = $1`
 	_, err := db.SQL.Exec(query, puuid)
 	if err != nil {
 		logging.Error("Failed to delete Riot account from database", "puuid", puuid, "error", err)
@@ -102,14 +115,16 @@ func (db *DB) DeleteRiotAccount(puuid string) error {
 func (db *DB) UpdateRiotAccount(PUUID string, updates map[string]interface{}) (bool, error) {
 	var setClauses []string
 	var args []interface{}
+	argCounter := 1
 
 	for column, value := range updates {
-		setClauses = append(setClauses, column+" = ?")
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", column, argCounter))
 		args = append(args, value)
+		argCounter++
 	}
 	args = append(args, PUUID)
 
-	query := `UPDATE league_of_legends_accounts SET ` + strings.Join(setClauses, ", ") + ` WHERE puuid = ?`
+	query := `UPDATE league_of_legends_accounts SET ` + strings.Join(setClauses, ", ") + fmt.Sprintf(` WHERE puuid = $%d`, argCounter)
 
 	res, err := db.SQL.Exec(query, args...)
 	if err != nil {
