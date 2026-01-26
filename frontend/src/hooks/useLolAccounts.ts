@@ -21,7 +21,7 @@ export function useLolAccounts(): UseLolAccountsReturn {
     try {
       setLoading(true);
       setError(null);
-      const filter = streamerId 
+      const filter = streamerId
         ? { streamerId, puuid: '', gameName: '', tagLine: '', region: '' }
         : new models.LeagueOfLegendsAccount();
       const result = await RiotClient.ListAccounts(filter);
