@@ -1,0 +1,6 @@
+[Unit]
+Description=Send Discord notification on Kadeem daemon failure
+
+[Service]
+Type=oneshot
+ExecStart=/opt/kadeem/scripts/notify-discord.sh
