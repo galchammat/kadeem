@@ -31,10 +31,21 @@ func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *models.League
 	}
 
 	query := `
-		INSERT OR REPLACE INTO lol_matches
-		(id, started_at, duration, replay_synced)
-		VALUES (?, ?, ?, ?)`
-	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, replaySynced)
+		INSERT INTO lol_matches
+		(id, started_at, duration, queue_id, replay_synced)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (id) DO UPDATE SET
+			started_at = EXCLUDED.started_at,
+			duration = EXCLUDED.duration,
+			queue_id = EXCLUDED.queue_id,
+			replay_synced = EXCLUDED.replay_synced`
+
+	queueId := 0
+	if summary.QueueId != nil {
+		queueId = *summary.QueueId
+	}
+
+	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, queueId, replaySynced)
 	if err != nil {
 		logging.Error("Failed to insert match summary into database", "matchID", summary.ID, "error", err)
 	}
@@ -116,9 +127,10 @@ func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant
 	}
 
 	query := `
-		INSERT OR REPLACE INTO participants (
+		INSERT INTO participants (
 			match_id,
 			champion_id,
+			champ_level,
 			kills,
 			deaths,
 			assists,
@@ -144,12 +156,40 @@ func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant
 			total_damage_dealt_to_champions,
 			total_damage_taken,
 			win
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+		ON CONFLICT (match_id, participant_id) DO UPDATE SET
+			champion_id = EXCLUDED.champion_id,
+			champ_level = EXCLUDED.champ_level,
+			kills = EXCLUDED.kills,
+			deaths = EXCLUDED.deaths,
+			assists = EXCLUDED.assists,
+			total_minions_killed = EXCLUDED.total_minions_killed,
+			double_kills = EXCLUDED.double_kills,
+			triple_kills = EXCLUDED.triple_kills,
+			quadra_kills = EXCLUDED.quadra_kills,
+			penta_kills = EXCLUDED.penta_kills,
+			item0 = EXCLUDED.item0,
+			item1 = EXCLUDED.item1,
+			item2 = EXCLUDED.item2,
+			item3 = EXCLUDED.item3,
+			item4 = EXCLUDED.item4,
+			item5 = EXCLUDED.item5,
+			item6 = EXCLUDED.item6,
+			summoner1_id = EXCLUDED.summoner1_id,
+			summoner2_id = EXCLUDED.summoner2_id,
+			lane = EXCLUDED.lane,
+			puuid = EXCLUDED.puuid,
+			riot_id_game_name = EXCLUDED.riot_id_game_name,
+			riot_id_tagline = EXCLUDED.riot_id_tagline,
+			total_damage_dealt_to_champions = EXCLUDED.total_damage_dealt_to_champions,
+			total_damage_taken = EXCLUDED.total_damage_taken,
+			win = EXCLUDED.win`
 
 	_, err := exec.Exec(
 		query,
 		participant.GameID,
 		participant.ChampionID,
+		participant.ChampLevel,
 		participant.Kills,
 		participant.Deaths,
 		participant.Assists,
@@ -208,7 +248,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 	}
 
 	// Add ORDER BY, LIMIT, OFFSET
-	matchIDQuery += " ORDER BY m.started_at DESC LIMIT ? OFFSET ?"
+	matchIDQuery += " ORDER BY m.started_at DESC LIMIT $" + fmt.Sprintf("%d", len(args)+1) + " OFFSET $" + fmt.Sprintf("%d", len(args)+2)
 	args = append(args, limit, offset)
 
 	// Step 2: Execute first query to get match IDs
@@ -248,8 +288,8 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 
 	fullQuery := fmt.Sprintf(`
 		SELECT 
-			m.id, m.started_at, m.duration, m.replay_synced,
-			p.match_id, p.champion_id, p.kills, p.deaths, p.assists,
+			m.id, m.started_at, m.duration, m.queue_id, m.replay_synced,
+			p.match_id, p.champion_id, p.champ_level, p.kills, p.deaths, p.assists,
 			p.total_minions_killed, p.double_kills, p.triple_kills,
 			p.quadra_kills, p.penta_kills, p.item0, p.item1, p.item2,
 			p.item3, p.item4, p.item5, p.item6, p.summoner1_id,
@@ -281,6 +321,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 		var (
 			nullMatchID                     sql.NullInt64
 			nullChampionID                  sql.NullInt64
+			nullChampLevel                  sql.NullInt64
 			nullKills                       sql.NullInt64
 			nullDeaths                      sql.NullInt64
 			nullAssists                     sql.NullInt64
@@ -306,11 +347,12 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 			nullTotalDamageDealtToChampions sql.NullInt64
 			nullTotalDamageTaken            sql.NullInt64
 			nullWin                         sql.NullBool
+			nullQueueId                     sql.NullInt64
 		)
 
 		err := fullRows.Scan(
-			&summary.ID, &summary.StartedAt, &summary.Duration, &summary.ReplaySynced,
-			&nullMatchID, &nullChampionID, &nullKills,
+			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId, &summary.ReplaySynced,
+			&nullMatchID, &nullChampionID, &nullChampLevel, &nullKills,
 			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
 			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
 			&nullPentaKills, &nullItem0, &nullItem1, &nullItem2,
@@ -327,6 +369,10 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 
 		// Check if match already exists in map
 		if _, exists := matchMap[summary.ID]; !exists {
+			if nullQueueId.Valid {
+				qid := int(nullQueueId.Int64)
+				summary.QueueId = &qid
+			}
 			matchMap[summary.ID] = &models.LeagueOfLegendsMatch{
 				Summary:      summary,
 				Participants: []models.LeagueOfLegendsMatchParticipantSummary{},
@@ -340,6 +386,7 @@ func (db *DB) ListLolMatches(filter *models.LolMatchFilter, limit *int, offset *
 			participant := models.LeagueOfLegendsMatchParticipantSummary{
 				GameID:                      nullMatchID.Int64,
 				ChampionID:                  int(nullChampionID.Int64),
+				ChampLevel:                  int(nullChampLevel.Int64),
 				Kills:                       int(nullKills.Int64),
 				Deaths:                      int(nullDeaths.Int64),
 				Assists:                     int(nullAssists.Int64),
