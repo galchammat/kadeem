@@ -1,0 +1,214 @@
+name: Deploy Daemon to Machine B
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cmd/daemon/**'
+      - 'internal/**'
+      - 'migrations/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/deploy-daemon.yml'
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Rollback to previous version'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests
+        run: go test -v ./...
+
+  build:
+    name: Build Daemon
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build daemon
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-s -w -X main.version=${{ github.sha }}" \
+            -o daemon \
+            cmd/daemon/main.go
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daemon-binary
+          path: daemon
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Machine B
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.rollback != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download daemon binary
+        uses: actions/download-artifact@v4
+        with:
+          name: daemon-binary
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Backup current daemon
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo cp /opt/kadeem/bin/daemon /opt/kadeem/bin/daemon.backup || true"
+
+      - name: Deploy daemon binary
+        run: |
+          scp -i ~/.ssh/deploy_key daemon \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/daemon
+          
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo mv /tmp/daemon /opt/kadeem/bin/daemon && \
+             sudo chmod +x /opt/kadeem/bin/daemon && \
+             sudo chown kadeem:kadeem /opt/kadeem/bin/daemon"
+
+      - name: Set up Go on remote
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "which go || (curl -OL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz && \
+             sudo rm -rf /usr/local/go && \
+             sudo tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz && \
+             echo 'export PATH=\$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile)"
+
+      - name: Run migrations
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "cd /opt/kadeem/repo && \
+             export PATH=\$PATH:/usr/local/go/bin && \
+             export DATABASE_URL='${{ secrets.DATABASE_URL }}' && \
+             go run cmd/migrate/main.go up"
+
+      - name: Restart daemon
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo systemctl restart kadeem-daemon"
+
+      - name: Wait for daemon startup
+        run: sleep 5
+
+      - name: Health check
+        id: healthcheck
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo systemctl is-active kadeem-daemon"
+
+      - name: Get daemon logs
+        if: always()
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo journalctl -u kadeem-daemon -n 50 --no-pager"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
+             sudo systemctl restart kadeem-daemon" || true
+
+      - name: Send Discord notification on success
+        if: success()
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "✅ Deployment Successful",
+                "description": "Kadeem daemon deployed to Machine B",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Commit", "value": "'"${{ github.sha }}"'", "inline": true},
+                  {"name": "Branch", "value": "'"${{ github.ref_name }}"'", "inline": true},
+                  {"name": "Author", "value": "'"${{ github.actor }}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+              }]
+            }'
+
+      - name: Send Discord notification on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Deployment Failed",
+                "description": "Kadeem daemon deployment failed and was rolled back",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Commit", "value": "'"${{ github.sha }}"'", "inline": true},
+                  {"name": "Branch", "value": "'"${{ github.ref_name }}"'", "inline": true},
+                  {"name": "Author", "value": "'"${{ github.actor }}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+              }]
+            }'
+
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.rollback == 'true'
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rollback to backup
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
+             sudo systemctl restart kadeem-daemon"
+
+      - name: Send Discord notification
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔄 Manual Rollback",
+                "description": "Kadeem daemon rolled back to previous version",
+                "color": 16776960,
+                "fields": [
+                  {"name": "Triggered by", "value": "'"${{ github.actor }}"'", "inline": true}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+              }]
+            }'
