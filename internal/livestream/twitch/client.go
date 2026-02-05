@@ -29,14 +29,6 @@ func NewTwitchClient(ctx context.Context) *TwitchClient {
 		ClientSecret: clientSecret,
 		TokenURL:     "https://id.twitch.tv/oauth2/token",
 	}
-
-	// Explicitly fetch the token and print it
-	token, err := conf.Token(ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get Twitch token: %v", err))
-	}
-	fmt.Println("TWITCH OAUTH TOKEN:", token.AccessToken)
-
 	httpClient := conf.Client(ctx)
 
 	// ensure transport exists and wrap it to inject Client-ID header required by Twitch

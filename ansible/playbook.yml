@@ -1,0 +1,35 @@
+---
+- name: Kadeem Infrastructure Setup
+  hosts: db_server
+  gather_facts: yes
+  
+  vars:
+    database_url: "{{ lookup('env', 'DATABASE_URL') }}"
+  
+  pre_tasks:
+    - name: Check if DATABASE_URL is set
+      ansible.builtin.fail:
+        msg: "DATABASE_URL environment variable is not set. Please set it before running this playbook."
+      when: database_url is not defined or database_url == ''
+    
+    - name: Display target host information
+      ansible.builtin.debug:
+        msg:
+          - "Target Host: {{ ansible_host }}"
+          - "SSH User: {{ ansible_user }}"
+          - "OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+  
+  roles:
+    - role: postgresql
+      tags: ['postgresql', 'database']
+    
+    - role: postgres_backup
+      tags: ['backup', 'systemd']
+  
+  post_tasks:
+    - name: Infrastructure setup complete
+      ansible.builtin.debug:
+        msg:
+          - "✅ PostgreSQL installation and configuration complete!"
+          - "Connection: {{ db_user }}@{{ db_host }}:{{ db_port }}/{{ db_name }}"
+          - "Backup timer: kadeem-backup.timer (daily at {{ backup_time }})"

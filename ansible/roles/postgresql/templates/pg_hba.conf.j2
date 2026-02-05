@@ -1,0 +1,24 @@
+# PostgreSQL Client Authentication Configuration File
+# Managed by Ansible - Do not edit manually
+# Generated: {{ ansible_facts['date_time']['iso8601'] }}
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             postgres                                peer
+local   {{ db_name }}   {{ db_user }}                           scram-sha-256
+
+# IPv4 local connections:
+host    {{ db_name }}   {{ db_user }}   127.0.0.1/32            scram-sha-256
+
+# IPv6 local connections:
+host    {{ db_name }}   {{ db_user }}   ::1/128                 scram-sha-256
+
+# Tailscale network connections
+hostssl {{ db_name }}   {{ db_user }}   {{ tailscale_subnet }}  scram-sha-256
+
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            scram-sha-256
+host    replication     all             ::1/128                 scram-sha-256

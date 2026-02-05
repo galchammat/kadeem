@@ -1,5 +1,6 @@
 build/bin
 node_modules
+Session.vim
 frontend/dist
 frontend/wailsjs/
 frontend/package.json.md5
@@ -7,3 +8,4 @@ frontend/package.json.md5
 .env
 kadeem.db
 bin/
+

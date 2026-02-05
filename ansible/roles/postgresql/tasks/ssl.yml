@@ -1,0 +1,43 @@
+---
+- name: Get PostgreSQL data directory
+  ansible.builtin.shell: |
+    sudo -u postgres psql -tAc "SHOW data_directory;"
+  register: pg_data_dir
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Set PostgreSQL data directory fact
+  ansible.builtin.set_fact:
+    postgresql_data_directory: "{{ pg_data_dir.stdout | default('/var/lib/postgresql/' + postgresql_version + '/main') }}"
+
+- name: Check if SSL certificate exists
+  ansible.builtin.stat:
+    path: "{{ postgresql_data_directory }}/server.crt"
+  register: ssl_cert
+  when: not ansible_check_mode
+
+- name: Generate self-signed SSL certificate
+  ansible.builtin.shell: |
+    openssl req -new -x509 -days {{ postgresql_ssl_cert_days }} -nodes \
+      -text -out {{ postgresql_data_directory }}/server.crt \
+      -keyout {{ postgresql_data_directory }}/server.key \
+      -subj "/CN={{ ansible_facts['hostname'] }}"
+  when: 
+    - not ansible_check_mode
+    - not ssl_cert.stat.exists
+  become: yes
+
+- name: Set SSL certificate permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: postgres
+    group: postgres
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ postgresql_data_directory }}/server.crt", mode: "0600" }
+    - { path: "{{ postgresql_data_directory }}/server.key", mode: "0600" }
+  when: 
+    - not ansible_check_mode
+    - not ssl_cert.stat.exists
+  become: yes
