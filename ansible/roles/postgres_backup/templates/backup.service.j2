@@ -1,0 +1,11 @@
+[Unit]
+Description=Kadeem PostgreSQL Database Backup
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart={{ backup_script_path }}
+User=root
+StandardOutput=journal
+StandardError=journal

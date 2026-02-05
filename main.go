@@ -12,7 +12,8 @@ import (
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/livestream"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/riot"
+	"github.com/galchammat/kadeem/internal/riot/api"
+	"github.com/galchammat/kadeem/internal/riot/datadragon"
 )
 
 //go:embed all:frontend/dist
@@ -34,6 +35,7 @@ func main() {
 		return
 	}
 	riotHandler := riot.NewRiotClient(ctx, DB)
+	ddHandler := datadragon.NewDataDragonClient(ctx, "bin/datadragon")
 	livestreamHandler := livestream.NewStreamerClient(ctx, DB)
 
 	err = wails.Run(&options.App{
@@ -50,9 +52,10 @@ func main() {
 			app.startup(wailsCtx)
 
 		},
-		Bind: []interface{}{
+		Bind: []any{
 			app,
 			riotHandler,
+			ddHandler,
 			livestreamHandler,
 		},
 	})

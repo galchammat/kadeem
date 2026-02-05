@@ -31,12 +31,14 @@ type LeagueOfLegendsMatchSummary struct {
 	ID           int64  `json:"gameId" db:"match_id"`
 	StartedAt    *int64 `json:"startedAt" db:"started_at"`
 	Duration     *int   `json:"duration" db:"duration"`
+	QueueId      *int   `json:"queueId" db:"queue_id"`
 	ReplaySynced *bool  `json:"replaySynced" db:"replay_synced"`
 }
 
 type LeagueOfLegendsMatchParticipantSummary struct {
 	GameID                      int64  `json:"gameId" db:"match_id"`
 	ChampionID                  int    `json:"championId" db:"champion_id"`
+	ChampLevel                  int    `json:"champLevel" db:"champ_level"`
 	Kills                       int    `json:"kills" db:"kills"`
 	Deaths                      int    `json:"deaths" db:"deaths"`
 	Assists                     int    `json:"assists" db:"assists"`

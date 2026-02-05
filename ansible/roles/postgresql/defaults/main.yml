@@ -1,0 +1,27 @@
+---
+# PostgreSQL version (auto-detect latest)
+postgresql_version: "{{ ansible_local.postgresql.version | default('16') }}"
+
+# PostgreSQL data directory
+postgresql_data_directory: "/var/lib/postgresql/{{ postgresql_version }}/main"
+
+# Database connection details (parsed from DATABASE_URL)
+database_url: "{{ lookup('env', 'DATABASE_URL') }}"
+
+# Performance tuning defaults (optimized for small-scale production)
+postgresql_max_connections: 20
+postgresql_shared_buffers: "256MB"
+postgresql_effective_cache_size: "1GB"
+postgresql_work_mem: "16MB"
+postgresql_maintenance_work_mem: "128MB"
+postgresql_wal_buffers: "8MB"
+postgresql_checkpoint_completion_target: 0.9
+postgresql_random_page_cost: 1.1
+postgresql_effective_io_concurrency: 200
+
+# SSL configuration
+postgresql_ssl_enabled: yes
+postgresql_ssl_cert_days: 3650
+
+# Tailscale network configuration
+tailscale_subnet: "100.64.0.0/10"

@@ -1,0 +1,21 @@
+---
+- name: Parse DATABASE_URL early
+  ansible.builtin.set_fact:
+    db_user: "{{ database_url | regex_search('://([^:]+):', '\\1') | first }}"
+    db_password: "{{ database_url | regex_search('://[^:]+:([^@]+)@', '\\1') | first }}"
+    db_host: "{{ database_url | regex_search('@([^:]+):', '\\1') | first }}"
+    db_port: "{{ database_url | regex_search(':([0-9]+)/', '\\1') | first }}"
+    db_name: "{{ database_url | regex_search(':([0-9]+)/([^?]+)', '\\2') | first }}"
+  when: database_url is defined and database_url != ''
+
+- name: Install PostgreSQL
+  ansible.builtin.include_tasks: install.yml
+
+- name: Configure SSL
+  ansible.builtin.include_tasks: ssl.yml
+
+- name: Configure PostgreSQL
+  ansible.builtin.include_tasks: configure.yml
+
+- name: Create database and user
+  ansible.builtin.include_tasks: database.yml

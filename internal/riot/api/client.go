@@ -10,6 +10,7 @@ import (
 
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	"github.com/galchammat/kadeem/internal/models"
 )
 
 // Custom RoundTripper that adds API key to all requests
@@ -97,4 +98,10 @@ func (r *RiotClient) makeRequest(url string) ([]byte, int, error) {
 	}
 
 	return body, resp.StatusCode, nil
+}
+
+// GetPlayerRankAtTime fetches the rank closest to (but not after) a given timestamp
+// This is a wrapper for the DB method to expose it to the frontend via Wails
+func (r *RiotClient) GetPlayerRankAtTime(puuid string, queueID int, timestamp int64) (*models.PlayerRank, error) {
+	return r.db.GetRankAtTime(puuid, queueID, timestamp)
 }

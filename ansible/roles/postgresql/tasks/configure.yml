@@ -1,0 +1,65 @@
+---
+- name: Get PostgreSQL config directory
+  ansible.builtin.shell: |
+    sudo -u postgres psql -tAc "SHOW config_file;" | xargs dirname
+  register: pg_config_dir
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Set PostgreSQL config directory fact (from query)
+  ansible.builtin.set_fact:
+    postgresql_config_directory: "{{ pg_config_dir.stdout }}"
+  when: 
+    - not ansible_check_mode
+    - pg_config_dir.stdout is defined
+    - pg_config_dir.stdout | length > 0
+
+- name: Set PostgreSQL config directory fact (fallback)
+  ansible.builtin.set_fact:
+    postgresql_config_directory: "/etc/postgresql/{{ postgresql_version | default('16') }}/main"
+  when: postgresql_config_directory is not defined or postgresql_config_directory | length == 0
+
+- name: Debug PostgreSQL config directory
+  ansible.builtin.debug:
+    msg: "PostgreSQL config directory: {{ postgresql_config_directory }}"
+
+- name: Backup original postgresql.conf
+  ansible.builtin.copy:
+    src: "{{ postgresql_config_directory }}/postgresql.conf"
+    dest: "{{ postgresql_config_directory }}/postgresql.conf.backup.{{ ansible_facts['date_time']['epoch'] }}"
+    remote_src: yes
+    force: no
+  become: yes
+  when: not ansible_check_mode
+
+- name: Backup original pg_hba.conf
+  ansible.builtin.copy:
+    src: "{{ postgresql_config_directory }}/pg_hba.conf"
+    dest: "{{ postgresql_config_directory }}/pg_hba.conf.backup.{{ ansible_facts['date_time']['epoch'] }}"
+    remote_src: yes
+    force: no
+  become: yes
+  when: not ansible_check_mode
+
+- name: Deploy PostgreSQL configuration
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: "{{ postgresql_config_directory }}/postgresql.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+    backup: no
+  become: yes
+  notify: Restart PostgreSQL
+
+- name: Deploy pg_hba.conf
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "{{ postgresql_config_directory }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+    backup: no
+  become: yes
+  notify: Restart PostgreSQL

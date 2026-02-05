@@ -1,0 +1,11 @@
+[Unit]
+Description=Kadeem Database Backup Service
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/kadeem/.env
+ExecStart=/opt/kadeem/scripts/backup-database.sh
+StandardOutput=journal
+StandardError=journal
