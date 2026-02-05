@@ -1,0 +1,55 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Install PostgreSQL and dependencies
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+      - acl
+    state: present
+  become: yes
+  register: postgresql_install
+
+- name: Ensure PostgreSQL service is started and enabled
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+  become: yes
+  when: not ansible_check_mode
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    port: 5432
+    host: localhost
+    delay: 2
+    timeout: 30
+  when: not ansible_check_mode
+
+- name: Verify PostgreSQL is accepting connections
+  ansible.builtin.shell: |
+    sudo -u postgres psql -c "SELECT 1"
+  register: pg_ready
+  changed_when: false
+  retries: 5
+  delay: 2
+  until: pg_ready.rc == 0
+  when: not ansible_check_mode
+
+- name: Get PostgreSQL version
+  ansible.builtin.shell: |
+    psql --version | awk '{print $3}' | cut -d. -f1
+  register: pg_version_output
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Set PostgreSQL version fact
+  ansible.builtin.set_fact:
+    postgresql_version: "{{ pg_version_output.stdout | default('16') }}"
