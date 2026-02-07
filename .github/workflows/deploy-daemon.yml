@@ -1,15 +1,15 @@
-name: Deploy Daemon to Machine B
+name: Deploy Daemon
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'cmd/daemon/**'
-      - 'internal/**'
-      - 'migrations/**'
-      - 'go.mod'
-      - 'go.sum'
+      - 'packages/server/cmd/daemon/**'
+      - 'packages/server/internal/**'
+      - 'packages/server/migrations/**'
+      - 'packages/server/go.mod'
+      - 'packages/server/go.sum'
       - '.github/workflows/deploy-daemon.yml'
   workflow_dispatch:
     inputs:
@@ -23,6 +23,9 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/server
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,7 +33,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
 
       - name: Run tests
         run: go test -v ./...
@@ -39,6 +42,9 @@ jobs:
     name: Build Daemon
     needs: test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/server
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,7 +52,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
 
       - name: Build daemon
         run: |
@@ -59,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: daemon-binary
-          path: daemon
+          path: packages/server/daemon
           retention-days: 7
 
   deploy:
@@ -76,47 +82,44 @@ jobs:
         with:
           name: daemon-binary
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          tags: tag:ci
 
       - name: Backup current daemon
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo cp /opt/kadeem/bin/daemon /opt/kadeem/bin/daemon.backup || true"
 
       - name: Deploy daemon binary
         run: |
-          scp -i ~/.ssh/deploy_key daemon \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/daemon
+          scp daemon ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/daemon
           
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo mv /tmp/daemon /opt/kadeem/bin/daemon && \
              sudo chmod +x /opt/kadeem/bin/daemon && \
              sudo chown kadeem:kadeem /opt/kadeem/bin/daemon"
 
       - name: Set up Go on remote
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "which go || (curl -OL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz && \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "which go || (curl -OL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz && \
              sudo rm -rf /usr/local/go && \
-             sudo tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz && \
+             sudo tar -C /usr/local -xzf go1.23.6.linux-amd64.tar.gz && \
              echo 'export PATH=\$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile)"
 
       - name: Run migrations
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "cd /opt/kadeem/repo && \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "cd /opt/kadeem/repo/packages/server && \
              export PATH=\$PATH:/usr/local/go/bin && \
              export DATABASE_URL='${{ secrets.DATABASE_URL }}' && \
              go run cmd/migrate/main.go up"
 
       - name: Restart daemon
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo systemctl restart kadeem-daemon"
 
       - name: Wait for daemon startup
@@ -125,19 +128,19 @@ jobs:
       - name: Health check
         id: healthcheck
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo systemctl is-active kadeem-daemon"
 
       - name: Get daemon logs
         if: always()
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo journalctl -u kadeem-daemon -n 50 --no-pager"
 
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
              sudo systemctl restart kadeem-daemon" || true
 
@@ -184,16 +187,14 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.rollback == 'true'
     steps:
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          tags: tag:ci
 
       - name: Rollback to backup
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
              sudo systemctl restart kadeem-daemon"
 

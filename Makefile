@@ -1,6 +1,8 @@
 # Env Vars
 ENV_FILE := $(PWD)/.env
 BIN_DIR := $(PWD)/bin
+SERVER_DIR := packages/server
+WEB_DIR := packages/web
 export BIN_DIR ENV_FILE
 
 .PHONY: deps run build tests test migrate migrate-create migrate-force migrate-reset
@@ -8,24 +10,28 @@ export BIN_DIR ENV_FILE
 
 # Development
 deps:
-	sudo apt update
-	sudo add-apt-repository universe
-	sudo apt install -y pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
-	cd frontend && npm install
+	cd $(WEB_DIR) && npm install
 
 run:
-	wails dev -tags webkit2_41
+	@echo "Starting API server and Vite dev server..."
+	@trap 'kill 0' EXIT; \
+	cd $(SERVER_DIR) && go run cmd/daemon/main.go & \
+	cd $(WEB_DIR) && npm run dev & \
+	wait
 
 build:
-	wails build -tags webkit2_41
+	@echo "Building Go daemon..."
+	cd $(SERVER_DIR) && CGO_ENABLED=0 go build -o ../../bin/daemon cmd/daemon/main.go
+	@echo "Building frontend..."
+	cd $(WEB_DIR) && npm run build
 
 tests:
 	@echo "Running integration tests..."
-	go test -v ./tests/integration
+	cd $(SERVER_DIR) && go test -v ./tests/integration
 
 test:
 	@echo "Running integration test $(filter-out $@,$(MAKECMDGOALS))..."
-	go test -v ./tests/integration -run "$(filter-out $@,$(MAKECMDGOALS))"
+	cd $(SERVER_DIR) && go test -v ./tests/integration -run "$(filter-out $@,$(MAKECMDGOALS))"
 
 %: 
 	@:
@@ -47,19 +53,19 @@ ansible:
 
 # Database
 migrate-create:
-	migrate create -seq -digits 3 -dir ./migrations -ext sql ${name}
+	migrate create -seq -digits 3 -dir ./$(SERVER_DIR)/migrations -ext sql ${name}
 
 migrate-up:
 	@echo "Running PostgreSQL migrations..."
-	go run cmd/migrate/main.go up
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go up
 
 migrate-down:
 	@echo "Rolling back PostgreSQL migrations..."
-	go run cmd/migrate/main.go down
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go down
 
 migrate-version:
 	@echo "Checking migration version..."
-	go run cmd/migrate/main.go version
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go version
 
 migrate-force:
 	@echo "Forcing migration to version $(filter-out $@,$(MAKECMDGOALS))..."
@@ -67,26 +73,26 @@ migrate-force:
 		echo "Error: version is required. Use: make migrate-force 1"; \
 		exit 1; \
 	fi
-	go run cmd/migrate/main.go force $(filter-out $@,$(MAKECMDGOALS))
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go force $(filter-out $@,$(MAKECMDGOALS))
 
 migrate-force-reset:
 	@echo "Dropping all tables and resetting database..."
-	go run cmd/migrate/main.go drop-all
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go drop-all
 	@echo "Running PostgreSQL migrations..."
-	go run cmd/migrate/main.go up
+	cd $(SERVER_DIR) && go run cmd/migrate/main.go up
 
 # Help
 help:
 	@echo "Kadeem Makefile Commands"
 	@echo ""
 	@echo "Development:"
-	@echo "  make deps              - Install dependencies"
-	@echo "  make run               - Run Wails app in dev mode"
-	@echo "  make build             - Build Wails app"
-	@echo "  make tests             - Run all tests"
+	@echo "  make deps              - Install frontend dependencies"
+	@echo "  make run               - Run API server + Vite dev server"
+	@echo "  make build             - Build Go daemon + frontend"
+	@echo "  make tests             - Run all integration tests"
 	@echo ""
 	@echo "Infrastructure:"
-	@echo "  make ansible           - Setup PostgreSQL with Ansible"
+	@echo "  make ansible           - Run Ansible playbook"
 	@echo "  make ansible check     - Dry run (show what would change)"
 	@echo ""
 	@echo "Database:"
@@ -95,4 +101,4 @@ help:
 	@echo "  make migrate-down         - Rollback migrations"
 	@echo "  make migrate-version      - Show current migration version"
 	@echo "  make migrate-force        - Force migration version (make migrate-force 0)"
-	@echo "  make migrate-force-reset  - Force to version 0 and re-run all migrations"
+	@echo "  make migrate-force-reset  - Drop all and re-run migrations"

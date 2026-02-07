@@ -1,0 +1,12 @@
+name = "cyanlab-site"
+type = "javascript"
+
+account_id = "4fb2cf22300319dbe7eaed254c72378b"
+workers_dev = false
+route = "cyanlab.cc"
+zone_id = "5f5695989cf29292e1c55a03e9ae8236"
+
+[site]
+bucket = ".packages/web/dist"  # <- points to the built frontend
+entry-point = "."
+
