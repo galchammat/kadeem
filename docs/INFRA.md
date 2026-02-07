@@ -28,7 +28,7 @@ Ansible provisions everything on Machine B: PostgreSQL 16, nginx with oauth2-pro
 1. Install Ansible: `sudo apt install ansible`
 2. SSH key auth configured: `ssh-copy-id yog404@mac`
 3. Tailscale running on your machine and Machine B
-4. `.env` file in project root (see `.env.example` for all vars). Key infra vars:
+4. `.env` file in project root (see `.env.template` for all vars). Key infra vars:
 
 ```bash
 HOST_B=mac                          # Target host (Tailscale hostname)
