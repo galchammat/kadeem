@@ -1,0 +1,23 @@
+[Unit]
+Description=OAuth2 Proxy for Supabase Authentication
+After=network.target
+
+[Service]
+Type=simple
+User={{ oauth2_proxy_user }}
+Group={{ oauth2_proxy_user }}
+ExecStart=/usr/local/bin/oauth2-proxy --config=/etc/oauth2-proxy/oauth2-proxy.cfg
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/oauth2-proxy/oauth2-proxy.log
+StandardError=append:/var/log/oauth2-proxy/oauth2-proxy-error.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/oauth2-proxy
+
+[Install]
+WantedBy=multi-user.target

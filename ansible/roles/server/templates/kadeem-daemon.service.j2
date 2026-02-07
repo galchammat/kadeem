@@ -1,0 +1,40 @@
+[Unit]
+Description=Kadeem API and Background Jobs
+Documentation=https://github.com/galchammat/kadeem
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User={{ kadeem_user }}
+Group={{ kadeem_group }}
+WorkingDirectory={{ kadeem_home }}
+
+# Environment variables
+Environment="DATABASE_URL={{ database_url }}"
+Environment="RIOT_API_KEY={{ riot_api_key }}"
+Environment="API_PORT={{ api_port }}"
+Environment="API_HOST=0.0.0.0"
+Environment="BIN_DIR={{ kadeem_home }}/bin/datadragon"
+
+# Start daemon
+ExecStart={{ kadeem_bin_dir }}/daemon
+
+# Restart configuration
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kadeem-daemon
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ kadeem_home }}
+
+[Install]
+WantedBy=multi-user.target

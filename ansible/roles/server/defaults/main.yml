@@ -1,0 +1,12 @@
+---
+# Kadeem daemon configuration
+kadeem_user: kadeem
+kadeem_group: kadeem
+kadeem_home: /opt/kadeem
+kadeem_bin_dir: "{{ kadeem_home }}/bin"
+kadeem_repo_dir: "{{ kadeem_home }}/repo"
+
+# Environment variables (from .env)
+database_url: "{{ lookup('env', 'DATABASE_URL') }}"
+riot_api_key: "{{ lookup('env', 'RIOT_API_KEY') }}"
+api_port: "8080"

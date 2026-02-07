@@ -1,0 +1,39 @@
+---
+- name: Create kadeem user
+  become: yes
+  ansible.builtin.user:
+    name: "{{ kadeem_user }}"
+    system: yes
+    shell: /bin/bash
+    home: "{{ kadeem_home }}"
+    create_home: yes
+
+- name: Create kadeem directories
+  become: yes
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kadeem_user }}"
+    group: "{{ kadeem_group }}"
+    mode: '0755'
+  loop:
+    - "{{ kadeem_bin_dir }}"
+    - "{{ kadeem_repo_dir }}"
+    - "{{ kadeem_home }}/bin/datadragon"
+
+- name: Deploy kadeem-daemon systemd service
+  become: yes
+  ansible.builtin.template:
+    src: kadeem-daemon.service.j2
+    dest: /etc/systemd/system/kadeem-daemon.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart kadeem-daemon
+
+- name: Enable kadeem-daemon service
+  become: yes
+  ansible.builtin.systemd:
+    name: kadeem-daemon
+    enabled: yes
+    daemon_reload: yes

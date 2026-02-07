@@ -1,0 +1,7 @@
+---
+- name: Restart kadeem-daemon
+  become: yes
+  ansible.builtin.systemd:
+    name: kadeem-daemon
+    state: restarted
+    daemon_reload: yes
