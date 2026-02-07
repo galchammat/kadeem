@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"os"
 	"testing"
 
 	"github.com/galchammat/kadeem/internal/database"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestListLolMatches(t *testing.T) {
+	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
+	}
 	tlog := testlog.New(t)
 
 	db, err := database.OpenDB()
