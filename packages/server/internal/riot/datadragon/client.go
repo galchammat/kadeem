@@ -108,7 +108,7 @@ func (c *DataDragonClient) updateVersion() error {
 	// If version changed, clear old cache
 	if c.version != "" && c.version != newVersion {
 		logging.Info("New Data Dragon version detected, clearing old cache", "old", c.version, "new", newVersion)
-		c.clearCache()
+		_ = c.clearCache()
 	}
 
 	c.version = newVersion

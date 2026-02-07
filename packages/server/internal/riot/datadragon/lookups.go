@@ -8,11 +8,8 @@ import (
 // GetChampionIDByName returns the champion ID for a given name
 // Uses the cached champion map, loading it if necessary
 func (c *DataDragonClient) GetChampionIDByName(name string) (int, error) {
-	// Load map if not already loaded
 	c.championMapOnce.Do(func() {
-		if err := c.loadChampionMap(); err != nil {
-			// Error is already logged in loadChampionMap
-		}
+		_ = c.loadChampionMap()
 	})
 
 	c.championMapMu.RLock()
@@ -61,9 +58,7 @@ func (c *DataDragonClient) GetItemIDByName(name string) (int, error) {
 // If multiple spells have the same name (e.g., arena variants), returns the lowest ID (base spell).
 func (c *DataDragonClient) GetSummonerSpellIDByName(name string) (int, error) {
 	c.spellMapOnce.Do(func() {
-		if err := c.loadSpellMap(); err != nil {
-			// Error is already logged in loadSpellMap
-		}
+		_ = c.loadSpellMap()
 	})
 
 	c.spellMapMu.RLock()

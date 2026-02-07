@@ -212,7 +212,6 @@ func (db *DB) ListChannels(filter *model.ChannelFilter) ([]model.Channel, error)
 		if filter.ChannelName != nil {
 			where = append(where, fmt.Sprintf("channel_name LIKE $%d", argN))
 			args = append(args, *filter.ChannelName)
-			argN++
 		}
 	}
 

@@ -14,10 +14,9 @@ import (
 
 // TestHandler is a slog handler that writes to both slog output and testing.T
 type TestHandler struct {
-	t             *testing.T
-	level         slog.Level
-	projectRoot   string
-	parentHandler slog.Handler
+	t           *testing.T
+	level       slog.Level
+	projectRoot string
 }
 
 // NewTestHandler creates a handler that logs to both test output and slog

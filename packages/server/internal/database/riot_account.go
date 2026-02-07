@@ -225,7 +225,6 @@ func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount) ([]model.Le
 	if filter != nil && filter.StreamerID != 0 {
 		where = append(where, fmt.Sprintf("streamer_id = $%d", argCounter))
 		args = append(args, filter.StreamerID)
-		argCounter++
 	}
 
 	if len(where) > 0 {
