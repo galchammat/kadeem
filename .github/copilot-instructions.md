@@ -1,24 +1,46 @@
-This is a Wails (Go, Typescript React, SQLite) based repository. It is primarily responsible for connecting timelines of livestreamers' stream and game accounts to find and clip highlights. Please follow these guidelines when contributing:
+Monorepo for Kadeem, a League of Legends match tracking application. Go API server + React/TypeScript frontend, deployed on Pop!_OS behind Cloudflare Tunnel, nginx, and oauth2-proxy.
 
-## Code Standards
+## Stack
 
-### Required Before Each Commit
-- Run `make fmt` before committing any changes to ensure proper code formatting
-- This will run gofmt on all Go files to maintain consistent style
-
-### Development Flow
-- Build: `make build`
-- Integration Tests: `make test-integration`
-- Run in Dev Mode: `make run`
+- **Backend:** Go 1.23, chi router, PostgreSQL
+- **Frontend:** React 18, Vite 7, Tailwind CSS 4, shadcn/ui
+- **Infra:** Ansible, systemd, nginx, oauth2-proxy, Cloudflare Tunnel
 
 ## Repository Structure
-- `cmd/migrate`: Runs SQLite migrations
-- `./main.go`: Wails application entry point
-- `internal/`: App logic, some of which is exposed to the react frontend by Wails. Bound objects can be found in `./main.go`, in the `Bind` parameter passed to `wails.Run`. 
-- `tests/`: Integration tests.
 
-## Key Guidelines
-1. Follow Go best practices and idiomatic patterns
-2. Maintain existing code structure and organization
-3. Use shadcn UI components in the React frontend
-4. In the frontend, use models defined in `frontend/wailsjs/models` as much as possible before creating new types. If a required attribute of a model is making it unusable, consider making the attribute optional in the backend `./internal/models` definition. 
+```
+packages/server/          Go API server
+  cmd/daemon/main.go      Entry point
+  cmd/migrate/main.go     Database migrations runner
+  internal/               All Go packages (api, handler, service, store, model, riot)
+  migrations/             SQL migration files
+  go.mod                  Module: github.com/galchammat/kadeem
+
+packages/web/             React frontend
+  src/
+    lib/api.ts            API client (fetch-based)
+    lib/matchTransformer.ts  Match data transformation + DataDragon CDN
+    types/index.ts         TypeScript types matching Go models
+    hooks/                 React hooks (useLolAccounts, useLolMatches, useStreamer)
+    contexts/              React contexts (streamerContext)
+    pages/                 Page components
+    components/            UI components (shadcn/ui based)
+
+ansible/                  Deployment automation (roles: postgresql, nginx, server)
+scripts/                  Operational scripts
+```
+
+## Development
+
+- `make run` — Starts Go server + Vite dev server
+- `make build` — Builds Go binary + frontend bundle
+- `make test` — Runs Go tests
+- `make migrate-up` / `make migrate-down` — Database migrations
+
+## Guidelines
+
+1. Follow Go idioms. Use `any` not `interface{}`.
+2. Frontend types in `packages/web/src/types/index.ts` mirror Go models. Keep them in sync.
+3. API client in `packages/web/src/lib/api.ts` matches routes in `packages/server/internal/api/routes.go`.
+4. Use shadcn/ui components. Prefer editing existing files over creating new ones.
+5. Minimize code. YAGNI.

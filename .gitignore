@@ -1,11 +1,10 @@
-build/bin
 node_modules
 Session.vim
-frontend/dist
-frontend/wailsjs/
-frontend/package.json.md5
+
+packages/web/dist
+packages/server/bin
 
 .env
 kadeem.db
 bin/
-
+.sisyphus/
