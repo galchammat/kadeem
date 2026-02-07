@@ -1,0 +1,38 @@
+---
+- name: Check if SSL certificate exists
+  become: yes
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ api_domain }}/fullchain.pem"
+  register: ssl_cert
+
+- name: Obtain Let's Encrypt certificate (staging)
+  become: yes
+  ansible.builtin.command: >
+    certbot --nginx
+    -d {{ api_domain }}
+    --non-interactive
+    --agree-tos
+    --email {{ letsencrypt_email }}
+    --staging
+  when: not ssl_cert.stat.exists and certbot_staging
+  notify: Reload Nginx
+
+- name: Obtain Let's Encrypt certificate (production)
+  become: yes
+  ansible.builtin.command: >
+    certbot --nginx
+    -d {{ api_domain }}
+    --non-interactive
+    --agree-tos
+    --email {{ letsencrypt_email }}
+  when: not ssl_cert.stat.exists and not certbot_staging
+  notify: Reload Nginx
+
+- name: Set up automatic certificate renewal
+  become: yes
+  ansible.builtin.cron:
+    name: "Renew Let's Encrypt certificates"
+    minute: "0"
+    hour: "2"
+    job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+    user: root

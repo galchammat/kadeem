@@ -105,7 +105,7 @@ log_info "Backup complete!"
 if [ -n "$DISCORD_WEBHOOK_URL" ]; then
     curl -X POST "$DISCORD_WEBHOOK_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"content\": \"✅ Kadeem database backup completed successfully\n**File:** $BACKUP_FILE\n**Size:** $BACKUP_SIZE\"}" \
+        -d "{\"content\": \"Kadeem database backup completed successfully\n**File:** $BACKUP_FILE\n**Size:** $BACKUP_SIZE\"}" \
         &> /dev/null || log_warn "Failed to send Discord notification"
 fi
 

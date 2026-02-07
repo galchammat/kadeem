@@ -1,0 +1,75 @@
+---
+- name: Install Nginx
+  become: yes
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: Install Certbot for Let's Encrypt
+  become: yes
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+
+- name: Ensure Nginx is enabled and started
+  become: yes
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: yes
+    state: started
+
+- name: Create oauth2-proxy user
+  become: yes
+  ansible.builtin.user:
+    name: "{{ oauth2_proxy_user }}"
+    system: yes
+    shell: /usr/sbin/nologin
+    create_home: no
+
+- name: Create oauth2-proxy directories
+  become: yes
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ oauth2_proxy_user }}"
+    group: "{{ oauth2_proxy_user }}"
+    mode: '0755'
+  loop:
+    - /etc/oauth2-proxy
+    - /var/log/oauth2-proxy
+
+- name: Download oauth2-proxy binary
+  become: yes
+  ansible.builtin.get_url:
+    url: "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/v{{ oauth2_proxy_version }}/oauth2-proxy-v{{ oauth2_proxy_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/oauth2-proxy.tar.gz"
+    mode: '0644'
+
+- name: Extract oauth2-proxy binary
+  become: yes
+  ansible.builtin.unarchive:
+    src: "/tmp/oauth2-proxy.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Install oauth2-proxy binary
+  become: yes
+  ansible.builtin.copy:
+    src: "/tmp/oauth2-proxy-v{{ oauth2_proxy_version }}.linux-amd64/oauth2-proxy"
+    dest: "/usr/local/bin/oauth2-proxy"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: yes
+
+- name: Clean up oauth2-proxy download
+  become: yes
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/oauth2-proxy.tar.gz"
+    - "/tmp/oauth2-proxy-v{{ oauth2_proxy_version }}.linux-amd64"
