@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/galchammat/kadeem/internal/database"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestListBroadcasts(t *testing.T) {
+	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
+	}
 	const channelID string = "104410477" // test channel
 	const limit, offset int = 10, 0
 
