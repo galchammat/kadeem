@@ -100,7 +100,7 @@ func (db *DB) InsertLolMatchWithParticipants(
 		logging.Error("Failed to begin transaction for match insert", "matchID", summary.ID, "error", err)
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
 	if err := db.insertLolMatchSummaryExec(tx, summary); err != nil {
 		return err
