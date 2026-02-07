@@ -1,11 +1,7 @@
 name = "cyanlab-site"
 compatibility_date = "2026-02-07"
 
-account_id = "4fb2cf22300319dbe7eaed254c72378b"
-workers_dev = false
-route = "cyanlab.cc"
-zone_id = "5f5695989cf29292e1c55a03e9ae8236"
-
 [assets]
 directory = "./dist"
+not_found_handling = "single-page-application"
 
