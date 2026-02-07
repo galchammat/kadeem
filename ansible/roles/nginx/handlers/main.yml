@@ -1,0 +1,19 @@
+---
+- name: Reload Nginx
+  become: yes
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+
+- name: Restart Nginx
+  become: yes
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+
+- name: Restart oauth2-proxy
+  become: yes
+  ansible.builtin.systemd:
+    name: oauth2-proxy
+    state: restarted
+    daemon_reload: yes

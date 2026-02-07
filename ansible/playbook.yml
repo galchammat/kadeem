@@ -21,10 +21,13 @@
   
   roles:
     - role: postgresql
-      tags: ['postgresql', 'database']
+      tags: ['postgresql', 'database', 'backup']
     
-    - role: postgres_backup
-      tags: ['backup', 'systemd']
+    - role: nginx
+      tags: ['nginx', 'web', 'ssl']
+    
+    - role: server
+      tags: ['server', 'daemon', 'api']
   
   post_tasks:
     - name: Infrastructure setup complete
@@ -33,3 +36,10 @@
           - "✅ PostgreSQL installation and configuration complete!"
           - "Connection: {{ db_user }}@{{ db_host }}:{{ db_port }}/{{ db_name }}"
           - "Backup timer: kadeem-backup.timer (daily at {{ backup_time }})"
+          - "✅ Nginx + oauth2-proxy configured for {{ api_domain }}"
+          - "✅ Kadeem daemon service installed"
+          - ""
+          - "Next steps:"
+          - "1. Point DNS: {{ api_domain }} → {{ ansible_host }}"
+          - "2. Deploy daemon binary via GitHub Actions"
+          - "3. Test: https://{{ api_domain }}/health"

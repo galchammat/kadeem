@@ -19,3 +19,6 @@
 
 - name: Create database and user
   ansible.builtin.include_tasks: database.yml
+
+- name: Configure backups
+  ansible.builtin.include_tasks: backup.yml
