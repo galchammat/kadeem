@@ -12,11 +12,6 @@ frontend_domain: cyanlab.cc
 api_backend_host: 127.0.0.1
 api_backend_port: 8080
 
-# oauth2-proxy configuration
-oauth2_proxy_version: "7.6.0"
-oauth2_proxy_port: 4180
-oauth2_proxy_user: oauth2-proxy
-
 # Let's Encrypt
 letsencrypt_email: "{{ lookup('env', 'LETSENCRYPT_EMAIL') }}"
 certbot_staging: false  # Set to true for testing
@@ -24,7 +19,6 @@ certbot_staging: false  # Set to true for testing
 # Supabase configuration (from env vars)
 supabase_url: "{{ lookup('env', 'SUPABASE_URL') }}"
 supabase_publishable_key: "{{ lookup('env', 'SUPABASE_PUBLISHABLE_KEY') }}"
-oauth2_proxy_cookie_secret: "{{ lookup('env', 'OAUTH2_PROXY_COOKIE_SECRET') }}"
 
 # Rate limiting
 rate_limit_per_ip: "10r/s"
