@@ -21,6 +21,7 @@ type Server struct {
 	router            *chi.Mux
 	httpServer        *http.Server
 	allowedOrigins    []string
+	jwtSecret         string
 	healthHandler     *handler.HealthHandler
 	riotHandler       *handler.RiotHandler
 	dataDragonHandler *handler.DataDragonHandler
@@ -54,9 +55,15 @@ func NewServer(db *database.DB, port string) *Server {
 		version = "dev"
 	}
 
+	jwtSecret := os.Getenv("SUPABASE_JWT_SECRET")
+	if jwtSecret == "" {
+		logging.Warn("SUPABASE_JWT_SECRET not set, auth will fail")
+	}
+
 	s := &Server{
 		router:            chi.NewRouter(),
 		allowedOrigins:    allowedOrigins,
+		jwtSecret:         jwtSecret,
 		healthHandler:     handler.NewHealthHandler(version, db, dataDragonClient),
 		riotHandler:       handler.NewRiotHandler(db, accountSvc, matchSvc, rankSvc),
 		dataDragonHandler: handler.NewDataDragonHandler(dataDragonClient),
@@ -64,7 +71,7 @@ func NewServer(db *database.DB, port string) *Server {
 	}
 
 	// Setup routes
-	s.setupRoutes()
+	s.setupRoutes(s.jwtSecret)
 
 	// Create HTTP server
 	s.httpServer = &http.Server{

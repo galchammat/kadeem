@@ -5,7 +5,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (s *Server) setupRoutes() {
+func (s *Server) setupRoutes(jwtSecret string) {
 	r := s.router
 
 	// Middleware stack
@@ -27,7 +27,7 @@ func (s *Server) setupRoutes() {
 
 		// Protected routes (require authentication)
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware)
+			r.Use(middleware.AuthMiddleware(jwtSecret))
 
 			// Riot accounts
 			r.Post("/riot/accounts", s.riotHandler.AddAccount)
