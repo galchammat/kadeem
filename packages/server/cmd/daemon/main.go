@@ -9,10 +9,29 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/galchammat/kadeem/internal/daemon"
+	"github.com/galchammat/kadeem/internal/api"
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	riot "github.com/galchammat/kadeem/internal/riot/api"
+	"github.com/galchammat/kadeem/internal/service"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	envFile := os.Getenv("ENV_FILE")
+	if envFile == "" {
+		envFile = ".env"
+	}
+	if err := godotenv.Load(envFile); err != nil {
+		logging.Warn("No env file loaded", "path", envFile, "error", err)
+	}
+}
+
+type daemon struct {
+	db      *database.DB
+	matches *service.MatchService
+	ranks   *service.RankService
+}
 
 func main() {
 	logging.Init(os.Stderr, slog.LevelInfo)
@@ -25,7 +44,12 @@ func main() {
 	}
 	defer db.SQL.Close()
 
-	d := daemon.New(db)
+	riotClient := riot.NewClient()
+	d := &daemon{
+		db:      db,
+		matches: service.NewMatchService(db, riotClient),
+		ranks:   service.NewRankService(db, riotClient),
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -35,19 +59,24 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		d.RunMatchSyncJob(ctx, 15*time.Minute)
+		d.runSyncLoop(ctx, 15*time.Minute, "match", d.syncMatches)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		d.RunRankSyncJob(ctx, 15*time.Minute)
+		d.runSyncLoop(ctx, 15*time.Minute, "rank", d.syncRanks)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := d.StartAPIServer(ctx); err != nil {
+		port := os.Getenv("API_PORT")
+		if port == "" {
+			port = "8080"
+		}
+		logging.Info("Starting API server", "port", port)
+		if err := api.StartServer(ctx, db, port); err != nil {
 			logging.Error("API server stopped", "error", err)
 		}
 	}()
@@ -62,4 +91,63 @@ func main() {
 	cancel()
 	wg.Wait()
 	logging.Info("Daemon stopped")
+}
+
+func (d *daemon) runSyncLoop(ctx context.Context, interval time.Duration, name string, fn func()) {
+	safeRun := func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logging.Error("Panic in sync job", "job", name, "panic", r)
+			}
+		}()
+		fn()
+	}
+
+	safeRun()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			logging.Info("Sync job stopped", "job", name)
+			return
+		case <-ticker.C:
+			safeRun()
+		}
+	}
+}
+
+func (d *daemon) syncMatches() {
+	logging.Info("Starting match sync")
+	accounts, err := d.db.GetTrackedAccountsForSync()
+	if err != nil {
+		logging.Error("Failed to list accounts for sync", "error", err)
+		return
+	}
+	for _, account := range accounts {
+		if err := d.matches.SyncMatches(account); err != nil {
+			logging.Error("Failed to sync matches", "puuid", account.PUUID, "error", err)
+		} else {
+			logging.Info("Synced matches", "puuid", account.PUUID)
+		}
+	}
+	logging.Info("Match sync completed")
+}
+
+func (d *daemon) syncRanks() {
+	logging.Info("Starting rank sync")
+	accounts, err := d.db.GetTrackedAccountsForSync()
+	if err != nil {
+		logging.Error("Failed to list accounts for rank sync", "error", err)
+		return
+	}
+	for _, account := range accounts {
+		if err := d.ranks.SyncRank(&account); err != nil {
+			logging.Error("Failed to sync rank", "puuid", account.PUUID, "error", err)
+		} else {
+			logging.Info("Synced rank", "puuid", account.PUUID)
+		}
+	}
+	logging.Info("Rank sync completed")
 }
