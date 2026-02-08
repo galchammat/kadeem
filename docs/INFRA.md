@@ -1,6 +1,6 @@
 # Infrastructure
 
-Two machines connected via Tailscale. Machine B (hostname `mac`) runs PostgreSQL, nginx/oauth2-proxy, and the kadeem daemon. Machine A (hostname `pc3080`) stores daily database backups. GitHub Actions deploys on push to `main`.
+Two machines connected via Tailscale. Machine B (hostname `mac`) runs PostgreSQL, nginx, and the kadeem daemon. Machine A (hostname `pc3080`) stores daily database backups. GitHub Actions deploys on push to `main`.
 
 ## Tailscale Setup
 
@@ -21,7 +21,7 @@ ssh yog404@pc3080
 
 ## Ansible Setup
 
-Ansible provisions everything on Machine B: PostgreSQL 16, nginx with oauth2-proxy, the kadeem daemon systemd service, and the backup timer.
+Ansible provisions everything on Machine B: PostgreSQL 16, nginx, the kadeem daemon systemd service, and the backup timer.
 
 ### Prerequisites
 
@@ -43,7 +43,7 @@ DISCORD_WEBHOOK_URL=https://...     # Optional
 RIOT_API_KEY=RGAPI-...
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-OAUTH2_PROXY_COOKIE_SECRET=...      # openssl rand -base64 32
+SUPABASE_JWT_SECRET=<jwt_secret_from_dashboard>
 DOMAIN=api.cyanlab.cc
 FRONTEND_DOMAIN=cyanlab.cc
 LETSENCRYPT_EMAIL=you@example.com
@@ -62,7 +62,6 @@ The playbook is idempotent -- safe to re-run.
 
 - **PostgreSQL 16** -- install, config, SSL cert, create DB/user from `DATABASE_URL`
 - **Nginx** -- reverse proxy for the API, Let's Encrypt SSL, rate limiting
-- **OAuth2-proxy** -- JWT validation against Supabase (see [SUPABASE_AUTH.md](./SUPABASE_AUTH.md))
 - **Kadeem daemon** -- systemd service at `/opt/kadeem/bin/daemon`
 - **Backup timer** -- daily at 2 AM, pg_dump to Machine A, 30-day retention, Discord notification
 
@@ -87,9 +86,9 @@ ansible/
     │   ├── templates/       # postgresql.conf.j2, pg_hba.conf.j2, backup-script.sh.j2, etc.
     │   ├── handlers/
     │   └── defaults/
-    ├── nginx/               # Reverse proxy, oauth2-proxy, Let's Encrypt
-    │   ├── tasks/
-    │   ├── templates/       # nginx.conf.j2, kadeem-api.conf.j2, oauth2-proxy.cfg.j2, etc.
+     ├── nginx/               # Reverse proxy, Let's Encrypt
+     │   ├── tasks/
+     │   ├── templates/       # nginx.conf.j2, kadeem-api.conf.j2, etc.
     │   ├── handlers/
     │   └── defaults/
     └── server/              # Daemon user, dirs, systemd service

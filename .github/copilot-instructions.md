@@ -1,10 +1,10 @@
-Monorepo for Kadeem, a League of Legends match tracking application. Go API server + React/TypeScript frontend, deployed on Pop!_OS behind Cloudflare Tunnel, nginx, and oauth2-proxy.
+Monorepo for Kadeem, a League of Legends match tracking application. Go API server + React/TypeScript frontend, deployed on Pop!_OS behind Cloudflare Tunnel and nginx.
 
 ## Stack
 
 - **Backend:** Go 1.23, chi router, PostgreSQL
 - **Frontend:** React 18, Vite 7, Tailwind CSS 4, shadcn/ui
-- **Infra:** Ansible, systemd, nginx, oauth2-proxy, Cloudflare Tunnel
+- **Infra:** Ansible, systemd, nginx, Cloudflare Tunnel
 
 ## Repository Structure
 
