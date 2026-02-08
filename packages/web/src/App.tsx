@@ -6,22 +6,25 @@ import HomePage from './pages/home';
 import AccountsPage from './pages/accounts';
 import MatchesPage from './pages/matches';
 import { ThemeProvider } from "./components/themeProvider"
+import { AuthProvider } from './contexts/authContext';
 import { StreamerProvider } from './contexts/streamerContext';
 import StreamersPage from './pages/streamers';
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark">
-      <StreamerProvider>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="accounts" element={<AccountsPage />} />
-            <Route path="matches" element={<MatchesPage />} />
-            <Route path="streamers" element={<StreamersPage />} />
-          </Route>
-        </Routes>
-      </StreamerProvider>
+      <AuthProvider>
+        <StreamerProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<HomePage />} />
+              <Route path="accounts" element={<AccountsPage />} />
+              <Route path="matches" element={<MatchesPage />} />
+              <Route path="streamers" element={<StreamersPage />} />
+            </Route>
+          </Routes>
+        </StreamerProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
