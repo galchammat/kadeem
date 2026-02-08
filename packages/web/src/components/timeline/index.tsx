@@ -64,7 +64,7 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
           if (!account) continue
 
           try {
-            const transformedMatch = await transformMatch(match, trackedPUUID, account.id)
+            const transformedMatch = await transformMatch(match, trackedPUUID, account.puuid)
             transformedEntries.push({
               match: transformedMatch,
               events: [], // Stream events stubbed for now

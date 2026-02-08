@@ -8,8 +8,8 @@ export interface UseLolAccountsReturn {
   error: string | null
   fetchAccounts: () => Promise<void>
   addAccount: (region: string, gameName: string, tagLine: string, streamerId: number) => Promise<void>
-  updateAccount: (accountId: number, region: string, gameName: string, tagLine: string) => Promise<void>
-  deleteAccount: (accountId: number) => Promise<void>
+  updateAccount: (accountId: string, region: string, gameName: string, tagLine: string) => Promise<void>
+  deleteAccount: (accountId: string) => Promise<void>
 }
 
 export function useLolAccounts(): UseLolAccountsReturn {
@@ -35,11 +35,11 @@ export function useLolAccounts(): UseLolAccountsReturn {
     await api.addAccount(region, gameName, tagLine, streamerId)
   }
 
-  const updateAccount = async (accountId: number, region: string, gameName: string, tagLine: string) => {
+  const updateAccount = async (accountId: string, region: string, gameName: string, tagLine: string) => {
     await api.updateAccount(accountId, region, gameName, tagLine)
   }
 
-  const deleteAccount = async (accountId: number) => {
+  const deleteAccount = async (accountId: string) => {
     await api.deleteAccount(accountId)
   }
 

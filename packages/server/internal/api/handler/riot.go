@@ -47,7 +47,7 @@ func (h *RiotHandler) AddAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.TrackAccount(userID, account.ID)
+	err = h.db.TrackAccount(userID, account.PUUID)
 	if err != nil {
 		logging.Error("Failed to track account", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to track account")
@@ -76,16 +76,16 @@ func (h *RiotHandler) ListAccounts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetAccount returns a specific account by ID (with tracking check)
+// GetAccount returns a specific account by PUUID (with tracking check)
 func (h *RiotHandler) GetAccount(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil {
 		logging.Error("Failed to check tracking", "error", err)
 		respondError(w, http.StatusInternalServerError, "Internal error")
@@ -96,7 +96,7 @@ func (h *RiotHandler) GetAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -108,9 +108,9 @@ func (h *RiotHandler) GetAccount(w http.ResponseWriter, r *http.Request) {
 // UpdateAccount updates an existing account
 func (h *RiotHandler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
@@ -120,13 +120,13 @@ func (h *RiotHandler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -134,7 +134,7 @@ func (h *RiotHandler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	err = h.accounts.UpdateAccount(req.Region, req.GameName, req.TagLine, account.PUUID)
 	if err != nil {
-		logging.Error("Failed to update account", "accountID", accountID, "error", err)
+		logging.Error("Failed to update account", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update account")
 		return
 	}
@@ -147,13 +147,13 @@ func (h *RiotHandler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 // DeleteAccount untracks an account for the user
 func (h *RiotHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	err = h.db.UntrackAccount(userID, accountID)
+	err := h.db.UntrackAccount(userID, accountPUUID)
 	if err != nil {
 		logging.Error("Failed to untrack account", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete account")
@@ -166,19 +166,19 @@ func (h *RiotHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // SyncMatches syncs matches for an account
 func (h *RiotHandler) SyncMatches(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -186,7 +186,7 @@ func (h *RiotHandler) SyncMatches(w http.ResponseWriter, r *http.Request) {
 
 	err = h.matches.SyncMatches(*account)
 	if err != nil {
-		logging.Error("Failed to sync matches", "accountID", accountID, "error", err)
+		logging.Error("Failed to sync matches", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to sync matches")
 		return
 	}
@@ -216,7 +216,7 @@ func (h *RiotHandler) ListMatches(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		isTracking, err := h.db.IsTrackingAccount(userID, acc.ID)
+		isTracking, err := h.db.IsTrackingAccount(userID, acc.PUUID)
 		if err != nil || !isTracking {
 			respondError(w, http.StatusForbidden, "Not tracking this account")
 			return
@@ -272,19 +272,19 @@ func (h *RiotHandler) SyncMatchReplay(w http.ResponseWriter, r *http.Request) {
 // FetchReplayURLs fetches replay URLs for an account
 func (h *RiotHandler) FetchReplayURLs(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -297,7 +297,7 @@ func (h *RiotHandler) FetchReplayURLs(w http.ResponseWriter, r *http.Request) {
 
 	urls, err := h.matches.FetchReplayURLs(account.PUUID, region)
 	if err != nil {
-		logging.Error("Failed to fetch replay URLs", "accountID", accountID, "error", err)
+		logging.Error("Failed to fetch replay URLs", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch replay URLs")
 		return
 	}
@@ -310,19 +310,19 @@ func (h *RiotHandler) FetchReplayURLs(w http.ResponseWriter, r *http.Request) {
 // FetchMatchSummary fetches match IDs for an account
 func (h *RiotHandler) FetchMatchSummary(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -330,7 +330,7 @@ func (h *RiotHandler) FetchMatchSummary(w http.ResponseWriter, r *http.Request) 
 
 	matchIDs, err := h.matches.FetchMatchIDs(account.PUUID, account.Region)
 	if err != nil {
-		logging.Error("Failed to fetch match IDs", "accountID", accountID, "error", err)
+		logging.Error("Failed to fetch match IDs", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch match summaries")
 		return
 	}
@@ -370,9 +370,9 @@ func (h *RiotHandler) SyncMatchSummary(w http.ResponseWriter, r *http.Request) {
 // GetPlayerRankAtTime gets rank at specific time
 func (h *RiotHandler) GetPlayerRankAtTime(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
@@ -388,13 +388,13 @@ func (h *RiotHandler) GetPlayerRankAtTime(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -402,7 +402,7 @@ func (h *RiotHandler) GetPlayerRankAtTime(w http.ResponseWriter, r *http.Request
 
 	rank, err := h.accounts.GetPlayerRankAtTime(account.PUUID, queueID, timestamp)
 	if err != nil {
-		logging.Error("Failed to get rank at time", "accountID", accountID, "error", err)
+		logging.Error("Failed to get rank at time", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get rank")
 		return
 	}
@@ -413,19 +413,19 @@ func (h *RiotHandler) GetPlayerRankAtTime(w http.ResponseWriter, r *http.Request
 // SyncRank syncs rank for an account
 func (h *RiotHandler) SyncRank(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
-	accountID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid account ID")
+	accountPUUID := chi.URLParam(r, "accountID")
+	if accountPUUID == "" {
+		respondError(w, http.StatusBadRequest, "Missing account ID")
 		return
 	}
 
-	isTracking, err := h.db.IsTrackingAccount(userID, accountID)
+	isTracking, err := h.db.IsTrackingAccount(userID, accountPUUID)
 	if err != nil || !isTracking {
 		respondError(w, http.StatusForbidden, "Not tracking this account")
 		return
 	}
 
-	account, err := h.db.GetRiotAccountByID(accountID)
+	account, err := h.db.GetRiotAccount(accountPUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Account not found")
 		return
@@ -433,7 +433,7 @@ func (h *RiotHandler) SyncRank(w http.ResponseWriter, r *http.Request) {
 
 	err = h.ranks.SyncRank(account)
 	if err != nil {
-		logging.Error("Failed to sync rank", "accountID", accountID, "error", err)
+		logging.Error("Failed to sync rank", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to sync rank")
 		return
 	}

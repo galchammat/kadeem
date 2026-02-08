@@ -20,25 +20,22 @@ func (db *DB) SaveRiotAccount(account *model.LeagueOfLegendsAccount) error {
 			streamer_id = EXCLUDED.streamer_id,
 			tag_line = EXCLUDED.tag_line,
 			game_name = EXCLUDED.game_name,
-			region = EXCLUDED.region
-        RETURNING id`
+			region = EXCLUDED.region`
 
-	var id int
-	err := db.SQL.QueryRow(query, account.PUUID, account.StreamerID, account.TagLine, account.GameName, account.Region).Scan(&id)
+	_, err := db.SQL.Exec(query, account.PUUID, account.StreamerID, account.TagLine, account.GameName, account.Region)
 	if err != nil {
 		logging.Error("Failed to save Riot account to database", "puuid", account.PUUID, "error", err)
 		return err
 	}
-	account.ID = id
 	return nil
 }
 
 // GetRiotAccount retrieves an account by PUUID
 func (db *DB) GetRiotAccount(puuid string) (*model.LeagueOfLegendsAccount, error) {
-	query := `SELECT id, puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = $1`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = $1`
 
 	var account model.LeagueOfLegendsAccount
-	err := db.SQL.QueryRow(query, puuid).Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
+	err := db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err != nil {
 		logging.Error("Failed to get Riot account from database", "puuid", puuid, "error", err)
 		return nil, err
@@ -47,27 +44,18 @@ func (db *DB) GetRiotAccount(puuid string) (*model.LeagueOfLegendsAccount, error
 	return &account, nil
 }
 
-// GetRiotAccountByID retrieves an account by ID
-func (db *DB) GetRiotAccountByID(id int) (*model.LeagueOfLegendsAccount, error) {
-	query := `SELECT id, puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE id = $1`
-
-	var account model.LeagueOfLegendsAccount
-	err := db.SQL.QueryRow(query, id).Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
-	if err != nil {
-		logging.Error("Failed to get Riot account from database", "id", id, "error", err)
-		return nil, err
-	}
-
-	return &account, nil
+// GetRiotAccountByPUUID is an alias for GetRiotAccount (replaces former GetRiotAccountByID)
+func (db *DB) GetRiotAccountByPUUID(puuid string) (*model.LeagueOfLegendsAccount, error) {
+	return db.GetRiotAccount(puuid)
 }
 
 // FindRiotAccount finds an account by game name, tag line, and region
 func (db *DB) FindRiotAccount(gameName, tagLine, region string) (*model.LeagueOfLegendsAccount, error) {
-	query := `SELECT id, puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts 
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts 
 	          WHERE game_name = $1 AND tag_line = $2 AND region = $3`
 
 	var account model.LeagueOfLegendsAccount
-	err := db.SQL.QueryRow(query, gameName, tagLine, region).Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
+	err := db.SQL.QueryRow(query, gameName, tagLine, region).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -105,9 +93,9 @@ func (db *DB) FindOrCreateRiotAccount(gameName, tagLine, region string) (*model.
 
 // ListTrackedAccounts returns all accounts a user is tracking
 func (db *DB) ListTrackedAccounts(userID string) ([]model.LeagueOfLegendsAccount, error) {
-	query := `SELECT a.id, a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
+	query := `SELECT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
 	          FROM league_of_legends_accounts a
-	          INNER JOIN user_tracked_accounts uta ON a.id = uta.account_id
+	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid
 	          WHERE uta.user_id = $1
 	          ORDER BY uta.tracked_at DESC`
 
@@ -121,7 +109,7 @@ func (db *DB) ListTrackedAccounts(userID string) ([]model.LeagueOfLegendsAccount
 	var accounts []model.LeagueOfLegendsAccount
 	for rows.Next() {
 		var account model.LeagueOfLegendsAccount
-		if err := rows.Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
+		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan tracked account row", "error", err)
 			return nil, err
 		}
@@ -135,32 +123,32 @@ func (db *DB) ListTrackedAccounts(userID string) ([]model.LeagueOfLegendsAccount
 }
 
 // TrackAccount adds a tracking relationship (idempotent)
-func (db *DB) TrackAccount(userID string, accountID int) error {
-	query := `INSERT INTO user_tracked_accounts (user_id, account_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
-	_, err := db.SQL.Exec(query, userID, accountID)
+func (db *DB) TrackAccount(userID string, accountPUUID string) error {
+	query := `INSERT INTO user_tracked_accounts (user_id, account_puuid) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+	_, err := db.SQL.Exec(query, userID, accountPUUID)
 	if err != nil {
-		logging.Error("Failed to track account", "userID", userID, "accountID", accountID, "error", err)
+		logging.Error("Failed to track account", "userID", userID, "accountPUUID", accountPUUID, "error", err)
 	}
 	return err
 }
 
 // UntrackAccount removes a tracking relationship
-func (db *DB) UntrackAccount(userID string, accountID int) error {
-	query := `DELETE FROM user_tracked_accounts WHERE user_id = $1 AND account_id = $2`
-	_, err := db.SQL.Exec(query, userID, accountID)
+func (db *DB) UntrackAccount(userID string, accountPUUID string) error {
+	query := `DELETE FROM user_tracked_accounts WHERE user_id = $1 AND account_puuid = $2`
+	_, err := db.SQL.Exec(query, userID, accountPUUID)
 	if err != nil {
-		logging.Error("Failed to untrack account", "userID", userID, "accountID", accountID, "error", err)
+		logging.Error("Failed to untrack account", "userID", userID, "accountPUUID", accountPUUID, "error", err)
 	}
 	return err
 }
 
 // IsTrackingAccount checks if user is tracking an account
-func (db *DB) IsTrackingAccount(userID string, accountID int) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM user_tracked_accounts WHERE user_id = $1 AND account_id = $2)`
+func (db *DB) IsTrackingAccount(userID string, accountPUUID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM user_tracked_accounts WHERE user_id = $1 AND account_puuid = $2)`
 	var exists bool
-	err := db.SQL.QueryRow(query, userID, accountID).Scan(&exists)
+	err := db.SQL.QueryRow(query, userID, accountPUUID).Scan(&exists)
 	if err != nil {
-		logging.Error("Failed to check tracking status", "userID", userID, "accountID", accountID, "error", err)
+		logging.Error("Failed to check tracking status", "userID", userID, "accountPUUID", accountPUUID, "error", err)
 		return false, err
 	}
 	return exists, nil
@@ -168,9 +156,9 @@ func (db *DB) IsTrackingAccount(userID string, accountID int) (bool, error) {
 
 // GetTrackedAccountsForSync returns all accounts with at least one tracker (for background jobs)
 func (db *DB) GetTrackedAccountsForSync() ([]model.LeagueOfLegendsAccount, error) {
-	query := `SELECT DISTINCT a.id, a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
+	query := `SELECT DISTINCT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
 	          FROM league_of_legends_accounts a
-	          INNER JOIN user_tracked_accounts uta ON a.id = uta.account_id`
+	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid`
 
 	rows, err := db.SQL.Query(query)
 	if err != nil {
@@ -182,7 +170,7 @@ func (db *DB) GetTrackedAccountsForSync() ([]model.LeagueOfLegendsAccount, error
 	var accounts []model.LeagueOfLegendsAccount
 	for rows.Next() {
 		var account model.LeagueOfLegendsAccount
-		if err := rows.Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
+		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan account row for sync", "error", err)
 			return nil, err
 		}
@@ -197,7 +185,7 @@ func (db *DB) GetTrackedAccountsForSync() ([]model.LeagueOfLegendsAccount, error
 
 // ListRiotAccounts lists accounts with optional filtering (for admin/internal use)
 func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount) ([]model.LeagueOfLegendsAccount, error) {
-	query := `SELECT id, puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
 	var where []string
 	var args []any
 	argCounter := 1
@@ -241,7 +229,7 @@ func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount) ([]model.Le
 	var accounts []model.LeagueOfLegendsAccount
 	for rows.Next() {
 		var account model.LeagueOfLegendsAccount
-		if err := rows.Scan(&account.ID, &account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
+		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan Riot account row", "error", err)
 			return nil, err
 		}

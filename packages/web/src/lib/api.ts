@@ -42,14 +42,14 @@ export async function addAccount(region: string, gameName: string, tagLine: stri
   })
 }
 
-export async function updateAccount(accountId: number, region: string, gameName: string, tagLine: string): Promise<void> {
+export async function updateAccount(accountId: string, region: string, gameName: string, tagLine: string): Promise<void> {
   await request(`/riot/accounts/${accountId}`, {
     method: "PUT",
     body: JSON.stringify({ region, game_name: gameName, tag_line: tagLine }),
   })
 }
 
-export async function deleteAccount(accountId: number): Promise<void> {
+export async function deleteAccount(accountId: string): Promise<void> {
   await request(`/riot/accounts/${accountId}`, { method: "DELETE" })
 }
 
@@ -61,7 +61,7 @@ export async function listMatches(puuid: string, limit: number, offset: number):
 }
 
 // Riot Ranks
-export async function getPlayerRankAtTime(accountId: number, queueID: number, timestamp: number): Promise<PlayerRank | null> {
+export async function getPlayerRankAtTime(accountId: string, queueID: number, timestamp: number): Promise<PlayerRank | null> {
   const params = new URLSearchParams({ queueID: String(queueID), timestamp: String(timestamp) })
   return request<PlayerRank | null>(`/riot/accounts/${accountId}/rank-at-time?${params}`)
 }

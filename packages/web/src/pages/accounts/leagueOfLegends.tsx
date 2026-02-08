@@ -50,7 +50,6 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   const openDialog = (mode: DialogMode, a?: LeagueOfLegendsAccount) => {
     if (mode === "edit" && a) {
       setFormData({
-        id: a.id,
         puuid: a.puuid,
         gameName: a.gameName,
         tagLine: a.tagLine,
@@ -76,7 +75,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
     )
       return
     try {
-      await deleteAccount(account.id)
+      await deleteAccount(account.puuid)
       await fetchAccounts()
     } catch (err) {
       toast.error("Failed to delete account", { description: String(err) })
@@ -84,7 +83,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   }
 
   const submit = async () => {
-    if (!formData.gameName || !formData.tagLine || !formData.region || (dialogMode === "edit" && !formData.id)) {
+    if (!formData.gameName || !formData.tagLine || !formData.region || (dialogMode === "edit" && !formData.puuid)) {
       setFormError("All fields are required")
       return
     }
@@ -96,7 +95,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
         await addAccount(formData.region!, formData.gameName!, formData.tagLine!, streamerId)
         toast("Added account", { description: `${formData.gameName}#${formData.tagLine} ${formData.region}` })
       } else if (dialogMode === "edit") {
-        await updateAccount(formData.id!, formData.region!, formData.gameName!, formData.tagLine!)
+        await updateAccount(formData.puuid!, formData.region!, formData.gameName!, formData.tagLine!)
         toast("Updated account", { description: `${formData.gameName}#${formData.tagLine} ${formData.region}` })
       }
       closeDialog()

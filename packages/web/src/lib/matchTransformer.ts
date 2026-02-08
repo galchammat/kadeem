@@ -152,7 +152,7 @@ function calculateParticipation(
 export async function transformMatch(
   backendMatch: LeagueOfLegendsMatch,
   trackedPUUID: string,
-  accountId: number
+  accountId: string
 ): Promise<Match> {
   await ensureDataDragonData()
 

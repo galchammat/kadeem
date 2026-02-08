@@ -2,7 +2,6 @@ export type DialogMode = null | "add" | "edit"
 
 // Riot / League of Legends
 export interface LeagueOfLegendsAccount {
-  id: number
   puuid: string
   streamerId?: number
   tagLine: string
