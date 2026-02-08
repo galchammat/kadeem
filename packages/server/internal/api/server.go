@@ -21,7 +21,7 @@ type Server struct {
 	router            *chi.Mux
 	httpServer        *http.Server
 	allowedOrigins    []string
-	jwtSecret         string
+	jwksURL           string
 	healthHandler     *handler.HealthHandler
 	riotHandler       *handler.RiotHandler
 	dataDragonHandler *handler.DataDragonHandler
@@ -55,15 +55,17 @@ func NewServer(db *database.DB, port string) *Server {
 		version = "dev"
 	}
 
-	jwtSecret := os.Getenv("SUPABASE_JWT_SECRET")
-	if jwtSecret == "" {
-		logging.Warn("SUPABASE_JWT_SECRET not set, auth will fail")
+	jwksURL := os.Getenv("SUPABASE_JWKS_URL")
+	if jwksURL == "" {
+		// Default to the known Supabase JWKS URL
+		jwksURL = "https://seijlvqsunpbzwuydvze.supabase.co/auth/v1/.well-known/jwks.json"
+		logging.Info("SUPABASE_JWKS_URL not set, using default")
 	}
 
 	s := &Server{
 		router:            chi.NewRouter(),
 		allowedOrigins:    allowedOrigins,
-		jwtSecret:         jwtSecret,
+		jwksURL:           jwksURL,
 		healthHandler:     handler.NewHealthHandler(version, db, dataDragonClient),
 		riotHandler:       handler.NewRiotHandler(db, accountSvc, matchSvc, rankSvc),
 		dataDragonHandler: handler.NewDataDragonHandler(dataDragonClient),
@@ -71,7 +73,7 @@ func NewServer(db *database.DB, port string) *Server {
 	}
 
 	// Setup routes
-	s.setupRoutes(s.jwtSecret)
+	s.setupRoutes(s.jwksURL)
 
 	// Create HTTP server
 	s.httpServer = &http.Server{
