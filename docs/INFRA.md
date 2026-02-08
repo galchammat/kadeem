@@ -41,9 +41,15 @@ BACKUP_PATH=/mnt/d/kadeem-backups
 BACKUP_RETENTION_DAYS=30
 DISCORD_WEBHOOK_URL=https://...     # Optional
 RIOT_API_KEY=RGAPI-...
+SUPABASE_JWKS_URL=https://xxx.supabase.co/auth/v1/.well-known/jwks.json
+```
+
+Frontend environment variables (VITE_ prefixed) are in `packages/web/.env`:
+
+```bash
+VITE_API_URL=https://api.cyanlab.cc
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-SUPABASE_JWT_SECRET=<jwt_secret_from_dashboard>
 DOMAIN=api.cyanlab.cc
 FRONTEND_DOMAIN=cyanlab.cc
 LETSENCRYPT_EMAIL=you@example.com
