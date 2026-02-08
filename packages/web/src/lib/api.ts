@@ -9,17 +9,25 @@ import type {
   SummonerSpellData,
   Channel,
 } from "@/types"
+import { supabase } from "@/lib/supabase"
 
 const API_BASE = `${import.meta.env.VITE_API_URL || ""}/api/v0`
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...init?.headers,
+  }
+
+  if (session?.access_token) {
+    (headers as Record<string, string>)["Authorization"] = `Bearer ${session.access_token}`
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
+    headers,
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

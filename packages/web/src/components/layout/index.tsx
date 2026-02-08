@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import { HomeIcon, UsersIcon, GamepadIcon, LogOutIcon, UserIcon, ArrowLeftRight, SunIcon, MoonIcon } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { useStreamer } from '@/hooks/useStreamer';
+import { useAuth } from '@/contexts/authContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Switch } from '../ui/switch';
 import { useTheme } from '@/components/themeProvider';
@@ -44,6 +45,7 @@ function getPageTitle(pathname: string) {
 export function Layout() {
   const { theme, setTheme } = useTheme()
   const { selectedStreamer } = useStreamer();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -114,17 +116,14 @@ export function Layout() {
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex flex-row items-center gap-2">
                   <UserIcon />
-                  <span>yog404</span>
+                  <span className="truncate max-w-[150px]">{user?.email || 'User'}</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-1 pl-6">
                   <button
                     className="flex items-center gap-2 w-full text-sm py-2 px-2 hover:bg-sidebar-accent rounded-md transition-colors"
-                    onClick={() => {
-                      console.log('Logout clicked');
-                      // Add logout functionality here
-                    }}
+                    onClick={() => signOut()}
                   >
                     <LogOutIcon className="h-4 w-4" />
                     <span>Logout</span>
