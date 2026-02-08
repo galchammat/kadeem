@@ -20,6 +20,7 @@
     name: nginx
     enabled: yes
     state: started
+  when: not ansible_check_mode
 
 - name: Create oauth2-proxy user
   become: yes
@@ -54,6 +55,7 @@
     src: "/tmp/oauth2-proxy.tar.gz"
     dest: "/tmp"
     remote_src: yes
+  when: not ansible_check_mode
 
 - name: Install oauth2-proxy binary
   become: yes
@@ -64,6 +66,7 @@
     group: root
     mode: '0755'
     remote_src: yes
+  when: not ansible_check_mode
 
 - name: Clean up oauth2-proxy download
   become: yes

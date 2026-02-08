@@ -5,3 +5,4 @@
     name: kadeem-daemon
     state: restarted
     daemon_reload: yes
+  when: not ansible_check_mode

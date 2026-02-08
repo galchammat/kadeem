@@ -26,6 +26,7 @@
     dest: /etc/nginx/sites-enabled/kadeem-api
     state: link
   notify: Reload Nginx
+  when: not ansible_check_mode
 
 - name: Remove default nginx site
   become: yes
@@ -38,3 +39,4 @@
   become: yes
   ansible.builtin.command: nginx -t
   changed_when: false
+  when: not ansible_check_mode

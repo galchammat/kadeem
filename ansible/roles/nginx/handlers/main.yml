@@ -4,12 +4,14 @@
   ansible.builtin.systemd:
     name: nginx
     state: reloaded
+  when: not ansible_check_mode
 
 - name: Restart Nginx
   become: yes
   ansible.builtin.systemd:
     name: nginx
     state: restarted
+  when: not ansible_check_mode
 
 - name: Restart oauth2-proxy
   become: yes
@@ -17,3 +19,4 @@
     name: oauth2-proxy
     state: restarted
     daemon_reload: yes
+  when: not ansible_check_mode
