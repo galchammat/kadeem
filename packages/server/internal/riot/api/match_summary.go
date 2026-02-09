@@ -19,12 +19,29 @@ type MatchDetailResponse struct {
 }
 
 // FetchMatchIDs fetches match IDs for a PUUID from the Riot API.
-func (c *Client) FetchMatchIDs(puuid, region string) ([]string, error) {
+// startTime is optional (unix timestamp in milliseconds, exclusive lower bound).
+// Always uses count=100 (maximum allowed by Riot API).
+func (c *Client) FetchMatchIDs(puuid, region string, startTime *int64) ([]string, error) {
 	if puuid == "" {
 		return nil, fmt.Errorf("puuid cannot be empty")
 	}
 
-	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid))
+	endpoint := fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid)
+	url := c.buildURL(region, endpoint)
+
+	// Add query parameters if provided
+	query := ""
+	if startTime != nil {
+		query = fmt.Sprintf("?start=%d", *startTime)
+	}
+	// Always append count=100 (maximum allowed by Riot API)
+	if query == "" {
+		query = "?count=100"
+	} else {
+		query = fmt.Sprintf("%s&count=100", query)
+	}
+	url = url + query
+
 	body, _, err := c.makeRequest(url)
 	if err != nil {
 		logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)

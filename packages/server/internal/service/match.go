@@ -130,8 +130,8 @@ func (s *MatchService) ListMatches(filter *model.LolMatchFilter, account *model.
 }
 
 // FetchMatchIDs fetches match IDs from the Riot API.
-func (s *MatchService) FetchMatchIDs(puuid, region string) ([]string, error) {
-	return s.riot.FetchMatchIDs(puuid, region)
+func (s *MatchService) FetchMatchIDs(puuid, region string, startTime *int64) ([]string, error) {
+	return s.riot.FetchMatchIDs(puuid, region, startTime)
 }
 
 // FetchReplayURLs fetches replay URLs from the Riot API.

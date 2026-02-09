@@ -344,7 +344,7 @@ func (h *RiotHandler) FetchMatchSummary(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	matchIDs, err := h.matches.FetchMatchIDs(account.PUUID, account.Region)
+	matchIDs, err := h.matches.FetchMatchIDs(account.PUUID, account.Region, nil)
 	if err != nil {
 		logging.Error("Failed to fetch match IDs", "puuid", accountPUUID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch match summaries")
