@@ -103,7 +103,7 @@ func (s *StreamerService) SyncBroadcasts(channel model.Channel) error {
 		return err
 	}
 
-	_, err = s.db.UpdateChannel(channel.ID, map[string]any{"synced_at": time.Now().Unix()})
+	_, err = s.db.UpdateChannel(channel.ID, map[string]any{"synced_at": time.Now()})
 	return err
 }
 
