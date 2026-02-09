@@ -91,6 +91,7 @@ func (db *DB) InsertBroadcasts(broadcasts []model.Broadcast) error {
 	}
 
 	query += strings.Join(placeholders, ", ")
+	query += ` ON CONFLICT (channel_id, url) DO NOTHING`
 
 	_, err := db.SQL.Exec(query, args...)
 	if err != nil {

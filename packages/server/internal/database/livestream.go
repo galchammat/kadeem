@@ -37,6 +37,20 @@ func (db *DB) GetStreamerByName(name string) (*model.Streamer, error) {
 	return &streamer, nil
 }
 
+// GetStreamerByID retrieves a streamer by ID
+func (db *DB) GetStreamerByID(id int) (*model.Streamer, error) {
+	var streamer model.Streamer
+	err := db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE id = $1`, id).Scan(&streamer.ID, &streamer.Name)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		logging.Error("Failed to get streamer", "id", id, "error", err)
+		return nil, err
+	}
+	return &streamer, nil
+}
+
 // FindOrCreateStreamer finds or creates a streamer (idempotent)
 func (db *DB) FindOrCreateStreamer(name string) (*model.Streamer, error) {
 	streamer, err := db.GetStreamerByName(name)

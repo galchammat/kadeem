@@ -68,7 +68,7 @@ func (db *DB) FindRiotAccount(gameName, tagLine, region string) (*model.LeagueOf
 }
 
 // FindOrCreateRiotAccount finds or creates an account (idempotent)
-func (db *DB) FindOrCreateRiotAccount(gameName, tagLine, region string) (*model.LeagueOfLegendsAccount, error) {
+func (db *DB) FindOrCreateRiotAccount(gameName, tagLine, region string, streamerID int) (*model.LeagueOfLegendsAccount, error) {
 	account, err := db.FindRiotAccount(gameName, tagLine, region)
 	if err != nil {
 		return nil, err
@@ -79,9 +79,10 @@ func (db *DB) FindOrCreateRiotAccount(gameName, tagLine, region string) (*model.
 
 	// Create new account
 	newAccount := &model.LeagueOfLegendsAccount{
-		GameName: gameName,
-		TagLine:  tagLine,
-		Region:   region,
+		GameName:   gameName,
+		TagLine:    tagLine,
+		Region:     region,
+		StreamerID: streamerID,
 	}
 	err = db.SaveRiotAccount(newAccount)
 	if err != nil {

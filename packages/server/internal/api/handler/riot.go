@@ -40,7 +40,23 @@ func (h *RiotHandler) AddAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := h.db.FindOrCreateRiotAccount(req.GameName, req.TagLine, req.Region)
+	if req.StreamerID <= 0 {
+		respondError(w, http.StatusBadRequest, "Missing streamer_id")
+		return
+	}
+
+	streamer, err := h.db.GetStreamerByID(req.StreamerID)
+	if err != nil {
+		logging.Error("Failed to look up streamer", "streamerID", req.StreamerID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to add account")
+		return
+	}
+	if streamer == nil {
+		respondError(w, http.StatusBadRequest, "Invalid streamer_id")
+		return
+	}
+
+	account, err := h.db.FindOrCreateRiotAccount(req.GameName, req.TagLine, req.Region, req.StreamerID)
 	if err != nil {
 		logging.Error("Failed to find or create account", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to add account")

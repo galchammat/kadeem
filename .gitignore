@@ -5,7 +5,6 @@ packages/web/dist
 packages/server/bin
 
 .env
-!packages/web/.env
 AGENTS.md
 kadeem.db
 bin/
