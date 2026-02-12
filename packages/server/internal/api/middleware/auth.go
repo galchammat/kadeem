@@ -162,6 +162,14 @@ func (c *CustomClaims) Validate() error {
 	return nil
 }
 
+func writeUnauthorizedResponse(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	if err := json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"}); err != nil {
+		logging.Error("Failed to encode unauthorized response", "error", err)
+	}
+}
+
 // AuthMiddleware creates JWT validation middleware using JWKS
 func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 	client := NewJWKSClient(jwksURL)
@@ -172,9 +180,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				logging.Warn("Missing Authorization header", "path", r.URL.Path)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -182,9 +188,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				logging.Warn("Invalid Authorization header format", "path", r.URL.Path)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -194,9 +198,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			token, _, err := new(jwt.Parser).ParseUnverified(tokenString, &CustomClaims{})
 			if err != nil {
 				logging.Warn("JWT parsing failed", "path", r.URL.Path, "error", err.Error())
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -204,9 +206,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			kid, ok := token.Header["kid"].(string)
 			if !ok || kid == "" {
 				logging.Warn("Missing kid in JWT header", "path", r.URL.Path)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -214,9 +214,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			publicKey, err := client.GetKey(kid)
 			if err != nil {
 				logging.Warn("Failed to get JWKS key", "path", r.URL.Path, "kid", kid, "error", err.Error())
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -232,27 +230,21 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 
 			if err != nil {
 				logging.Warn("JWT validation failed", "path", r.URL.Path, "error", err.Error())
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
 			// Validate token is valid
 			if !validatedToken.Valid {
 				logging.Warn("JWT validation failed", "path", r.URL.Path)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
 			// Validate claims (issuer and audience)
 			if err := claims.Validate(); err != nil {
 				logging.Warn("JWT claims validation failed", "path", r.URL.Path, "error", err.Error())
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 
@@ -260,9 +252,7 @@ func AuthMiddleware(jwksURL string) func(http.Handler) http.Handler {
 			userID := claims.Sub
 			if userID == "" {
 				logging.Warn("Missing sub claim in JWT", "path", r.URL.Path)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+				writeUnauthorizedResponse(w)
 				return
 			}
 

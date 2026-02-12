@@ -6,6 +6,7 @@ import (
 
 	"github.com/galchammat/kadeem/internal/api/models"
 	"github.com/galchammat/kadeem/internal/database"
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/riot/datadragon"
 )
 
@@ -36,7 +37,9 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logging.Error("Failed to encode health response", "error", err)
+	}
 }
 
 // DataDragonVersion returns current DataDragon version
@@ -46,5 +49,7 @@ func (h *HealthHandler) DataDragonVersion(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logging.Error("Failed to encode DataDragon version response", "error", err)
+	}
 }

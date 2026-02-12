@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/riot/datadragon"
 )
 
@@ -79,11 +80,15 @@ func (h *DataDragonHandler) GetSummonerSpellData(w http.ResponseWriter, r *http.
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		logging.Error("Failed to encode JSON response", "status", status, "error", err)
+	}
 }
 
 func respondError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+	if err := json.NewEncoder(w).Encode(map[string]string{"error": message}); err != nil {
+		logging.Error("Failed to encode error response", "status", status, "error", err)
+	}
 }
