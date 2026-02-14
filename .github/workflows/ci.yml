@@ -15,11 +15,16 @@ on:
         required: false
         type: boolean
         default: false
+      run_all:
+        description: Run all component checks and deploy
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   changes:
     name: Detect Changed Components
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true'
     runs-on: ubuntu-latest
     outputs:
       server: ${{ steps.filter.outputs.server }}
@@ -42,7 +47,9 @@ jobs:
 
   server-test:
     name: Server Test
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    if: >-
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true') &&
+      (needs.changes.outputs.server == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true'))
     needs: changes
     runs-on: ubuntu-latest
     defaults:
@@ -81,7 +88,9 @@ jobs:
 
   server-lint:
     name: Server Lint
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    if: >-
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true') &&
+      (needs.changes.outputs.server == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true'))
     needs: changes
     runs-on: ubuntu-latest
     steps:
@@ -102,7 +111,9 @@ jobs:
 
   server-build:
     name: Server Build
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    if: >-
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true') &&
+      (needs.changes.outputs.server == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true'))
     needs:
       - changes
       - server-test
@@ -136,7 +147,9 @@ jobs:
 
   web-lint:
     name: Web Lint
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.web == 'true'
+    if: >-
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true') &&
+      (needs.changes.outputs.web == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true'))
     needs: changes
     runs-on: ubuntu-latest
     defaults:
@@ -164,7 +177,9 @@ jobs:
 
   web-build:
     name: Web Build
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.web == 'true'
+    if: >-
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true') &&
+      (needs.changes.outputs.web == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true'))
     needs:
       - changes
       - web-lint
@@ -194,7 +209,7 @@ jobs:
 
   ci-gate:
     name: CI Gate
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.rollback != 'true'
     needs:
       - changes
       - server-test
@@ -206,6 +221,7 @@ jobs:
     steps:
       - name: Validate changed component jobs
         run: |
+          run_all="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_all == 'true' }}"
           server_changed="${{ needs.changes.outputs.server }}"
           web_changed="${{ needs.changes.outputs.web }}"
 
@@ -214,6 +230,18 @@ jobs:
           server_build_result="${{ needs.server-build.result }}"
           web_lint_result="${{ needs.web-lint.result }}"
           web_build_result="${{ needs.web-build.result }}"
+
+          if [ "$run_all" = "true" ]; then
+            if [ "$server_test_result" != "success" ] || [ "$server_lint_result" != "success" ] || [ "$server_build_result" != "success" ] || [ "$web_lint_result" != "success" ] || [ "$web_build_result" != "success" ]; then
+              echo "run_all requested but not all component jobs succeeded"
+              echo "server-test=$server_test_result"
+              echo "server-lint=$server_lint_result"
+              echo "server-build=$server_build_result"
+              echo "web-lint=$web_lint_result"
+              echo "web-build=$web_build_result"
+              exit 1
+            fi
+          fi
 
           if [ "$server_changed" = "true" ]; then
             if [ "$server_test_result" != "success" ] || [ "$server_lint_result" != "success" ] || [ "$server_build_result" != "success" ]; then
@@ -242,7 +270,9 @@ jobs:
       - changes
       - server-build
       - ci-gate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.server == 'true'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.server == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.rollback != 'true' && github.event.inputs.run_all == 'true' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-daemon-main
