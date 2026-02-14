@@ -1,28 +1,112 @@
-name: Deploy Daemon
+name: CI and Deploy
 
 on:
+  pull_request:
+    branches:
+      - main
+      - develop
   push:
     branches:
       - main
-    paths:
-      - 'packages/server/cmd/daemon/**'
-      - 'packages/server/internal/**'
-      - 'packages/server/migrations/**'
-      - 'packages/server/go.mod'
-      - 'packages/server/go.sum'
-      - '.github/workflows/deploy-daemon.yml'
   workflow_dispatch:
     inputs:
       rollback:
-        description: 'Rollback to previous version'
+        description: Rollback to previous version
         required: false
         type: boolean
         default: false
 
 jobs:
-  build:
-    name: Build Daemon
-    needs: test
+  changes:
+    name: Detect Changed Components
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server:
+              - 'packages/server/**'
+            web:
+              - 'packages/web/**'
+
+  server-test:
+    name: Server Test
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('packages/server/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: packages/server/coverage.out
+          flags: unittests
+          fail_ci_if_error: false
+
+  server-lint:
+    name: Server Lint
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout=5m
+          working-directory: packages/server
+
+  server-build:
+    name: Server Build
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.server == 'true'
+    needs:
+      - changes
+      - server-test
+      - server-lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,11 +134,119 @@ jobs:
           path: packages/server/daemon
           retention-days: 7
 
+  web-lint:
+    name: Web Lint
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.web == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/web
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm lint
+
+  web-build:
+    name: Web Build
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.web == 'true'
+    needs:
+      - changes
+      - web-lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/web
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm build
+
+  ci-gate:
+    name: CI Gate
+    if: github.event_name != 'workflow_dispatch'
+    needs:
+      - changes
+      - server-test
+      - server-lint
+      - server-build
+      - web-lint
+      - web-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate changed component jobs
+        run: |
+          server_changed="${{ needs.changes.outputs.server }}"
+          web_changed="${{ needs.changes.outputs.web }}"
+
+          server_test_result="${{ needs.server-test.result }}"
+          server_lint_result="${{ needs.server-lint.result }}"
+          server_build_result="${{ needs.server-build.result }}"
+          web_lint_result="${{ needs.web-lint.result }}"
+          web_build_result="${{ needs.web-build.result }}"
+
+          if [ "$server_changed" = "true" ]; then
+            if [ "$server_test_result" != "success" ] || [ "$server_lint_result" != "success" ] || [ "$server_build_result" != "success" ]; then
+              echo "Server changed but server pipeline did not fully succeed"
+              echo "server-test=$server_test_result"
+              echo "server-lint=$server_lint_result"
+              echo "server-build=$server_build_result"
+              exit 1
+            fi
+          fi
+
+          if [ "$web_changed" = "true" ]; then
+            if [ "$web_lint_result" != "success" ] || [ "$web_build_result" != "success" ]; then
+              echo "Web changed but web pipeline did not fully succeed"
+              echo "web-lint=$web_lint_result"
+              echo "web-build=$web_build_result"
+              exit 1
+            fi
+          fi
+
+          echo "All changed components passed required jobs"
+
   deploy:
     name: Deploy to Machine B
-    needs: build
+    needs:
+      - changes
+      - server-build
+      - ci-gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
-    if: github.event.inputs.rollback != 'true'
+    concurrency:
+      group: deploy-daemon-main
+      cancel-in-progress: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,7 +269,7 @@ jobs:
       - name: Deploy daemon binary
         run: |
           scp daemon ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/daemon
-          
+
           ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "sudo mv /tmp/daemon /opt/kadeem/bin/daemon && \
              sudo chmod +x /opt/kadeem/bin/daemon && \
@@ -167,7 +359,10 @@ jobs:
   rollback:
     name: Rollback Deployment
     runs-on: ubuntu-latest
-    if: github.event.inputs.rollback == 'true'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback == 'true'
+    concurrency:
+      group: deploy-daemon-main
+      cancel-in-progress: false
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v2
