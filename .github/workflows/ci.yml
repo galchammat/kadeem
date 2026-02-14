@@ -299,21 +299,21 @@ jobs:
 
       - name: Backup current daemon
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo cp /opt/kadeem/bin/daemon /opt/kadeem/bin/daemon.backup || true"
 
       - name: Deploy daemon binary
         run: |
-          scp daemon ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/daemon
+          scp daemon ${{ secrets.USER_B }}@${{ secrets.HOST_B }}:/tmp/daemon
 
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo mv /tmp/daemon /opt/kadeem/bin/daemon && \
              sudo chmod +x /opt/kadeem/bin/daemon && \
              sudo chown kadeem:kadeem /opt/kadeem/bin/daemon"
 
       - name: Set up Go on remote
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "which go || (curl -OL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz && \
              sudo rm -rf /usr/local/go && \
              sudo tar -C /usr/local -xzf go1.23.6.linux-amd64.tar.gz && \
@@ -321,7 +321,7 @@ jobs:
 
       - name: Run migrations
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "cd /opt/kadeem/repo/packages/server && \
              export PATH=\$PATH:/usr/local/go/bin && \
              export DATABASE_URL='${{ secrets.DATABASE_URL }}' && \
@@ -329,7 +329,7 @@ jobs:
 
       - name: Restart daemon
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo systemctl restart kadeem-daemon"
 
       - name: Wait for daemon startup
@@ -338,19 +338,19 @@ jobs:
       - name: Health check
         id: healthcheck
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo systemctl is-active kadeem-daemon"
 
       - name: Get daemon logs
         if: always()
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo journalctl -u kadeem-daemon -n 50 --no-pager"
 
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
              sudo systemctl restart kadeem-daemon" || true
 
@@ -409,7 +409,7 @@ jobs:
 
       - name: Rollback to backup
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh ${{ secrets.USER_B }}@${{ secrets.HOST_B }} \
             "sudo mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon && \
              sudo systemctl restart kadeem-daemon"
 
