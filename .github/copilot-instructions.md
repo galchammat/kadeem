@@ -26,7 +26,7 @@ packages/web/             React frontend
     pages/                 Page components
     components/            UI components (shadcn/ui based)
 
-ansible/                  Deployment automation (roles: postgresql, nginx, server)
+ansible/                  Deployment automation (roles: postgresql, nginx, server, github_runner)
 scripts/                  Operational scripts
 ```
 

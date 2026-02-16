@@ -1,0 +1,112 @@
+---
+- name: Ensure runner dependencies are installed
+  become: yes
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - tar
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create GitHub runner user
+  become: yes
+  ansible.builtin.user:
+    name: "{{ github_runner_user }}"
+    system: yes
+    shell: /bin/bash
+    home: "{{ github_runner_home }}"
+    create_home: yes
+
+- name: Create runner installation directory
+  become: yes
+  ansible.builtin.file:
+    path: "{{ github_runner_home }}"
+    state: directory
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_group }}"
+    mode: "0755"
+
+- name: Download GitHub runner archive
+  become: yes
+  ansible.builtin.get_url:
+    url: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-x64-{{ github_runner_version }}.tar.gz"
+    dest: "/tmp/actions-runner-{{ github_runner_version }}.tar.gz"
+    mode: "0644"
+  when: not ansible_check_mode
+
+- name: Extract GitHub runner archive
+  become: yes
+  ansible.builtin.unarchive:
+    src: "/tmp/actions-runner-{{ github_runner_version }}.tar.gz"
+    dest: "{{ github_runner_home }}"
+    remote_src: yes
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_group }}"
+    creates: "{{ github_runner_home }}/config.sh"
+  when: not ansible_check_mode
+
+- name: Check if runner is already configured
+  become: yes
+  ansible.builtin.stat:
+    path: "{{ github_runner_home }}/.runner"
+  register: github_runner_configured
+  when: not ansible_check_mode
+
+- name: Validate runner registration token is set
+  ansible.builtin.fail:
+    msg: "GITHUB_RUNNER_REGISTRATION_TOKEN is required to configure the self-hosted runner"
+  when:
+    - not ansible_check_mode
+    - not (github_runner_configured.stat.exists | default(false))
+    - github_runner_registration_token | length == 0
+
+- name: Configure GitHub Actions runner
+  become: yes
+  become_user: "{{ github_runner_user }}"
+  ansible.builtin.command:
+    cmd: >-
+      ./config.sh
+      --unattended
+      --url https://github.com/{{ github_repo_owner }}/{{ github_repo_name }}
+      --token {{ github_runner_registration_token }}
+      --name {{ github_runner_name }}
+      --labels {{ github_runner_labels | join(',') }}
+      --work _work
+      --replace
+    chdir: "{{ github_runner_home }}"
+    creates: "{{ github_runner_home }}/.runner"
+  when:
+    - github_runner_enabled
+    - not ansible_check_mode
+    - not (github_runner_configured.stat.exists | default(false))
+
+- name: Install runner systemd service
+  become: yes
+  ansible.builtin.template:
+    src: github-runner.service.j2
+    dest: /etc/systemd/system/github-runner.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start runner service
+  become: yes
+  ansible.builtin.systemd:
+    name: github-runner
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  when: not ansible_check_mode
+
+- name: Allow runner deploy commands without sudo password
+  become: yes
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/github-runner-kadeem
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+    content: |
+      {{ github_runner_user }} ALL=(root) NOPASSWD: {{ github_runner_sudo_commands | join(', ') }}

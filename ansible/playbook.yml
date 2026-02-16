@@ -28,6 +28,9 @@
     
     - role: server
       tags: ['server', 'daemon', 'api']
+
+    - role: github_runner
+      tags: ['runner', 'github-actions', 'deploy']
   
   post_tasks:
     - name: Infrastructure setup complete
@@ -38,9 +41,9 @@
           - "Backup timer: kadeem-backup.timer (daily at {{ backup_time }})"
           - "✅ Nginx configured for {{ api_domain }}"
           - "✅ Kadeem daemon service installed"
+          - "✅ GitHub self-hosted runner installed"
           - ""
           - "Next steps:"
           - "1. Point DNS: {{ api_domain }} → {{ ansible_host }}"
-          - "2. Deploy daemon binary via GitHub Actions"
+          - "2. Trigger CI/CD from GitHub Actions"
           - "3. Test: https://{{ api_domain }}/health"
-
