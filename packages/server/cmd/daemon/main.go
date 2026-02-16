@@ -18,12 +18,8 @@ import (
 )
 
 func init() {
-	envFile := os.Getenv("ENV_FILE")
-	if envFile == "" {
-		envFile = ".env"
-	}
-	if err := godotenv.Load(envFile); err != nil {
-		logging.Warn("No env file loaded", "path", envFile, "error", err)
+	if err := godotenv.Load(); err != nil {
+		logging.Warn("No env file loaded", "path", ".env", "error", err)
 	}
 }
 

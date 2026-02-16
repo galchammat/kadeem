@@ -1,9 +1,8 @@
 # Env Vars
-ENV_FILE := $(PWD)/.env
 BIN_DIR := $(PWD)/bin
 SERVER_DIR := packages/server
 WEB_DIR := packages/web
-export BIN_DIR ENV_FILE
+export BIN_DIR
 
 .PHONY: deps run build tests test migrate migrate-create migrate-force migrate-reset
 .PHONY: ansible migrate-up migrate-down migrate-version migrate-force-reset
@@ -39,8 +38,8 @@ test:
 # Infrastructure
 ansible:
 	@echo "Running Ansible PostgreSQL setup..."
-	@if [ ! -f $(ENV_FILE) ]; then \
-		echo "Error: .env file not found at $(ENV_FILE)"; \
+	@if [ ! -f ansible/.env ]; then \
+		echo "Error: .env file not found at ansible/.env"; \
 		exit 1; \
 	fi
 	@ANSIBLE_ARGS=""; \
@@ -48,7 +47,7 @@ ansible:
 		ANSIBLE_ARGS="--check --diff"; \
 		echo "Running in check mode (dry run)..."; \
 	fi; \
-	export $$(cat $(ENV_FILE) | grep -v '^#' | xargs) && \
+	set -a && . ansible/.env && set +a && \
 	ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml $$ANSIBLE_ARGS
 
 # Database
