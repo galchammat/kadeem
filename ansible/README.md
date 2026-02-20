@@ -5,6 +5,9 @@ Infrastructure playbook for Machine B (`mac`): PostgreSQL, nginx, daemon service
 ## Usage
 
 ```bash
+# first time only
+cp ansible/group_vars/db_server/vault.yml.example ansible/group_vars/db_server/vault.yml
+
 make ansible
 make ansible check
 ```
@@ -13,8 +16,9 @@ make ansible check
 
 - Ansible installed
 - SSH access to target host
-- `ansible/.env` configured (see `.env.template`)
-- `GITHUB_RUNNER_REGISTRATION_TOKEN` set when first installing runner
+- `ansible/group_vars/db_server/main.yml` configured
+- `ansible/group_vars/db_server/vault.yml` populated
+- `cloudflare_api_token` set in `ansible/group_vars/db_server/vault.yml`
 
 ## Roles
 
@@ -26,10 +30,10 @@ make ansible check
 ## Tags
 
 ```bash
-make ansible ARGS="--tags postgresql"
-make ansible ARGS="--tags nginx"
-make ansible ARGS="--tags server"
-make ansible ARGS="--tags runner"
+ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml --tags postgresql
+ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml --tags nginx
+ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml --tags server
+ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml --tags runner
 ```
 
 ## Notes
@@ -37,3 +41,5 @@ make ansible ARGS="--tags runner"
 - The playbook supports dry-run mode (`--check`).
 - Runner install/config tasks are skipped in check mode.
 - Runner is configured at repo-level with labels `self-hosted,linux,x64,machine-b,deploy`.
+- Keep `ansible/group_vars/db_server/vault.yml` local and out of git.
+- TLS uses Let's Encrypt DNS-01 via Cloudflare API token.

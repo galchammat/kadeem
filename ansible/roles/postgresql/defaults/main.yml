@@ -5,8 +5,8 @@ postgresql_version: "{{ ansible_local.postgresql.version | default('16') }}"
 # PostgreSQL data directory
 postgresql_data_directory: "/var/lib/postgresql/{{ postgresql_version }}/main"
 
-# Database connection details (parsed from DATABASE_URL)
-database_url: "{{ lookup('env', 'DATABASE_URL') }}"
+# Database connection details (parsed from database_url)
+database_url: ""
 
 # Performance tuning defaults (optimized for small-scale production)
 postgresql_max_connections: 20
@@ -27,13 +27,14 @@ postgresql_ssl_cert_days: 3650
 tailscale_subnet: "100.64.0.0/10"
 
 # Backup configuration
-backup_host: "{{ lookup('env', 'HOST_A') | default('pc3080', true) }}"
-backup_user: "{{ lookup('env', 'USER_A') | default('yog404', true) }}"
-backup_path: "{{ lookup('env', 'BACKUP_PATH') | default('/mnt/d/kadeem-backups', true) }}"
-backup_retention_days: "{{ lookup('env', 'BACKUP_RETENTION_DAYS') | default('30', true) }}"
+backup_host: "pc3080"
+backup_user: "yog404"
+backup_path: "/mnt/d/kadeem-backups"
+backup_retention_days: "30"
+kadeem_env_group: "kadeem-secrets"
 
 # Discord webhook for notifications
-discord_webhook_url: "{{ lookup('env', 'DISCORD_WEBHOOK_URL') | default('', true) }}"
+discord_webhook_url: ""
 
 # Backup schedule
 backup_schedule: "daily"

@@ -5,27 +5,59 @@
     path: "/etc/letsencrypt/live/{{ api_domain }}/fullchain.pem"
   register: ssl_cert
 
+- name: Create certbot credentials directory
+  become: yes
+  ansible.builtin.file:
+    path: /root/.secrets/certbot
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Write Cloudflare credentials for certbot
+  become: yes
+  ansible.builtin.copy:
+    dest: /root/.secrets/certbot/cloudflare.ini
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      dns_cloudflare_api_token = {{ cloudflare_api_token }}
+  no_log: true
+
 - name: Obtain Let's Encrypt certificate (staging)
   become: yes
   ansible.builtin.command: >
-    certbot --nginx
+    certbot certonly --dns-cloudflare
+    --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini
     -d {{ api_domain }}
     --non-interactive
     --agree-tos
     --email {{ letsencrypt_email }}
+    --keep-until-expiring
     --staging
-  when: not ssl_cert.stat.exists and certbot_staging
+  register: certbot_staging_result
+  changed_when: certbot_staging_result.rc == 0
+  when:
+    - not ssl_cert.stat.exists
+    - certbot_staging
   notify: Reload Nginx
 
 - name: Obtain Let's Encrypt certificate (production)
   become: yes
   ansible.builtin.command: >
-    certbot --nginx
+    certbot certonly --dns-cloudflare
+    --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini
     -d {{ api_domain }}
     --non-interactive
     --agree-tos
     --email {{ letsencrypt_email }}
-  when: not ssl_cert.stat.exists and not certbot_staging
+    --keep-until-expiring
+  register: certbot_prod_result
+  changed_when: certbot_prod_result.rc == 0
+  when:
+    - not ssl_cert.stat.exists
+    - not certbot_staging
   notify: Reload Nginx
 
 - name: Set up automatic certificate renewal

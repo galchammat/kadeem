@@ -8,6 +8,13 @@
     mode: '0755'
   become: yes
 
+- name: Create shared environment group
+  ansible.builtin.group:
+    name: "{{ kadeem_env_group }}"
+    system: yes
+    state: present
+  become: yes
+
 - name: Deploy backup script
   ansible.builtin.template:
     src: backup-script.sh.j2
@@ -22,18 +29,19 @@
     path: /etc/kadeem
     state: directory
     owner: root
-    group: root
-    mode: '0755'
+    group: "{{ kadeem_env_group }}"
+    mode: '0750'
   become: yes
 
 - name: Deploy environment file for backup script
   ansible.builtin.template:
     src: backup-env.j2
-    dest: /etc/kadeem/.env
+    dest: /etc/kadeem/kadeem.env
     owner: root
-    group: root
-    mode: '0600'
+    group: "{{ kadeem_env_group }}"
+    mode: '0640'
   become: yes
+  diff: false
 
 - name: Deploy backup systemd service
   ansible.builtin.template:

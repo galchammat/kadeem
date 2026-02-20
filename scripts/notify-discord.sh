@@ -4,7 +4,9 @@
 # Can be called manually or via systemd OnFailure
 
 # Load environment
-if [ -f "/etc/kadeem/.env" ]; then
+if [ -f "/etc/kadeem/kadeem.env" ]; then
+    source /etc/kadeem/kadeem.env
+elif [ -f "/etc/kadeem/.env" ]; then
     source /etc/kadeem/.env
 fi
 

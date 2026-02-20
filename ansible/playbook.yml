@@ -2,16 +2,20 @@
 - name: Kadeem Infrastructure Setup
   hosts: db_server
   gather_facts: yes
-  
-  vars:
-    database_url: "{{ lookup('env', 'DATABASE_URL') }}"
-  
+
   pre_tasks:
-    - name: Check if DATABASE_URL is set
-      ansible.builtin.fail:
-        msg: "DATABASE_URL environment variable is not set. Please set it before running this playbook."
-      when: database_url is not defined or database_url == ''
-    
+    - name: Validate required configuration variables
+      ansible.builtin.assert:
+        that:
+          - database_url | default('') | length > 0
+          - riot_api_key | default('') | length > 0
+          - letsencrypt_email | default('') | length > 0
+          - cloudflare_api_token | default('') | length > 0
+          - ansible_become_password | default('') | length > 0
+        fail_msg: >-
+          Missing required deploy variables. Define them in
+          ansible/group_vars/db_server/vault.yml
+
     - name: Display target host information
       ansible.builtin.debug:
         msg:

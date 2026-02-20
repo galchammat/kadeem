@@ -38,16 +38,11 @@ test:
 # Infrastructure
 ansible:
 	@echo "Running Ansible PostgreSQL setup..."
-	@if [ ! -f ansible/.env ]; then \
-		echo "Error: .env file not found at ansible/.env"; \
-		exit 1; \
-	fi
 	@ANSIBLE_ARGS=""; \
 	if echo "$(filter-out ansible,$(MAKECMDGOALS))" | grep -q "check"; then \
-		ANSIBLE_ARGS="--check --diff"; \
+		ANSIBLE_ARGS="$$ANSIBLE_ARGS --check --diff"; \
 		echo "Running in check mode (dry run)..."; \
 	fi; \
-	set -a && . ansible/.env && set +a && \
 	ansible-playbook -i ansible/inventory/production.yml ansible/playbook.yml $$ANSIBLE_ARGS
 
 # Database

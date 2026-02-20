@@ -1,0 +1,11 @@
+---
+# SSH/sudo
+ansible_become_password: ""
+
+# App/DB secrets
+database_url: "postgres://kadeem:replace-me@mac:5432/kadeem?sslmode=require"
+riot_api_key: ""
+discord_webhook_url: ""
+letsencrypt_email: ""
+cloudflare_api_token: ""
+github_runner_registration_token: ""

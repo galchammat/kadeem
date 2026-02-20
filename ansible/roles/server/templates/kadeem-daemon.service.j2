@@ -11,11 +11,7 @@ Group={{ kadeem_group }}
 WorkingDirectory={{ kadeem_home }}
 
 # Environment variables
-Environment="DATABASE_URL={{ database_url }}"
-Environment="RIOT_API_KEY={{ riot_api_key }}"
-Environment="API_PORT={{ api_port }}"
-Environment="API_HOST=0.0.0.0"
-Environment="BIN_DIR={{ kadeem_home }}/bin/datadragon"
+EnvironmentFile=/etc/kadeem/kadeem.env
 
 # Start daemon
 ExecStart={{ kadeem_bin_dir }}/daemon

@@ -1,7 +1,6 @@
 #!/bin/bash
 # PostgreSQL Backup Script
 # Managed by Ansible - Do not edit manually
-# Generated: {{ ansible_facts['date_time']['iso8601'] }}
 
 set -e
 
@@ -24,10 +23,12 @@ log_warn() {
 }
 
 # Load environment variables
-if [ -f "/etc/kadeem/.env" ]; then
+if [ -f "/etc/kadeem/kadeem.env" ]; then
+    source /etc/kadeem/kadeem.env
+elif [ -f "/etc/kadeem/.env" ]; then
     source /etc/kadeem/.env
 else
-    log_error "/etc/kadeem/.env not found"
+    log_error "kadeem env file not found"
     exit 1
 fi
 

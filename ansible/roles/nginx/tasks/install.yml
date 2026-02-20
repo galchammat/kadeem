@@ -11,7 +11,7 @@
   ansible.builtin.apt:
     name:
       - certbot
-      - python3-certbot-nginx
+      - python3-certbot-dns-cloudflare
     state: present
 
 - name: Ensure Nginx is enabled and started

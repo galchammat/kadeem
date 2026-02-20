@@ -1,6 +1,9 @@
 # Kadeem Environment Configuration
 # Managed by Ansible - Do not edit manually
-# Generated: {{ ansible_facts['date_time']['iso8601'] }}
 
 DATABASE_URL={{ database_url }}
+RIOT_API_KEY={{ riot_api_key }}
+API_PORT={{ api_port }}
+API_HOST=0.0.0.0
+BIN_DIR=/opt/kadeem/bin/datadragon
 DISCORD_WEBHOOK_URL={{ discord_webhook_url }}

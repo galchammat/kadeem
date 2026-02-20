@@ -27,7 +27,7 @@
 - name: Backup original postgresql.conf
   ansible.builtin.copy:
     src: "{{ postgresql_config_directory }}/postgresql.conf"
-    dest: "{{ postgresql_config_directory }}/postgresql.conf.backup.{{ ansible_facts['date_time']['epoch'] }}"
+    dest: "{{ postgresql_config_directory }}/postgresql.conf.backup"
     remote_src: yes
     force: no
   become: yes
@@ -36,7 +36,7 @@
 - name: Backup original pg_hba.conf
   ansible.builtin.copy:
     src: "{{ postgresql_config_directory }}/pg_hba.conf"
-    dest: "{{ postgresql_config_directory }}/pg_hba.conf.backup.{{ ansible_facts['date_time']['epoch'] }}"
+    dest: "{{ postgresql_config_directory }}/pg_hba.conf.backup"
     remote_src: yes
     force: no
   become: yes

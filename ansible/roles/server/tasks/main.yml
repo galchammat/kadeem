@@ -7,6 +7,8 @@
     shell: /bin/bash
     home: "{{ kadeem_home }}"
     create_home: yes
+    groups: "{{ kadeem_env_group }}"
+    append: yes
 
 - name: Create kadeem directories
   become: yes
@@ -31,10 +33,36 @@
     mode: '0644'
   notify: Restart kadeem-daemon
 
-- name: Enable kadeem-daemon service
+- name: Check for deployed daemon binary
+  become: yes
+  ansible.builtin.stat:
+    path: "{{ kadeem_bin_dir }}/daemon"
+  register: daemon_binary
+
+- name: Enable and start kadeem-daemon service
+  become: yes
+  ansible.builtin.systemd:
+    name: kadeem-daemon
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when:
+    - not ansible_check_mode
+    - daemon_binary.stat.exists
+
+- name: Enable kadeem-daemon service without starting (binary missing)
   become: yes
   ansible.builtin.systemd:
     name: kadeem-daemon
     enabled: yes
     daemon_reload: yes
-  when: not ansible_check_mode
+  when:
+    - not ansible_check_mode
+    - not daemon_binary.stat.exists
+
+- name: Warn when daemon binary is missing
+  ansible.builtin.debug:
+    msg:
+      - "kadeem-daemon binary is missing at {{ kadeem_bin_dir }}/daemon"
+      - "Run CI/CD deploy to place the daemon binary, then restart kadeem-daemon."
+  when: not daemon_binary.stat.exists

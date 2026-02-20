@@ -21,29 +21,34 @@ make ansible check
 
 `--check` is supported for dry runs; runner install/config operations are skipped in check mode.
 
-## Required Environment Variables
+## Required Ansible Variables
 
-Set these variables before running Ansible:
+Set deploy variables in:
 
-```bash
-HOST_B=mac
-USER_B=yog404
-BECOME_PASSWORD=...
+- `ansible/group_vars/db_server/main.yml` (non-secret)
+- `ansible/group_vars/db_server/vault.yml` (secrets; local only, gitignored)
 
-DATABASE_URL=postgres://kadeem:pass@mac:5432/kadeem?sslmode=require
-RIOT_API_KEY=RGAPI-...
-SUPABASE_JWKS_URL=https://xxx.supabase.co/auth/v1/.well-known/jwks.json
+Example secret vars (`vault.yml`):
 
-HOST_A=pc3080
-USER_A=yog404
-BACKUP_PATH=/mnt/d/kadeem-backups
-BACKUP_RETENTION_DAYS=30
-
-DISCORD_WEBHOOK_URL=https://...
-LETSENCRYPT_EMAIL=you@example.com
+```yaml
+database_url: "postgres://kadeem:pass@mac:5432/kadeem?sslmode=require"
+riot_api_key: "RGAPI-..."
+discord_webhook_url: "https://..."
+letsencrypt_email: "you@example.com"
+cloudflare_api_token: "..."
 
 # One-time token for runner registration during ansible apply
-GITHUB_RUNNER_REGISTRATION_TOKEN=...
+github_runner_registration_token: "..."
+
+# SSH/sudo
+ansible_become_password: "..."
+```
+
+Run:
+
+```bash
+make ansible
+make ansible check
 ```
 
 ## CI/CD Workflows
@@ -57,6 +62,7 @@ GITHUB_RUNNER_REGISTRATION_TOKEN=...
 - `/.github/workflows/cd.yml`
   - triggered by successful `CI` workflow (`workflow_run`) on `main`
   - runs on self-hosted runner labels: `self-hosted,linux,x64,machine-b,deploy`
+  - reads runtime vars from `/etc/kadeem/kadeem.env` on Machine B (no GitHub secrets for app runtime)
   - downloads `daemon-binary` from the CI run and deploys locally
   - supports manual rollback via `workflow_dispatch`
 

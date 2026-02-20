@@ -1,0 +1,17 @@
+---
+# Connection settings
+ansible_host: mac
+ansible_user: yog404
+ansible_become: true
+ansible_become_method: sudo
+
+# Runtime configuration
+api_port: "8080"
+api_domain: api.cyanlab.cc
+frontend_domain: cyanlab.cc
+
+# Backup destination (Machine A)
+backup_host: pc3080
+backup_user: yog404
+backup_path: /mnt/d/kadeem-backups
+backup_retention_days: "30"
