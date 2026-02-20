@@ -83,14 +83,14 @@ jobs:
           mv ./daemon /tmp/kadeem-daemon
           sudo mv /tmp/kadeem-daemon /opt/kadeem/bin/daemon
           sudo chmod +x /opt/kadeem/bin/daemon
-          sudo chown kadeem:kadeem /opt/kadeem/bin/daemon
 
       - name: Run migrations
         if: steps.artifact.outputs.found == 'true'
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          cd /opt/kadeem/repo/packages/server
+          set -a
+          source /etc/kadeem/kadeem.env
+          set +a
+          cd "${GITHUB_WORKSPACE}/packages/server"
           go run cmd/migrate/main.go up
 
       - name: Restart daemon
@@ -118,7 +118,8 @@ jobs:
       - name: Send Discord notification on success
         if: success() && steps.artifact.outputs.found == 'true'
         run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          source /etc/kadeem/kadeem.env
+          curl -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -137,7 +138,8 @@ jobs:
       - name: Send Discord notification on failure
         if: failure() && steps.artifact.outputs.found == 'true'
         run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          source /etc/kadeem/kadeem.env
+          curl -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
@@ -170,7 +172,8 @@ jobs:
 
       - name: Send Discord notification
         run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          source /etc/kadeem/kadeem.env
+          curl -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "embeds": [{

@@ -18,6 +18,8 @@
     shell: /bin/bash
     home: "{{ github_runner_home }}"
     create_home: yes
+    groups: "{{ github_runner_env_group }}"
+    append: yes
 
 - name: Create runner installation directory
   become: yes
@@ -33,6 +35,7 @@
   ansible.builtin.get_url:
     url: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-x64-{{ github_runner_version }}.tar.gz"
     dest: "/tmp/actions-runner-{{ github_runner_version }}.tar.gz"
+    checksum: "sha256:{{ github_runner_archive_sha256 }}"
     mode: "0644"
   when: not ansible_check_mode
 
@@ -56,7 +59,7 @@
 
 - name: Validate runner registration token is set
   ansible.builtin.fail:
-    msg: "GITHUB_RUNNER_REGISTRATION_TOKEN is required to configure the self-hosted runner"
+    msg: "github_runner_registration_token is required to configure the self-hosted runner"
   when:
     - not ansible_check_mode
     - not (github_runner_configured.stat.exists | default(false))
@@ -109,4 +112,6 @@
     mode: "0440"
     validate: /usr/sbin/visudo -cf %s
     content: |
-      {{ github_runner_user }} ALL=(root) NOPASSWD: {{ github_runner_sudo_commands | join(', ') }}
+      {% for cmd in github_runner_sudo_commands %}
+      {{ github_runner_user }} ALL=(root) NOPASSWD: {{ cmd }}
+      {% endfor %}

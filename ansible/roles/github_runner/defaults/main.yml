@@ -2,8 +2,10 @@
 # GitHub Actions self-hosted runner (repo-level)
 github_runner_enabled: true
 github_runner_version: "2.331.0"
+github_runner_archive_sha256: "5fcc01bd546ba5c3f1291c2803658ebd3cedb3836489eda3be357d41bfcf28a7"
 github_runner_user: github-runner
 github_runner_group: github-runner
+github_runner_env_group: kadeem-secrets
 github_runner_home: /opt/actions-runner
 github_runner_name: "{{ ansible_hostname }}-deploy"
 github_runner_labels:
@@ -18,16 +20,16 @@ github_repo_owner: galchammat
 github_repo_name: kadeem
 
 # One-time registration token generated from GitHub repo settings
-# Expects env var when running ansible-playbook.
-github_runner_registration_token: "{{ lookup('env', 'GITHUB_RUNNER_REGISTRATION_TOKEN') | default('', true) }}"
+# Set in vault.yml when provisioning a new runner.
+github_runner_registration_token: ""
 
 # Commands allowed without password for deployment steps
 github_runner_sudo_commands:
-  - /bin/cp /opt/kadeem/bin/daemon /opt/kadeem/bin/daemon.backup
-  - /bin/mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon
-  - /bin/mv /tmp/kadeem-daemon /opt/kadeem/bin/daemon
-  - /bin/chmod +x /opt/kadeem/bin/daemon
-  - /bin/chown kadeem:kadeem /opt/kadeem/bin/daemon
+  - /usr/bin/cp /opt/kadeem/bin/daemon /opt/kadeem/bin/daemon.backup
+  - /usr/bin/mv /opt/kadeem/bin/daemon.backup /opt/kadeem/bin/daemon
+  - /usr/bin/mv /tmp/kadeem-daemon /opt/kadeem/bin/daemon
+  - /usr/bin/chmod +x /opt/kadeem/bin/daemon
+  - /usr/bin/chown kadeem\:kadeem /opt/kadeem/bin/daemon
   - /usr/bin/systemctl restart kadeem-daemon
   - /usr/bin/systemctl is-active kadeem-daemon
   - /usr/bin/journalctl -u kadeem-daemon -n 50 --no-pager
