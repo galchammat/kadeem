@@ -9,6 +9,12 @@
         that:
           - database_url | default('') | length > 0
           - riot_api_key | default('') | length > 0
+          - twitch_client_id | default('') | length > 0
+          - twitch_client_secret | default('') | length > 0
+          - supabase_jwks_url | default('') | length > 0
+          - frontend_domain | default('') | length > 0
+          - api_version | default('') | length > 0
+          - api_port | default('') | length > 0
           - letsencrypt_email | default('') | length > 0
           - cloudflare_api_token | default('') | length > 0
           - ansible_become_password | default('') | length > 0

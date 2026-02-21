@@ -1,10 +1,11 @@
----
 # SSH/sudo
 ansible_become_password: ""
 
 # App/DB secrets
-database_url: "postgres://kadeem:replace-me@mac:5432/kadeem?sslmode=require"
+database_url: ""
 riot_api_key: ""
+twitch_client_id: ""
+twitch_client_secret: ""
 discord_webhook_url: ""
 letsencrypt_email: ""
 cloudflare_api_token: ""

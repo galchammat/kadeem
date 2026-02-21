@@ -7,8 +7,10 @@ ansible_become_method: sudo
 
 # Runtime configuration
 api_port: "8080"
+api_version: "prod"
 api_domain: api.cyanlab.cc
 frontend_domain: cyanlab.cc
+supabase_jwks_url: "https://seijlvqsunpbzwuydvze.supabase.co/auth/v1/.well-known/jwks.json"
 
 # Backup destination (Machine A)
 backup_host: pc3080

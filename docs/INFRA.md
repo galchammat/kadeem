@@ -25,14 +25,25 @@ make ansible check
 
 Set deploy variables in:
 
-- `ansible/group_vars/db_server/main.yml` (non-secret)
+- `ansible/group_vars/db_server/main.yml` (non-secret runtime config)
 - `ansible/group_vars/db_server/vault.yml` (secrets; local only, gitignored)
+
+Example non-secret vars (`main.yml`):
+
+```yaml
+api_port: "8080"
+api_version: "prod"
+frontend_domain: "cyanlab.cc"
+supabase_jwks_url: "https://seijlvqsunpbzwuydvze.supabase.co/auth/v1/.well-known/jwks.json"
+```
 
 Example secret vars (`vault.yml`):
 
 ```yaml
 database_url: "postgres://kadeem:pass@mac:5432/kadeem?sslmode=require"
 riot_api_key: "RGAPI-..."
+twitch_client_id: "..."
+twitch_client_secret: "..."
 discord_webhook_url: "https://..."
 letsencrypt_email: "you@example.com"
 cloudflare_api_token: "..."

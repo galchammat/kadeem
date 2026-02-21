@@ -7,6 +7,13 @@ postgresql_data_directory: "/var/lib/postgresql/{{ postgresql_version }}/main"
 
 # Database connection details (parsed from database_url)
 database_url: ""
+riot_api_key: ""
+twitch_client_id: ""
+twitch_client_secret: ""
+supabase_jwks_url: ""
+frontend_domain: ""
+api_version: ""
+api_port: "8080"
 
 # Performance tuning defaults (optimized for small-scale production)
 postgresql_max_connections: 20
