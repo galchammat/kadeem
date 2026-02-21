@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -17,16 +16,7 @@ import (
 )
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logging.Warn("No env file loaded", "path", ".env", "error", err)
-			return
-		}
-
-		logging.Error("Failed to load .env file", "path", ".env", "error", err)
-		os.Exit(1)
-	}
+	_ = godotenv.Load()
 }
 
 func main() {

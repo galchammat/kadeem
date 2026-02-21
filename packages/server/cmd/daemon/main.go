@@ -18,9 +18,7 @@ import (
 )
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		logging.Warn("No env file loaded", "path", ".env", "error", err)
-	}
+	_ = godotenv.Load()
 }
 
 type daemon struct {
