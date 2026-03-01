@@ -234,6 +234,8 @@ export async function transformMatch(
 
   return {
     id: backendMatch.summary.gameId,
+    startedAt: backendMatch.summary.startedAt ?? 0,
+    durationSeconds: backendMatch.summary.duration ?? 0,
     queueType: QUEUE_NAMES[queueId] || "Unknown Queue",
     timeAgo: formatTimeAgo(backendMatch.summary.startedAt || 0),
     result: playerParticipant.win ? "Victory" : "Defeat",

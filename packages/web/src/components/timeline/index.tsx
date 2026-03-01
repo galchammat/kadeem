@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { MatchCard, type Match } from "@/components/matchCard"
-import { MatchStreamEvents, type StreamEvent } from "@/components/matchStreamEvents"
+import { MatchStreamEvents } from "@/components/matchStreamEvents"
+import type { StreamEvent } from "@/types"
 import Sectionheader from "@/components/sectionHeader"
 import { useLolAccounts } from "@/hooks/useLolAccounts"
 import useLolMatches from "@/hooks/useLolMatches"
 import { transformMatch } from "@/lib/matchTransformer"
+import { listStreamerEvents } from "@/lib/api"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
@@ -84,6 +86,38 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
 
     transformMatches()
   }, [matches, accounts])
+
+  // Fetch real stream events and correlate to each match's time window
+  useEffect(() => {
+    if (!streamerId || sessionEntries.length === 0) return
+
+    const fetchEvents = async () => {
+      const timestamps = sessionEntries.flatMap(e => [
+        e.match.startedAt,
+        e.match.startedAt + e.match.durationSeconds,
+      ])
+      const from = Math.min(...timestamps)
+      const to = Math.max(...timestamps)
+
+      try {
+        const events = await listStreamerEvents(streamerId, from, to, 200, 0)
+        setSessionEntries(prev =>
+          prev.map(entry => ({
+            ...entry,
+            events: events.filter(
+              ev =>
+                ev.timestamp >= entry.match.startedAt &&
+                ev.timestamp <= entry.match.startedAt + entry.match.durationSeconds
+            ),
+          }))
+        )
+      } catch (err) {
+        console.error("Failed to fetch stream events:", err)
+      }
+    }
+
+    fetchEvents()
+  }, [streamerId, sessionEntries.length])
 
   const handleLoadMore = async () => {
     const newOffset = currentOffset + MATCHES_PER_PAGE
@@ -177,7 +211,7 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
       {sessionEntries.length > 0 && (
         <div className="flex flex-col gap-3">
           {sessionEntries.map((entry) => (
-            <div key={entry.match.id} className="grid grid-cols-[1fr_280px] gap-4 items-start">
+            <div key={entry.match.id} className="grid grid-cols-[1fr_280px] gap-4 items-stretch">
               {/* Match card */}
               <div className="min-w-0">
                 <MatchCard match={entry.match} />

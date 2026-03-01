@@ -8,6 +8,7 @@ import type {
   ItemData,
   SummonerSpellData,
   Channel,
+  StreamEvent,
 } from "@/types"
 import { supabase } from "@/lib/supabase"
 
@@ -112,6 +113,13 @@ export async function listBroadcasts(channelId: string, limit: number, offset: n
   const params = new URLSearchParams({ channelID: channelId, limit: String(limit), offset: String(offset) })
   const data = await request<{ broadcasts: Broadcast[]; count: number }>(`/broadcasts?${params}`)
   return data.broadcasts ?? []
+}
+
+// Stream Events
+export async function listStreamerEvents(streamerId: number, from: number, to: number, limit: number, offset: number): Promise<StreamEvent[]> {
+  const params = new URLSearchParams({ from: String(from), to: String(to), limit: String(limit), offset: String(offset) })
+  const data = await request<{ events: StreamEvent[]; count: number }>(`/streamers/${streamerId}/events?${params}`)
+  return data.events ?? []
 }
 
 // DataDragon
