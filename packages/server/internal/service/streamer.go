@@ -22,7 +22,7 @@ func NewStreamerService(db *database.DB, twitchClient *twitch.TwitchClient) *Str
 
 func (s *StreamerService) ListStreamersWithDetails() ([]model.StreamerView, error) {
 	var streamerViews []model.StreamerView
-	streamers, err := s.db.ListStreamers()
+	streamers, err := s.db.ListStreamers(1000, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (s *StreamerService) ListStreamersWithDetails() ([]model.StreamerView, erro
 			StreamerName: streamer.Name,
 		}
 		var lastLive int64
-		channels, err := s.db.ListChannels(&model.ChannelFilter{StreamerID: &streamer.ID})
+		channels, err := s.db.ListChannels(&model.ChannelFilter{StreamerID: &streamer.ID}, 1000, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (s *StreamerService) ListBroadcasts(filter *model.Broadcast, limit, offset 
 		return nil, fmt.Errorf("channelID must be specified")
 	}
 
-	channels, err := s.db.ListChannels(&model.ChannelFilter{ID: &filter.ChannelID})
+	channels, err := s.db.ListChannels(&model.ChannelFilter{ID: &filter.ChannelID}, 1, 0)
 	if err != nil {
 		return nil, err
 	}

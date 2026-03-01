@@ -79,7 +79,13 @@ func (h *RiotHandler) AddAccount(w http.ResponseWriter, r *http.Request) {
 func (h *RiotHandler) ListAccounts(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r)
 
-	accounts, err := h.db.ListTrackedAccounts(userID)
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if limit <= 0 {
+		limit = 100
+	}
+
+	accounts, err := h.db.ListTrackedAccounts(userID, limit, offset)
 	if err != nil {
 		logging.Error("Failed to list tracked accounts", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list accounts")

@@ -92,15 +92,16 @@ func (db *DB) FindOrCreateRiotAccount(gameName, tagLine, region string, streamer
 	return newAccount, nil
 }
 
-// ListTrackedAccounts returns all accounts a user is tracking
-func (db *DB) ListTrackedAccounts(userID string) ([]model.LeagueOfLegendsAccount, error) {
+// ListTrackedAccounts returns accounts a user is tracking with pagination
+func (db *DB) ListTrackedAccounts(userID string, limit, offset int) ([]model.LeagueOfLegendsAccount, error) {
 	query := `SELECT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
 	          FROM league_of_legends_accounts a
 	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid
 	          WHERE uta.user_id = $1
-	          ORDER BY uta.tracked_at DESC`
+	          ORDER BY uta.tracked_at DESC
+	          LIMIT $2 OFFSET $3`
 
-	rows, err := db.SQL.Query(query, userID)
+	rows, err := db.SQL.Query(query, userID, limit, offset)
 	if err != nil {
 		logging.Error("Failed to list tracked accounts", "userID", userID, "error", err)
 		return nil, err
@@ -184,8 +185,8 @@ func (db *DB) GetTrackedAccountsForSync() ([]model.LeagueOfLegendsAccount, error
 	return accounts, nil
 }
 
-// ListRiotAccounts lists accounts with optional filtering (for admin/internal use)
-func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount) ([]model.LeagueOfLegendsAccount, error) {
+// ListRiotAccounts lists accounts with optional filtering and pagination (for admin/internal use)
+func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount, limit, offset int) ([]model.LeagueOfLegendsAccount, error) {
 	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
 	var where []string
 	var args []any
@@ -214,11 +215,14 @@ func (db *DB) ListRiotAccounts(filter *model.LeagueOfLegendsAccount) ([]model.Le
 	if filter != nil && filter.StreamerID != 0 {
 		where = append(where, fmt.Sprintf("streamer_id = $%d", argCounter))
 		args = append(args, filter.StreamerID)
+		argCounter++
 	}
 
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
+	query += fmt.Sprintf(" ORDER BY game_name LIMIT $%d OFFSET $%d", argCounter, argCounter+1)
+	args = append(args, limit, offset)
 
 	rows, err := db.SQL.Query(query, args...)
 	if err != nil {

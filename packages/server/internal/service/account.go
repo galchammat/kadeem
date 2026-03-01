@@ -50,7 +50,7 @@ func (s *AccountService) ReconcileAccount(account *model.LeagueOfLegendsAccount)
 
 // ListAccounts lists accounts with optional reconciliation.
 func (s *AccountService) ListAccounts(filter *model.LeagueOfLegendsAccount) ([]model.LeagueOfLegendsAccount, error) {
-	accounts, err := s.db.ListRiotAccounts(filter)
+	accounts, err := s.db.ListRiotAccounts(filter, 1000, 0)
 	if err != nil {
 		return nil, err
 	}
