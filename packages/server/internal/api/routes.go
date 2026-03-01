@@ -60,6 +60,11 @@ func (s *Server) setupRoutes(jwksURL string) {
 			// Broadcasts
 			r.Post("/channels/{channelID}/broadcasts/sync", s.livestreamHandler.SyncBroadcasts)
 			r.Get("/broadcasts", s.livestreamHandler.ListBroadcasts)
+
+			// Stream events
+			r.Post("/channels/{channelID}/events/sync", s.eventsHandler.SyncChannelEvents)
+			r.Get("/channels/{channelID}/events", s.eventsHandler.ListChannelEvents)
+			r.Get("/streamers/{streamerID}/events", s.eventsHandler.ListStreamerEvents)
 		})
 	})
 }
