@@ -12,8 +12,10 @@ import (
 	"github.com/galchammat/kadeem/internal/api"
 	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/service"
+	"github.com/galchammat/kadeem/internal/twitch"
 	"github.com/joho/godotenv"
 )
 
@@ -22,9 +24,10 @@ func init() {
 }
 
 type daemon struct {
-	db      *database.DB
-	matches *service.MatchService
-	ranks   *service.RankService
+	db           *database.DB
+	matches      *service.MatchService
+	ranks        *service.RankService
+	streamEvents *service.StreamEventsService
 }
 
 func main() {
@@ -39,10 +42,12 @@ func main() {
 	defer db.SQL.Close()
 
 	riotClient := riot.NewClient()
+	twitchClient := twitch.NewTwitchClient(context.Background())
 	d := &daemon{
-		db:      db,
-		matches: service.NewMatchService(db, riotClient),
-		ranks:   service.NewRankService(db, riotClient),
+		db:           db,
+		matches:      service.NewMatchService(db, riotClient),
+		ranks:        service.NewRankService(db, riotClient),
+		streamEvents: service.NewStreamEventsService(db, twitchClient),
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -60,6 +65,12 @@ func main() {
 	go func() {
 		defer wg.Done()
 		d.runSyncLoop(ctx, 15*time.Minute, "rank", d.syncRanks)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		d.runSyncLoop(ctx, 30*time.Minute, "stream_events", d.syncStreamEvents)
 	}()
 
 	wg.Add(1)
@@ -144,4 +155,22 @@ func (d *daemon) syncRanks() {
 		}
 	}
 	logging.Info("Rank sync completed")
+}
+
+func (d *daemon) syncStreamEvents() {
+	logging.Info("Starting stream events sync")
+	platform := "twitch"
+	channels, err := d.db.ListChannels(&model.ChannelFilter{Platform: &platform}, 1000, 0)
+	if err != nil {
+		logging.Error("Failed to list channels for stream events sync", "error", err)
+		return
+	}
+	for _, ch := range channels {
+		if err := d.streamEvents.SyncChannelEvents(ch.ID); err != nil {
+			logging.Error("Failed to sync stream events", "channel_id", ch.ID, "error", err)
+		} else {
+			logging.Info("Synced stream events", "channel_id", ch.ID)
+		}
+	}
+	logging.Info("Stream events sync completed")
 }

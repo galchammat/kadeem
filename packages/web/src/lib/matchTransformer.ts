@@ -1,6 +1,6 @@
 import type {
-  LeagueOfLegendsMatch,
-  LeagueOfLegendsMatchParticipantSummary,
+  LolMatch,
+  LolMatchParticipantSummary,
   PlayerRank,
   ChampionData,
   SummonerSpellData,
@@ -150,7 +150,7 @@ function calculateParticipation(
 
 // Transform backend match to frontend Match interface
 export async function transformMatch(
-  backendMatch: LeagueOfLegendsMatch,
+  backendMatch: LolMatch,
   trackedPUUID: string,
   accountId: string
 ): Promise<Match> {
@@ -217,7 +217,7 @@ export async function transformMatch(
   const winners = backendMatch.participants.filter((p) => p.win)
   const losers = backendMatch.participants.filter((p) => !p.win)
 
-  const buildTeamData = (participants: LeagueOfLegendsMatchParticipantSummary[]) => {
+  const buildTeamData = (participants: LolMatchParticipantSummary[]) => {
     return participants.slice(0, 5).map((p) => ({
       name: p.riotIdGameName || "Unknown",
       champion: championIconUrl(p.championId),
@@ -234,6 +234,8 @@ export async function transformMatch(
 
   return {
     id: backendMatch.summary.gameId,
+    startedAt: backendMatch.summary.startedAt ?? 0,
+    durationSeconds: backendMatch.summary.duration ?? 0,
     queueType: QUEUE_NAMES[queueId] || "Unknown Queue",
     timeAgo: formatTimeAgo(backendMatch.summary.startedAt || 0),
     result: playerParticipant.win ? "Victory" : "Defeat",

@@ -1,6 +1,6 @@
 import type {
-  LeagueOfLegendsAccount,
-  LeagueOfLegendsMatch,
+  LolAccount,
+  LolMatch,
   StreamerView,
   PlayerRank,
   Broadcast,
@@ -8,6 +8,7 @@ import type {
   ItemData,
   SummonerSpellData,
   Channel,
+  StreamEvent,
 } from "@/types"
 import { supabase } from "@/lib/supabase"
 
@@ -38,8 +39,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // Riot Accounts
-export async function listAccounts(): Promise<LeagueOfLegendsAccount[]> {
-  const data = await request<{ accounts: LeagueOfLegendsAccount[]; count: number }>("/riot/accounts")
+export async function listAccounts(): Promise<LolAccount[]> {
+  const data = await request<{ accounts: LolAccount[]; count: number }>("/riot/accounts")
   return data.accounts ?? []
 }
 
@@ -62,9 +63,9 @@ export async function deleteAccount(accountId: string): Promise<void> {
 }
 
 // Riot Matches
-export async function listMatches(puuid: string, limit: number, offset: number): Promise<LeagueOfLegendsMatch[]> {
+export async function listMatches(puuid: string, limit: number, offset: number): Promise<LolMatch[]> {
   const params = new URLSearchParams({ puuid, limit: String(limit), offset: String(offset) })
-  const data = await request<{ matches: LeagueOfLegendsMatch[]; count: number }>(`/riot/matches?${params}`)
+  const data = await request<{ matches: LolMatch[]; count: number }>(`/riot/matches?${params}`)
   return data.matches ?? []
 }
 
@@ -112,6 +113,13 @@ export async function listBroadcasts(channelId: string, limit: number, offset: n
   const params = new URLSearchParams({ channelID: channelId, limit: String(limit), offset: String(offset) })
   const data = await request<{ broadcasts: Broadcast[]; count: number }>(`/broadcasts?${params}`)
   return data.broadcasts ?? []
+}
+
+// Stream Events
+export async function listStreamerEvents(streamerId: number, from: number, to: number, limit: number, offset: number): Promise<StreamEvent[]> {
+  const params = new URLSearchParams({ from: String(from), to: String(to), limit: String(limit), offset: String(offset) })
+  const data = await request<{ events: StreamEvent[]; count: number }>(`/streamers/${streamerId}/events?${params}`)
+  return data.events ?? []
 }
 
 // DataDragon

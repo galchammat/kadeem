@@ -9,7 +9,7 @@ import (
 )
 
 // FetchAccount fetches account data from the Riot API by gameName and tagLine.
-func (c *Client) FetchAccount(region, gameName, tagLine string) (*model.LeagueOfLegendsAccount, error) {
+func (c *Client) FetchAccount(region, gameName, tagLine string) (*model.LolAccount, error) {
 	if gameName == "" || tagLine == "" || region == "" {
 		return nil, fmt.Errorf("gameName, tagLine, and region cannot be empty")
 	}
@@ -24,7 +24,7 @@ func (c *Client) FetchAccount(region, gameName, tagLine string) (*model.LeagueOf
 		return nil, fmt.Errorf("failed to fetch account from Riot servers: %v", err)
 	}
 
-	var account model.LeagueOfLegendsAccount
+	var account model.LolAccount
 	if err := json.Unmarshal(body, &account); err != nil {
 		logging.Error("Failed to unmarshal account JSON response", "gameName", gameName, "tagLine", tagLine, "error", err)
 		return nil, err
@@ -34,7 +34,7 @@ func (c *Client) FetchAccount(region, gameName, tagLine string) (*model.LeagueOf
 }
 
 // FetchAccountByPUUID fetches account data from the Riot API by PUUID.
-func (c *Client) FetchAccountByPUUID(region, puuid string) (*model.LeagueOfLegendsAccount, error) {
+func (c *Client) FetchAccountByPUUID(region, puuid string) (*model.LolAccount, error) {
 	url := c.buildURL(region, fmt.Sprintf("/riot/account/v1/accounts/by-puuid/%s", puuid))
 	body, _, err := c.makeRequest(url)
 	if err != nil {
@@ -42,7 +42,7 @@ func (c *Client) FetchAccountByPUUID(region, puuid string) (*model.LeagueOfLegen
 		return nil, err
 	}
 
-	var account model.LeagueOfLegendsAccount
+	var account model.LolAccount
 	if err := json.Unmarshal(body, &account); err != nil {
 		logging.Error("Failed to unmarshal account JSON response", "puuid", puuid, "error", err)
 		return nil, err
