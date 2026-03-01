@@ -16,6 +16,8 @@ export interface Match {
   timeAgo: string
   result: "Victory" | "Defeat"
   duration: string
+  startedAt: number
+  durationSeconds: number
   champion: {
     name: string
     image: string
@@ -76,7 +78,7 @@ export function MatchCard({ match }: { match: Match }) {
         </div>
 
         {/* Summoner spells + Items */}
-        <div className="flex shrink-0 flex-col justify-center gap-1 self-center">
+        <div className="flex shrink-0 flex-col justify-center gap-1 self-center min-w-[78px]">
           <div className="flex gap-0.5">
             {match.summonerSpells.map((spell, i) => (
               <div key={i} className="relative h-5 w-5 overflow-hidden rounded border border-border">
@@ -94,7 +96,7 @@ export function MatchCard({ match }: { match: Match }) {
         </div>
 
         {/* KDA section */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 px-2 self-center">
+        <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 px-2 self-center min-w-[80px]">
           <span className="text-base font-bold text-foreground whitespace-nowrap">
             {match.kda.kills} / <span className="text-[var(--defeat)]">{match.kda.deaths}</span> / {match.kda.assists}
           </span>
@@ -102,7 +104,7 @@ export function MatchCard({ match }: { match: Match }) {
         </div>
 
         {/* Stats section */}
-        <div className="flex shrink-0 flex-col justify-center gap-0.5 border-l border-border pl-2 text-[11px] self-center">
+        <div className="flex shrink-0 flex-col justify-center gap-0.5 border-l border-border pl-2 text-[11px] self-center min-w-[92px]">
           <div className="flex items-center gap-1.5">
             <span className="text-[var(--gold)] font-semibold">Laning</span>
             <span className="text-foreground/80 font-medium">{match.stats.laning}</span>
@@ -122,7 +124,7 @@ export function MatchCard({ match }: { match: Match }) {
         </div>
 
         {/* Placement + Performance tag */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-1 px-2 self-center">
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1 px-2 self-center min-w-[60px]">
           <span className="text-lg font-bold text-foreground">{match.placement}</span>
           <span
             className={cn(

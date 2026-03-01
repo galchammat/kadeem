@@ -96,6 +96,28 @@ export interface Broadcast {
   duration: number
 }
 
+export type EventType =
+  | "hype_train"
+  | "gifted_subs"
+  | "peak_viewers"
+  | "low_viewers"
+  | "raid"
+  | "donation"
+  | "new_subscriber"
+  | "chat_milestone"
+  | "follower_goal"
+  | "ban_wave"
+  | "clip"
+
+export interface StreamEvent {
+  id: number
+  type: EventType
+  title: string
+  description: string
+  timestamp: number
+  value?: string | number
+}
+
 // DataDragon
 export interface ChampionData {
   type: string
