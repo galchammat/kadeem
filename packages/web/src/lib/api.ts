@@ -1,6 +1,6 @@
 import type {
-  LeagueOfLegendsAccount,
-  LeagueOfLegendsMatch,
+  LolAccount,
+  LolMatch,
   StreamerView,
   PlayerRank,
   Broadcast,
@@ -39,8 +39,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // Riot Accounts
-export async function listAccounts(): Promise<LeagueOfLegendsAccount[]> {
-  const data = await request<{ accounts: LeagueOfLegendsAccount[]; count: number }>("/riot/accounts")
+export async function listAccounts(): Promise<LolAccount[]> {
+  const data = await request<{ accounts: LolAccount[]; count: number }>("/riot/accounts")
   return data.accounts ?? []
 }
 
@@ -63,9 +63,9 @@ export async function deleteAccount(accountId: string): Promise<void> {
 }
 
 // Riot Matches
-export async function listMatches(puuid: string, limit: number, offset: number): Promise<LeagueOfLegendsMatch[]> {
+export async function listMatches(puuid: string, limit: number, offset: number): Promise<LolMatch[]> {
   const params = new URLSearchParams({ puuid, limit: String(limit), offset: String(offset) })
-  const data = await request<{ matches: LeagueOfLegendsMatch[]; count: number }>(`/riot/matches?${params}`)
+  const data = await request<{ matches: LolMatch[]; count: number }>(`/riot/matches?${params}`)
   return data.matches ?? []
 }
 

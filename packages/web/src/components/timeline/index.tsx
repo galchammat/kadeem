@@ -9,11 +9,12 @@ import { transformMatch } from "@/lib/matchTransformer"
 import { listStreamerEvents } from "@/lib/api"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { AlertTriangle, Loader2 } from "lucide-react"
 
 interface SessionEntry {
   match: Match
   events: StreamEvent[]
+  overlapWarning?: string
 }
 
 interface SessionTimelineProps {
@@ -76,7 +77,34 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
           }
         }
 
-        setSessionEntries(transformedEntries)
+        // Deduplicate by gameId then flag overlapping time windows
+        const seen = new Set<number>()
+        const deduped = transformedEntries.filter(e => {
+          if (seen.has(e.match.id)) return false
+          seen.add(e.match.id)
+          return true
+        })
+
+        const merged: SessionEntry[] = []
+        for (const entry of deduped) {
+          const eStart = entry.match.startedAt
+          const eEnd = eStart + entry.match.durationSeconds
+          const overlapIdx = merged.findIndex(prev => {
+            const pStart = prev.match.startedAt
+            const pEnd = pStart + prev.match.durationSeconds
+            return eStart < pEnd && pStart < eEnd
+          })
+          if (overlapIdx >= 0) {
+            merged[overlapIdx] = {
+              ...merged[overlapIdx],
+              overlapWarning: "Another account was also in a match during this time",
+            }
+          } else {
+            merged.push(entry)
+          }
+        }
+
+        setSessionEntries(merged)
       } catch (err) {
         setTransformError(`Failed to transform matches: ${err}`)
       } finally {
@@ -211,15 +239,23 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
       {sessionEntries.length > 0 && (
         <div className="flex flex-col gap-3">
           {sessionEntries.map((entry) => (
-            <div key={entry.match.id} className="grid grid-cols-[1fr_280px] gap-4 items-stretch">
-              {/* Match card */}
-              <div className="min-w-0">
-                <MatchCard match={entry.match} />
-              </div>
+            <div key={entry.match.id} className="flex flex-col gap-1">
+              {entry.overlapWarning && (
+                <div className="flex items-center gap-1.5 rounded border border-yellow-400/40 bg-yellow-400/10 px-3 py-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {entry.overlapWarning}
+                </div>
+              )}
+              <div className="grid grid-cols-[1fr_280px] gap-4 items-stretch">
+                {/* Match card */}
+                <div className="min-w-0">
+                  <MatchCard match={entry.match} />
+                </div>
 
-              {/* Stream events - aligned to match card */}
-              <div className="h-full">
-                <MatchStreamEvents events={entry.events} />
+                {/* Stream events - aligned to match card */}
+                <div className="h-full">
+                  <MatchStreamEvents events={entry.events} />
+                </div>
               </div>
             </div>
           ))}

@@ -16,11 +16,11 @@ type SQLExecutor interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-func (db *DB) InsertLolMatchSummary(summary *model.LeagueOfLegendsMatchSummary) error {
+func (db *DB) InsertLolMatchSummary(summary *model.LolMatchSummary) error {
 	return db.insertLolMatchSummaryExec(db.SQL, summary)
 }
 
-func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LeagueOfLegendsMatchSummary) error {
+func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatchSummary) error {
 	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
 		return fmt.Errorf("match summary is missing required fields")
 	}
@@ -92,8 +92,8 @@ func (db *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error
 // InsertLolMatchWithParticipants atomically inserts a match summary and all its participants
 // in a single transaction. If any insert fails, the entire transaction is rolled back.
 func (db *DB) InsertLolMatchWithParticipants(
-	summary *model.LeagueOfLegendsMatchSummary,
-	participants []model.LeagueOfLegendsMatchParticipantSummary,
+	summary *model.LolMatchSummary,
+	participants []model.LolMatchParticipantSummary,
 ) error {
 	tx, err := db.SQL.Begin()
 	if err != nil {
@@ -129,11 +129,11 @@ func (db *DB) InsertLolMatchWithParticipants(
 	return nil
 }
 
-func (db *DB) InsertLolMatchParticipantSummary(participant *model.LeagueOfLegendsMatchParticipantSummary) error {
+func (db *DB) InsertLolMatchParticipantSummary(participant *model.LolMatchParticipantSummary) error {
 	return db.insertLolMatchParticipantSummaryExec(db.SQL, participant)
 }
 
-func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *model.LeagueOfLegendsMatchParticipantSummary) error {
+func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *model.LolMatchParticipantSummary) error {
 	if participant == nil {
 		return fmt.Errorf("participant summary cannot be nil")
 	}
@@ -212,7 +212,7 @@ func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant
 	return err
 }
 
-func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int) ([]model.LeagueOfLegendsMatch, error) {
+func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int) ([]model.LolMatch, error) {
 	// Clamp limit
 	if limit <= 0 || limit > 100 {
 		limit = 100
@@ -299,7 +299,7 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 	}
 
 	if len(matchIDs) == 0 {
-		return []model.LeagueOfLegendsMatch{}, nil
+		return []model.LolMatch{}, nil
 	}
 
 	// Step 3: Fetch full match data for the selected IDs
@@ -335,11 +335,11 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 	defer fullRows.Close()
 
 	// Step 5: Scan and group by match ID
-	matchMap := make(map[int64]*model.LeagueOfLegendsMatch)
+	matchMap := make(map[int64]*model.LolMatch)
 	var orderedMatchIDs []int64
 
 	for fullRows.Next() {
-		var summary model.LeagueOfLegendsMatchSummary
+		var summary model.LolMatchSummary
 
 		var (
 			nullMatchID                     sql.NullInt64
@@ -395,15 +395,15 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 				qid := int(nullQueueId.Int64)
 				summary.QueueId = &qid
 			}
-			matchMap[summary.ID] = &model.LeagueOfLegendsMatch{
+			matchMap[summary.ID] = &model.LolMatch{
 				Summary:      summary,
-				Participants: []model.LeagueOfLegendsMatchParticipantSummary{},
+				Participants: []model.LolMatchParticipantSummary{},
 			}
 			orderedMatchIDs = append(orderedMatchIDs, summary.ID)
 		}
 
 		if nullMatchID.Valid {
-			participant := model.LeagueOfLegendsMatchParticipantSummary{
+			participant := model.LolMatchParticipantSummary{
 				GameID:                      nullMatchID.Int64,
 				ChampionID:                  int(nullChampionID.Int64),
 				ChampLevel:                  int(nullChampLevel.Int64),
@@ -446,7 +446,7 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 	}
 
 	// Step 6: Convert to ordered slice
-	result := make([]model.LeagueOfLegendsMatch, 0, len(orderedMatchIDs))
+	result := make([]model.LolMatch, 0, len(orderedMatchIDs))
 	for _, id := range orderedMatchIDs {
 		result = append(result, *matchMap[id])
 	}

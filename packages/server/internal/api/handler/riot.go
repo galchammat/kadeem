@@ -230,7 +230,7 @@ func (h *RiotHandler) ListMatches(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
-	var account *model.LeagueOfLegendsAccount
+	var account *model.LolAccount
 	if puuid != "" {
 		acc, err := h.db.GetRiotAccount(puuid)
 		if err != nil {

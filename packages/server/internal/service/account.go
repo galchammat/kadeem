@@ -30,7 +30,7 @@ func (s *AccountService) AddAccount(region, gameName, tagLine string, streamerID
 }
 
 // ReconcileAccount checks if account data has changed on Riot servers and updates DB.
-func (s *AccountService) ReconcileAccount(account *model.LeagueOfLegendsAccount) error {
+func (s *AccountService) ReconcileAccount(account *model.LolAccount) error {
 	fetched, err := s.riot.FetchAccountByPUUID(account.Region, account.PUUID)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (s *AccountService) ReconcileAccount(account *model.LeagueOfLegendsAccount)
 }
 
 // ListAccounts lists accounts with optional reconciliation.
-func (s *AccountService) ListAccounts(filter *model.LeagueOfLegendsAccount) ([]model.LeagueOfLegendsAccount, error) {
+func (s *AccountService) ListAccounts(filter *model.LolAccount) ([]model.LolAccount, error) {
 	accounts, err := s.db.ListRiotAccounts(filter, 1000, 0)
 	if err != nil {
 		return nil, err
