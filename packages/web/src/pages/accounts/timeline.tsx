@@ -1,12 +1,12 @@
-import type { Channel, LeagueOfLegendsAccount } from "@/types"
+import type { Channel, LolAccount } from "@/types"
 import { SpanChart } from "@/components/charts/spanChart"
 
 function StreamerTimeline({
   channels,
-  LeagueOfLegendsAccounts,
+  lolAccounts,
 }: {
   channels: Channel[]
-  LeagueOfLegendsAccounts: LeagueOfLegendsAccount[]
+  lolAccounts: LolAccount[]
 }) {
   return (
     <div className="p-6">

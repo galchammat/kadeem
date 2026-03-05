@@ -1,7 +1,7 @@
 export type DialogMode = null | "add" | "edit"
 
 // Riot / League of Legends
-export interface LeagueOfLegendsAccount {
+export interface LolAccount {
   puuid: string
   streamerId?: number
   tagLine: string
@@ -10,13 +10,13 @@ export interface LeagueOfLegendsAccount {
   syncedAt?: number | null
 }
 
-export interface LeagueOfLegendsMatch {
-  summary: LeagueOfLegendsMatchSummary
-  participants: LeagueOfLegendsMatchParticipantSummary[]
+export interface LolMatch {
+  summary: LolMatchSummary
+  participants: LolMatchParticipantSummary[]
   replay?: string | null
 }
 
-export interface LeagueOfLegendsMatchSummary {
+export interface LolMatchSummary {
   gameId: number
   startedAt?: number | null
   duration?: number | null
@@ -24,7 +24,7 @@ export interface LeagueOfLegendsMatchSummary {
   replaySynced?: boolean | null
 }
 
-export interface LeagueOfLegendsMatchParticipantSummary {
+export interface LolMatchParticipantSummary {
   gameId: number
   championId: number
   champLevel: number
@@ -94,6 +94,28 @@ export interface Broadcast {
   created_at: number
   published_at: number
   duration: number
+}
+
+export type EventType =
+  | "hype_train"
+  | "gifted_subs"
+  | "peak_viewers"
+  | "low_viewers"
+  | "raid"
+  | "donation"
+  | "new_subscriber"
+  | "chat_milestone"
+  | "follower_goal"
+  | "ban_wave"
+  | "clip"
+
+export interface StreamEvent {
+  id: number
+  type: EventType
+  title: string
+  description: string
+  timestamp: number
+  value?: string | number
 }
 
 // DataDragon

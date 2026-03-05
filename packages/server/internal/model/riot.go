@@ -4,7 +4,7 @@ type LolApiReplaysResponse struct {
 	URLs []string `json:"matchFileURLs"`
 }
 
-type LeagueOfLegendsAccount struct {
+type LolAccount struct {
 	PUUID      string `json:"puuid" db:"puuid,primarykey"`
 	StreamerID int    `json:"streamerId,omitempty" db:"streamer_id"`
 	TagLine    string `json:"tagLine" db:"tag_line"`
@@ -13,13 +13,13 @@ type LeagueOfLegendsAccount struct {
 	SyncedAt   *int64 `json:"syncedAt" db:"synced_at"`
 }
 
-type LeagueOfLegendsMatch struct {
-	Summary      LeagueOfLegendsMatchSummary              `json:"summary" db:"-"`
-	Participants []LeagueOfLegendsMatchParticipantSummary `json:"participants" db:"-"`
-	ReplayURL    *string                                  `json:"replay,omitempty" db:"replay"`
+type LolMatch struct {
+	Summary      LolMatchSummary              `json:"summary" db:"-"`
+	Participants []LolMatchParticipantSummary `json:"participants" db:"-"`
+	ReplayURL    *string                      `json:"replay,omitempty" db:"replay"`
 }
 
-type LeagueOfLegendsMatchSummary struct {
+type LolMatchSummary struct {
 	ID           int64  `json:"gameId" db:"match_id"`
 	StartedAt    *int64 `json:"startedAt" db:"started_at"`
 	Duration     *int   `json:"duration" db:"duration"`
@@ -27,7 +27,7 @@ type LeagueOfLegendsMatchSummary struct {
 	ReplaySynced *bool  `json:"replaySynced" db:"replay_synced"`
 }
 
-type LeagueOfLegendsMatchParticipantSummary struct {
+type LolMatchParticipantSummary struct {
 	GameID                      int64  `json:"gameId" db:"match_id"`
 	ChampionID                  int    `json:"championId" db:"champion_id"`
 	ChampLevel                  int    `json:"champLevel" db:"champ_level"`

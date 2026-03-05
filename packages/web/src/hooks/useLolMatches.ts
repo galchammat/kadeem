@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react"
-import type { LeagueOfLegendsAccount, LeagueOfLegendsMatch } from "@/types"
+import type { LolAccount, LolMatch } from "@/types"
 import * as api from "@/lib/api"
 
 type FetchMatchesProps = {
   limit?: number
   offset?: number
-  accounts?: LeagueOfLegendsAccount[]
+  accounts?: LolAccount[]
 }
 
 export interface UseLolMatchesReturn {
-  matches: LeagueOfLegendsMatch[]
+  matches: LolMatch[]
   loading: boolean
   error: string | null
   partialErrors: Map<string, string>
@@ -17,9 +17,9 @@ export interface UseLolMatchesReturn {
 }
 
 export default function useLolMatches(
-  initialAccounts: LeagueOfLegendsAccount[]
+  initialAccounts: LolAccount[]
 ): UseLolMatchesReturn {
-  const [matches, setMatches] = useState<LeagueOfLegendsMatch[]>([])
+  const [matches, setMatches] = useState<LolMatch[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [partialErrors, setPartialErrors] = useState<Map<string, string>>(new Map())
@@ -46,7 +46,7 @@ export default function useLolMatches(
 
       // Track which accounts failed
       const errors = new Map<string, string>()
-      const allMatches: LeagueOfLegendsMatch[] = []
+      const allMatches: LolMatch[] = []
 
       results.forEach((result, idx) => {
         const account = fetchAccounts[idx]
@@ -66,7 +66,7 @@ export default function useLolMatches(
       }
 
       // Deduplicate by match ID
-      const matchMap = new Map<number, LeagueOfLegendsMatch>()
+      const matchMap = new Map<number, LolMatch>()
       for (const match of allMatches) {
         if (!matchMap.has(match.summary.gameId)) {
           matchMap.set(match.summary.gameId, match)

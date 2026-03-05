@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import LeagueOfLegendsAccounts from "./leagueOfLegends";
+import LolAccounts from "./lol";
 import Channels from "./channel";
 import { useStreamer } from "@/hooks/useStreamer";
 import { AlertCircleIcon } from "lucide-react";
@@ -30,9 +30,9 @@ export function AccountsPage() {
     <div>
       <Channels />
       <Separator />
-      <LeagueOfLegendsAccounts streamerId={selectedStreamer.id} />
+      <LolAccounts streamerId={selectedStreamer.id} />
       <Separator />
-      <StreamerTimeline channels={[]} LeagueOfLegendsAccounts={[]} />
+      <StreamerTimeline channels={[]} lolAccounts={[]} />
     </div>
   );
 }

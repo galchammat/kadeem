@@ -26,6 +26,7 @@ type Server struct {
 	riotHandler       *handler.RiotHandler
 	dataDragonHandler *handler.DataDragonHandler
 	livestreamHandler *handler.LivestreamHandler
+	eventsHandler     *handler.EventsHandler
 }
 
 // NewServer creates a new API server
@@ -41,6 +42,7 @@ func NewServer(db *database.DB, port string) *Server {
 	matchSvc := service.NewMatchService(db, riotClient)
 	rankSvc := service.NewRankService(db, riotClient)
 	streamerSvc := service.NewStreamerService(db, twitchClient)
+	streamEventsSvc := service.NewStreamEventsService(db, twitchClient)
 
 	// Get frontend domain from env
 	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
@@ -70,6 +72,7 @@ func NewServer(db *database.DB, port string) *Server {
 		riotHandler:       handler.NewRiotHandler(db, accountSvc, matchSvc, rankSvc),
 		dataDragonHandler: handler.NewDataDragonHandler(dataDragonClient),
 		livestreamHandler: handler.NewLivestreamHandler(streamerSvc),
+		eventsHandler:     handler.NewEventsHandler(streamEventsSvc),
 	}
 
 	// Setup routes

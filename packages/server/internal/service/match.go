@@ -27,7 +27,7 @@ func NewMatchService(db *database.DB, riot *riot.Client) *MatchService {
 }
 
 // SyncMatches syncs replays and match summaries for an account.
-func (s *MatchService) SyncMatches(account model.LeagueOfLegendsAccount) error {
+func (s *MatchService) SyncMatches(account model.LolAccount) error {
 	logging.Debug("Syncing matches for account", "ID", account.PUUID)
 
 	replayURLs, err := s.riot.FetchReplayURLs(account.PUUID, account.Region)
@@ -46,7 +46,7 @@ func (s *MatchService) SyncMatches(account model.LeagueOfLegendsAccount) error {
 		if err != nil {
 			return fmt.Errorf("error while checking for an existing match. MatchID: %d. Error: %w", matchID, err)
 		}
-		var existingMatch *model.LeagueOfLegendsMatch
+		var existingMatch *model.LolMatch
 		if len(existingMatches) != 0 {
 			existingMatch = &existingMatches[0]
 		}
@@ -84,7 +84,7 @@ func (s *MatchService) SyncMatchSummary(matchID int64, fullMatchID, region strin
 		return err
 	}
 
-	summary := model.LeagueOfLegendsMatchSummary{
+	summary := model.LolMatchSummary{
 		ID:        response.Info.ID,
 		StartedAt: &response.Info.StartedAt,
 		Duration:  &response.Info.Duration,
@@ -119,7 +119,7 @@ func (s *MatchService) SyncMatchReplay(matchID int64, replayURL string) error {
 }
 
 // ListMatches lists matches with auto-sync if stale.
-func (s *MatchService) ListMatches(filter *model.LolMatchFilter, account *model.LeagueOfLegendsAccount, limit, offset int) ([]model.LeagueOfLegendsMatch, error) {
+func (s *MatchService) ListMatches(filter *model.LolMatchFilter, account *model.LolAccount, limit, offset int) ([]model.LolMatch, error) {
 	if account != nil &&
 		(account.SyncedAt == nil || time.Since(time.Unix(*account.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
 		if err := s.SyncMatches(*account); err != nil {

@@ -14,7 +14,7 @@ type MatchDetailResponse struct {
 		ID           int64                                          `json:"gameId"`
 		StartedAt    int64                                          `json:"gameStartTimestamp"`
 		Duration     int                                            `json:"gameDuration"`
-		Participants []model.LeagueOfLegendsMatchParticipantSummary `json:"participants"`
+		Participants []model.LolMatchParticipantSummary `json:"participants"`
 	} `json:"info"`
 }
 

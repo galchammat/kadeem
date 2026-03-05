@@ -69,15 +69,16 @@ func (db *DB) FindOrCreateStreamer(name string) (*model.Streamer, error) {
 	return &model.Streamer{ID: id, Name: name}, nil
 }
 
-// ListTrackedStreamers returns all streamers a user is tracking
-func (db *DB) ListTrackedStreamers(userID string) ([]model.Streamer, error) {
+// ListTrackedStreamers returns streamers a user is tracking with pagination
+func (db *DB) ListTrackedStreamers(userID string, limit, offset int) ([]model.Streamer, error) {
 	query := `SELECT s.id, s.name 
 	          FROM streamers s
 	          INNER JOIN user_tracked_streamers uts ON s.id = uts.streamer_id
 	          WHERE uts.user_id = $1
-	          ORDER BY uts.tracked_at DESC`
+	          ORDER BY uts.tracked_at DESC
+	          LIMIT $2 OFFSET $3`
 
-	rows, err := db.SQL.Query(query, userID)
+	rows, err := db.SQL.Query(query, userID, limit, offset)
 	if err != nil {
 		logging.Error("Failed to list tracked streamers", "userID", userID, "error", err)
 		return nil, err
@@ -175,9 +176,9 @@ func (db *DB) DeleteStreamer(name string) (bool, error) {
 	return (n != 0), nil
 }
 
-// ListStreamers lists all streamers (for admin/internal use)
-func (db *DB) ListStreamers() ([]model.Streamer, error) {
-	rows, err := db.SQL.Query("SELECT id, name FROM streamers")
+// ListStreamers lists all streamers with pagination (for admin/internal use)
+func (db *DB) ListStreamers(limit, offset int) ([]model.Streamer, error) {
+	rows, err := db.SQL.Query("SELECT id, name FROM streamers ORDER BY name LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		logging.Error("Failed to query streamers from database", "error", err)
 		return nil, err
@@ -200,8 +201,8 @@ func (db *DB) ListStreamers() ([]model.Streamer, error) {
 	return streamers, nil
 }
 
-// ListChannels lists channels with optional filtering
-func (db *DB) ListChannels(filter *model.ChannelFilter) ([]model.Channel, error) {
+// ListChannels lists channels with optional filtering and pagination
+func (db *DB) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]model.Channel, error) {
 	query := `SELECT id, streamer_id, platform, channel_name, avatar_url, synced_at FROM channels`
 	var where []string
 	var args []any
@@ -226,12 +227,15 @@ func (db *DB) ListChannels(filter *model.ChannelFilter) ([]model.Channel, error)
 		if filter.ChannelName != nil {
 			where = append(where, fmt.Sprintf("channel_name LIKE $%d", argN))
 			args = append(args, *filter.ChannelName)
+			argN++
 		}
 	}
 
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
+	query += fmt.Sprintf(" ORDER BY id LIMIT $%d OFFSET $%d", argN, argN+1)
+	args = append(args, limit, offset)
 
 	rows, err := db.SQL.Query(query, args...)
 	if err != nil {

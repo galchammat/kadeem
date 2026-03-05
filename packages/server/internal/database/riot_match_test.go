@@ -148,13 +148,13 @@ func TestInsertLolMatchWithParticipants_Transaction(t *testing.T) {
 	startedAt := int64(1600000000)
 	duration := 2000
 
-	summary := &model.LeagueOfLegendsMatchSummary{
+	summary := &model.LolMatchSummary{
 		ID:        matchID,
 		StartedAt: &startedAt,
 		Duration:  &duration,
 	}
 
-	participants := []model.LeagueOfLegendsMatchParticipantSummary{
+	participants := []model.LolMatchParticipantSummary{
 		{
 			GameID:                      matchID,
 			ChampionID:                  1,
@@ -222,13 +222,13 @@ func TestListLolMatches_WithCompleteMatch(t *testing.T) {
 	startedAt := int64(1600000000)
 	duration := 2500
 
-	summary := &model.LeagueOfLegendsMatchSummary{
+	summary := &model.LolMatchSummary{
 		ID:        matchID,
 		StartedAt: &startedAt,
 		Duration:  &duration,
 	}
 
-	participants := []model.LeagueOfLegendsMatchParticipantSummary{
+	participants := []model.LolMatchParticipantSummary{
 		{
 			GameID:                      matchID,
 			ChampionID:                  10,

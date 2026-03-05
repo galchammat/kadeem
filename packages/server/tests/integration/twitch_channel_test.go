@@ -50,7 +50,7 @@ func testAddTwitchChannel(t *testing.T) {
 	twitchClient := twitch.NewTwitchClient(context.Background())
 	streamerSvc := service.NewStreamerService(db, twitchClient)
 
-	streamers, err := db.ListStreamers()
+	streamers, err := db.ListStreamers(1000, 0)
 	if err != nil {
 		t.Fatal("Failed to list streamers:", err)
 	}

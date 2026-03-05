@@ -20,7 +20,7 @@ func NewRankService(db *database.DB, riot *riot.Client) *RankService {
 }
 
 // SyncRank fetches current rank for an account and stores a snapshot.
-func (s *RankService) SyncRank(account *model.LeagueOfLegendsAccount) error {
+func (s *RankService) SyncRank(account *model.LolAccount) error {
 	summonerID, err := s.riot.FetchSummonerID(account.PUUID, account.Region)
 	if err != nil {
 		return err

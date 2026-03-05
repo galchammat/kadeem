@@ -1,9 +1,9 @@
 import { useState } from "react"
-import type { LeagueOfLegendsAccount } from "@/types"
+import type { LolAccount } from "@/types"
 import * as api from "@/lib/api"
 
 export interface UseLolAccountsReturn {
-  accounts: LeagueOfLegendsAccount[]
+  accounts: LolAccount[]
   loading: boolean
   error: string | null
   fetchAccounts: () => Promise<void>
@@ -13,7 +13,7 @@ export interface UseLolAccountsReturn {
 }
 
 export function useLolAccounts(): UseLolAccountsReturn {
-  const [accounts, setAccounts] = useState<LeagueOfLegendsAccount[]>([])
+  const [accounts, setAccounts] = useState<LolAccount[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

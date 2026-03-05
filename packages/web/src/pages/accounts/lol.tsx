@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import type { LeagueOfLegendsAccount } from "@/types"
+import type { LolAccount } from "@/types"
 import { type DialogMode } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ import { PencilIcon, TrashIcon, PlusIcon, AlertCircleIcon } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
 import SectionHeader from "@/components/sectionHeader"
-import LeagueOfLegendsIcon from "@/components/icons/leagueOfLegends"
+import LolIcon from "@/components/icons/lol"
 import { SkeletonCard } from "@/components/skeletonCard"
 import { useConfirm } from "@/components/confirmDialog"
 import { useLolAccounts } from "@/hooks/useLolAccounts"
@@ -26,17 +26,17 @@ type propTypes = {
   streamerId: number
 }
 
-const defaultAccount: Partial<LeagueOfLegendsAccount> = {
+const defaultAccount: Partial<LolAccount> = {
   puuid: "",
   gameName: "",
   tagLine: "",
   region: "",
 }
 
-export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
+export default function LolAccounts({ streamerId }: propTypes) {
   const { accounts, loading, error, fetchAccounts, addAccount, updateAccount, deleteAccount } = useLolAccounts()
   const [dialogMode, setDialogMode] = useState<DialogMode>(null)
-  const [formData, setFormData] = useState<Partial<LeagueOfLegendsAccount>>(defaultAccount)
+  const [formData, setFormData] = useState<Partial<LolAccount>>(defaultAccount)
   const [formError, setFormError] = useState<string | null>(null)
   const [formLoading, setFormLoading] = useState(false)
 
@@ -47,7 +47,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
     return () => clearTimeout(timer)
   }, [streamerId])
 
-  const openDialog = (mode: DialogMode, a?: LeagueOfLegendsAccount) => {
+  const openDialog = (mode: DialogMode, a?: LolAccount) => {
     if (mode === "edit" && a) {
       setFormData({
         puuid: a.puuid,
@@ -63,7 +63,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   }
   const closeDialog = () => setDialogMode(null)
 
-  const handleDelete = async (account: LeagueOfLegendsAccount) => {
+  const handleDelete = async (account: LolAccount) => {
     if (
       !(await confirm({
         title: "Delete account?",
@@ -110,7 +110,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   if (loading) {
     return (
       <div className="p-6">
-        <SectionHeader title="League of Legends" icon={<LeagueOfLegendsIcon />} />
+        <SectionHeader title="League of Legends" icon={<LolIcon />} />
         <div className="flex flex-row p-6">
           <SkeletonCard />
         </div>
@@ -121,7 +121,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   if (error) {
     return (
       <div className="p-6">
-        <SectionHeader title="League of Legends" icon={<LeagueOfLegendsIcon />} />
+        <SectionHeader title="League of Legends" icon={<LolIcon />} />
         <div className="flex flex-col items-center justify-center p-8">
           <Alert variant="destructive" className="max-w-md w-full">
             <AlertCircleIcon className="h-6 w-6 mr-2" />
@@ -139,7 +139,7 @@ export default function LeagueOfLegendsAccounts({ streamerId }: propTypes) {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <SectionHeader title="League of Legends" icon={<LeagueOfLegendsIcon />} />
+        <SectionHeader title="League of Legends" icon={<LolIcon />} />
         <Dialog open={dialogMode === "add"} onOpenChange={(open) => { if (!open) closeDialog() }}>
           <DialogTrigger asChild>
             <Button onClick={() => openDialog("add")}>

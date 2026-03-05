@@ -85,7 +85,7 @@ func TestComputeBroadcastSyncStartTime_ExclusiveBoundary(t *testing.T) {
 func TestSyncBoundaryTimestampConsistency(t *testing.T) {
 	now := time.Now().Unix()
 
-	account := model.LeagueOfLegendsAccount{
+	account := model.LolAccount{
 		SyncedAt: &now,
 	}
 

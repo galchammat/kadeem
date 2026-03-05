@@ -9,30 +9,11 @@ import {
   Zap,
   AlertTriangle,
   Trophy,
+  Clapperboard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-type EventType =
-  | "hype_train"
-  | "gifted_subs"
-  | "peak_viewers"
-  | "low_viewers"
-  | "raid"
-  | "donation"
-  | "new_subscriber"
-  | "chat_milestone"
-  | "follower_goal"
-  | "ban_wave"
-
-export interface StreamEvent {
-  id: number
-  type: EventType
-  title: string
-  description: string
-  timestamp: string
-  value?: string | number
-}
+import type { EventType, StreamEvent } from "@/types"
 
 const eventConfig: Record<EventType, { icon: typeof Flame; color: string; bg: string }> = {
   hype_train: { icon: Flame, color: "text-orange-400", bg: "bg-orange-500/15" },
@@ -45,6 +26,7 @@ const eventConfig: Record<EventType, { icon: typeof Flame; color: string; bg: st
   chat_milestone: { icon: MessageSquare, color: "text-blue-400", bg: "bg-blue-500/15" },
   follower_goal: { icon: Trophy, color: "text-yellow-400", bg: "bg-yellow-500/15" },
   ban_wave: { icon: AlertTriangle, color: "text-red-400", bg: "bg-red-500/15" },
+  clip: { icon: Clapperboard, color: "text-purple-400", bg: "bg-purple-500/15" },
 }
 
 interface MatchStreamEventsProps {
@@ -53,7 +35,7 @@ interface MatchStreamEventsProps {
 
 export function MatchStreamEvents({ events }: MatchStreamEventsProps) {
   return (
-    <div className="rounded-lg border border-border bg-card/50 overflow-hidden h-full min-h-[110px] max-h-[110px]">
+    <div className="rounded-lg border border-border bg-card/50 overflow-hidden h-full min-h-[110px]">
       <ScrollArea className="h-full">
         <div className="flex flex-col gap-1 p-2">
           {events.map((event) => {
