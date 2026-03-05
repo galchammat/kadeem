@@ -5,7 +5,7 @@ WEB_DIR := packages/web
 export BIN_DIR
 
 .PHONY: deps run build tests test migrate migrate-create migrate-force migrate-reset
-.PHONY: ansible migrate-up migrate-down migrate-version migrate-force-reset
+.PHONY: ansible migrate-up migrate-down migrate-version migrate-force-reset dev-db
 
 # Development
 deps:
@@ -17,6 +17,11 @@ run:
 	cd $(SERVER_DIR) && go run cmd/daemon/main.go & \
 	cd $(WEB_DIR) && npm run dev & \
 	wait
+
+dev-db:
+	@echo "Starting local dev database..."
+	docker compose up -d db
+	@echo "DB ready on localhost:5433"
 
 build:
 	@echo "Building Go daemon..."
@@ -82,6 +87,7 @@ help:
 	@echo "Development:"
 	@echo "  make deps              - Install frontend dependencies"
 	@echo "  make run               - Run API server + Vite dev server"
+	@echo "  make dev-db            - Start local dev database (Docker)"
 	@echo "  make build             - Build Go daemon + frontend"
 	@echo "  make tests             - Run all integration tests"
 	@echo ""
