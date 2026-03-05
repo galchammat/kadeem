@@ -1,4 +1,4 @@
-name: CI
+name: CI and Deploy
 
 on:
   pull_request:
