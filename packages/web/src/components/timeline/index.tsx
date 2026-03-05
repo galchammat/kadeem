@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { MatchCard, type Match } from "@/components/matchCard"
 import { MatchStreamEvents } from "@/components/matchStreamEvents"
-import type { StreamEvent } from "@/types"
+import type { StreamEvent, LolMatchParticipantSummary } from "@/types"
 import Sectionheader from "@/components/sectionHeader"
 import { useLolAccounts } from "@/hooks/useLolAccounts"
 import useLolMatches from "@/hooks/useLolMatches"
@@ -55,7 +55,7 @@ export default function SessionTimeline({ streamerId }: SessionTimelineProps) {
         for (const match of matches) {
           // Find which tracked PUUID is in this match
           const trackedPUUID = trackedPUUIDs.find(puuid => 
-            match.participants.some(p => p.puuid === puuid)
+            match.participants.some((p: LolMatchParticipantSummary) => p.puuid === puuid)
           )
 
           if (!trackedPUUID) {
