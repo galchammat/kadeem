@@ -1,18 +1,61 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kadeem}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kadeem}
       POSTGRES_DB: kadeem
-      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5433:5432"
     volumes:
       - kadeem_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d kadeem"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d kadeem"]
+      interval: 3600s
       timeout: 5s
       retries: 5
+
+  server:
+    build:
+      context: ./packages/server
+    image: kadeem-server:local
+    restart: unless-stopped
+    env_file:
+      - path: ./packages/server/.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-kadeem}:${POSTGRES_PASSWORD:-kadeem}@db:5432/kadeem?sslmode=disable
+      API_PORT: ${API_PORT:-8080}
+      API_VERSION: ${API_VERSION:-prod}
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:-cyanlab.cc}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-https://seijlvqsunpbzwuydvze.supabase.co/auth/v1/.well-known/jwks.json}
+    ports:
+      - "${API_PORT:-8080}:${API_PORT:-8080}"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${API_PORT:-8080}/health"]
+      interval: 3600s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  migrate:
+    image: kadeem-server:local
+    profiles: ["tools"]
+    build:
+      context: ./packages/server
+    env_file:
+      - path: ./packages/server/.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-kadeem}:${POSTGRES_PASSWORD:-kadeem}@db:5432/kadeem?sslmode=disable
+    command: ["migrate", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   kadeem_db:
