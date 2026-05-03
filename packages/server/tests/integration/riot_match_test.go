@@ -4,9 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/model"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/tests/logs"
 )
@@ -17,16 +18,17 @@ func TestListLolMatches(t *testing.T) {
 	}
 	tlog := testlog.New(t)
 
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		tlog.Fatalf("Failed to open database", "error", err)
 	}
 	defer db.SQL.Close()
+	store := riotstore.New(db)
 
-	matchSvc := service.NewMatchService(db, riot.NewClient())
+	matchSvc := service.NewMatchService(store, riot.NewClient())
 	testPuuid := "OXR0AfpBu2Z-fFGu8KCE1sNzJLJbTpgClA42okBn-VsEVTwjJwMZu306s5JTLBmxPkVe2SSBIGe9ww"
 
-	account, err := db.GetRiotAccount(testPuuid)
+	account, err := store.GetRiotAccount(testPuuid)
 	if err != nil {
 		tlog.Fatalf("Failed to get riot account", "error", err)
 	}

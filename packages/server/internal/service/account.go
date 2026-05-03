@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 )
 
 type AccountService struct {
-	db   *database.DB
+	db   *riotstore.Store
 	riot *riot.Client
 }
 
-func NewAccountService(db *database.DB, riot *riot.Client) *AccountService {
+func NewAccountService(db *riotstore.Store, riot *riot.Client) *AccountService {
 	return &AccountService{db: db, riot: riot}
 }
 

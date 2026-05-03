@@ -5,9 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/database"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
 func TestSyncStreamEvents(t *testing.T) {
@@ -17,14 +18,15 @@ func TestSyncStreamEvents(t *testing.T) {
 
 	const channelID = "104410477"
 
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
 	defer db.SQL.Close()
+	store := twitchstore.New(db)
 
 	twitchClient := twitch.NewTwitchClient(context.Background())
-	svc := service.NewStreamEventsService(db, twitchClient)
+	svc := service.NewStreamEventsService(store, twitchClient)
 
 	t.Run("SyncChannelEvents", func(t *testing.T) {
 		if err := svc.SyncChannelEvents(channelID); err != nil {

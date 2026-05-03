@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"database/sql"
@@ -10,9 +10,9 @@ import (
 )
 
 // SaveStreamer saves a streamer to the database (shared pool)
-func (db *DB) SaveStreamer(streamer model.Streamer) (int64, error) {
+func (s *Store) SaveStreamer(streamer model.Streamer) (int64, error) {
 	var id int64
-	err := db.SQL.QueryRow(
+	err := s.db.SQL.QueryRow(
 		`INSERT INTO streamers (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
 		streamer.Name,
 	).Scan(&id)
@@ -24,9 +24,9 @@ func (db *DB) SaveStreamer(streamer model.Streamer) (int64, error) {
 }
 
 // GetStreamerByName retrieves a streamer by name
-func (db *DB) GetStreamerByName(name string) (*model.Streamer, error) {
+func (s *Store) GetStreamerByName(name string) (*model.Streamer, error) {
 	var streamer model.Streamer
-	err := db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE name = $1`, name).Scan(&streamer.ID, &streamer.Name)
+	err := s.db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE name = $1`, name).Scan(&streamer.ID, &streamer.Name)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -38,9 +38,9 @@ func (db *DB) GetStreamerByName(name string) (*model.Streamer, error) {
 }
 
 // GetStreamerByID retrieves a streamer by ID
-func (db *DB) GetStreamerByID(id int) (*model.Streamer, error) {
+func (s *Store) GetStreamerByID(id int) (*model.Streamer, error) {
 	var streamer model.Streamer
-	err := db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE id = $1`, id).Scan(&streamer.ID, &streamer.Name)
+	err := s.db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE id = $1`, id).Scan(&streamer.ID, &streamer.Name)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -52,8 +52,8 @@ func (db *DB) GetStreamerByID(id int) (*model.Streamer, error) {
 }
 
 // FindOrCreateStreamer finds or creates a streamer (idempotent)
-func (db *DB) FindOrCreateStreamer(name string) (*model.Streamer, error) {
-	streamer, err := db.GetStreamerByName(name)
+func (s *Store) FindOrCreateStreamer(name string) (*model.Streamer, error) {
+	streamer, err := s.GetStreamerByName(name)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (db *DB) FindOrCreateStreamer(name string) (*model.Streamer, error) {
 		return streamer, nil
 	}
 
-	id, err := db.SaveStreamer(model.Streamer{Name: name})
+	id, err := s.SaveStreamer(model.Streamer{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (db *DB) FindOrCreateStreamer(name string) (*model.Streamer, error) {
 }
 
 // ListTrackedStreamers returns streamers a user is tracking with pagination
-func (db *DB) ListTrackedStreamers(userID string, limit, offset int) ([]model.Streamer, error) {
+func (s *Store) ListTrackedStreamers(userID string, limit, offset int) ([]model.Streamer, error) {
 	query := `SELECT s.id, s.name 
 	          FROM streamers s
 	          INNER JOIN user_tracked_streamers uts ON s.id = uts.streamer_id
@@ -78,7 +78,7 @@ func (db *DB) ListTrackedStreamers(userID string, limit, offset int) ([]model.St
 	          ORDER BY uts.tracked_at DESC
 	          LIMIT $2 OFFSET $3`
 
-	rows, err := db.SQL.Query(query, userID, limit, offset)
+	rows, err := s.db.SQL.Query(query, userID, limit, offset)
 	if err != nil {
 		logging.Error("Failed to list tracked streamers", "userID", userID, "error", err)
 		return nil, err
@@ -102,9 +102,9 @@ func (db *DB) ListTrackedStreamers(userID string, limit, offset int) ([]model.St
 }
 
 // TrackStreamer adds a tracking relationship (idempotent)
-func (db *DB) TrackStreamer(userID string, streamerID int64) error {
+func (s *Store) TrackStreamer(userID string, streamerID int64) error {
 	query := `INSERT INTO user_tracked_streamers (user_id, streamer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
-	_, err := db.SQL.Exec(query, userID, streamerID)
+	_, err := s.db.SQL.Exec(query, userID, streamerID)
 	if err != nil {
 		logging.Error("Failed to track streamer", "userID", userID, "streamerID", streamerID, "error", err)
 	}
@@ -112,9 +112,9 @@ func (db *DB) TrackStreamer(userID string, streamerID int64) error {
 }
 
 // UntrackStreamer removes a tracking relationship
-func (db *DB) UntrackStreamer(userID string, streamerID int64) error {
+func (s *Store) UntrackStreamer(userID string, streamerID int64) error {
 	query := `DELETE FROM user_tracked_streamers WHERE user_id = $1 AND streamer_id = $2`
-	_, err := db.SQL.Exec(query, userID, streamerID)
+	_, err := s.db.SQL.Exec(query, userID, streamerID)
 	if err != nil {
 		logging.Error("Failed to untrack streamer", "userID", userID, "streamerID", streamerID, "error", err)
 	}
@@ -122,10 +122,10 @@ func (db *DB) UntrackStreamer(userID string, streamerID int64) error {
 }
 
 // IsTrackingStreamer checks if user is tracking a streamer
-func (db *DB) IsTrackingStreamer(userID string, streamerID int64) (bool, error) {
+func (s *Store) IsTrackingStreamer(userID string, streamerID int64) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM user_tracked_streamers WHERE user_id = $1 AND streamer_id = $2)`
 	var exists bool
-	err := db.SQL.QueryRow(query, userID, streamerID).Scan(&exists)
+	err := s.db.SQL.QueryRow(query, userID, streamerID).Scan(&exists)
 	if err != nil {
 		logging.Error("Failed to check streamer tracking status", "userID", userID, "streamerID", streamerID, "error", err)
 		return false, err
@@ -134,12 +134,12 @@ func (db *DB) IsTrackingStreamer(userID string, streamerID int64) (bool, error) 
 }
 
 // GetTrackedStreamersForSync returns all streamers with at least one tracker (for background jobs)
-func (db *DB) GetTrackedStreamersForSync() ([]model.Streamer, error) {
+func (s *Store) GetTrackedStreamersForSync() ([]model.Streamer, error) {
 	query := `SELECT DISTINCT s.id, s.name 
 	          FROM streamers s
 	          INNER JOIN user_tracked_streamers uts ON s.id = uts.streamer_id`
 
-	rows, err := db.SQL.Query(query)
+	rows, err := s.db.SQL.Query(query)
 	if err != nil {
 		logging.Error("Failed to get tracked streamers for sync", "error", err)
 		return nil, err
@@ -163,8 +163,8 @@ func (db *DB) GetTrackedStreamersForSync() ([]model.Streamer, error) {
 }
 
 // DeleteStreamer deletes a streamer by name (admin only)
-func (db *DB) DeleteStreamer(name string) (bool, error) {
-	res, err := db.SQL.Exec(
+func (s *Store) DeleteStreamer(name string) (bool, error) {
+	res, err := s.db.SQL.Exec(
 		`DELETE FROM streamers WHERE name = $1`,
 		name,
 	)
@@ -177,8 +177,8 @@ func (db *DB) DeleteStreamer(name string) (bool, error) {
 }
 
 // ListStreamers lists all streamers with pagination (for admin/internal use)
-func (db *DB) ListStreamers(limit, offset int) ([]model.Streamer, error) {
-	rows, err := db.SQL.Query("SELECT id, name FROM streamers ORDER BY name LIMIT $1 OFFSET $2", limit, offset)
+func (s *Store) ListStreamers(limit, offset int) ([]model.Streamer, error) {
+	rows, err := s.db.SQL.Query("SELECT id, name FROM streamers ORDER BY name LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		logging.Error("Failed to query streamers from database", "error", err)
 		return nil, err
@@ -202,7 +202,7 @@ func (db *DB) ListStreamers(limit, offset int) ([]model.Streamer, error) {
 }
 
 // ListChannels lists channels with optional filtering and pagination
-func (db *DB) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]model.Channel, error) {
+func (s *Store) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]model.Channel, error) {
 	query := `SELECT id, streamer_id, platform, channel_name, avatar_url, synced_at FROM channels`
 	var where []string
 	var args []any
@@ -237,7 +237,7 @@ func (db *DB) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]mo
 	query += fmt.Sprintf(" ORDER BY id LIMIT $%d OFFSET $%d", argN, argN+1)
 	args = append(args, limit, offset)
 
-	rows, err := db.SQL.Query(query, args...)
+	rows, err := s.db.SQL.Query(query, args...)
 	if err != nil {
 		logging.Error("Failed to query channels from database", "error", err)
 		return nil, err
@@ -265,8 +265,8 @@ func (db *DB) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]mo
 	return channels, nil
 }
 
-func (db *DB) SaveChannel(channel model.Channel) (bool, error) {
-	res, err := db.SQL.Exec(
+func (s *Store) SaveChannel(channel model.Channel) (bool, error) {
+	res, err := s.db.SQL.Exec(
 		`INSERT INTO channels (streamer_id, platform, channel_name, id, avatar_url) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
 		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ID, channel.AvatarURL,
 	)
@@ -286,7 +286,7 @@ var allowedChannelColumns = map[string]bool{
 	"platform":     true,
 }
 
-func (db *DB) UpdateChannel(channelID string, updates map[string]any) (bool, error) {
+func (s *Store) UpdateChannel(channelID string, updates map[string]any) (bool, error) {
 	var setClauses []string
 	var args []any
 	argN := 1
@@ -306,7 +306,7 @@ func (db *DB) UpdateChannel(channelID string, updates map[string]any) (bool, err
 
 	query := `UPDATE channels SET ` + strings.Join(setClauses, ", ") + fmt.Sprintf(` WHERE id = $%d`, argN)
 
-	res, err := db.SQL.Exec(query, args...)
+	res, err := s.db.SQL.Exec(query, args...)
 	if err != nil {
 		logging.Error("Failed to update channel in database", "channelID", channelID, "error", err)
 		return false, err
@@ -315,8 +315,8 @@ func (db *DB) UpdateChannel(channelID string, updates map[string]any) (bool, err
 	return (n != 0), nil
 }
 
-func (db *DB) DeleteChannel(channelID string) (bool, error) {
-	res, err := db.SQL.Exec(
+func (s *Store) DeleteChannel(channelID string) (bool, error) {
+	res, err := s.db.SQL.Exec(
 		`DELETE FROM channels WHERE id = $1`,
 		channelID,
 	)

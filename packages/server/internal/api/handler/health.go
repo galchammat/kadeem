@@ -5,18 +5,18 @@ import (
 	"net/http"
 
 	"github.com/galchammat/kadeem/internal/api/models"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/riot/datadragon"
 )
 
 type HealthHandler struct {
 	version          string
-	db               *database.DB
+	db               *platformdb.DB
 	dataDragonClient *datadragon.DataDragonClient
 }
 
-func NewHealthHandler(version string, db *database.DB, ddClient *datadragon.DataDragonClient) *HealthHandler {
+func NewHealthHandler(version string, db *platformdb.DB, ddClient *datadragon.DataDragonClient) *HealthHandler {
 	return &HealthHandler{
 		version:          version,
 		db:               db,

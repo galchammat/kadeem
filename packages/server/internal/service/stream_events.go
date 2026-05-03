@@ -3,19 +3,19 @@ package service
 import (
 	"fmt"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/model"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
 // StreamEventsService manages stream event syncing and retrieval.
 type StreamEventsService struct {
-	db     *database.DB
+	db     *twitchstore.Store
 	twitch *twitch.TwitchClient
 }
 
 // NewStreamEventsService creates a new StreamEventsService.
-func NewStreamEventsService(db *database.DB, twitchClient *twitch.TwitchClient) *StreamEventsService {
+func NewStreamEventsService(db *twitchstore.Store, twitchClient *twitch.TwitchClient) *StreamEventsService {
 	return &StreamEventsService{db: db, twitch: twitchClient}
 }
 

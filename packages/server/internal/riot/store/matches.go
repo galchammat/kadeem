@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"database/sql"
@@ -16,11 +16,11 @@ type SQLExecutor interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-func (db *DB) InsertLolMatchSummary(summary *model.LolMatchSummary) error {
-	return db.insertLolMatchSummaryExec(db.SQL, summary)
+func (s *Store) InsertLolMatchSummary(summary *model.LolMatchSummary) error {
+	return s.insertLolMatchSummaryExec(s.db.SQL, summary)
 }
 
-func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatchSummary) error {
+func (s *Store) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatchSummary) error {
 	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
 		return fmt.Errorf("match summary is missing required fields")
 	}
@@ -56,7 +56,7 @@ var allowedMatchColumns = map[string]bool{
 	"replay_sync_attempted_at": true,
 }
 
-func (db *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
+func (s *Store) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
 	var setClauses []string
 	var args []any
 	argN := 1
@@ -76,7 +76,7 @@ func (db *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error
 
 	query := `UPDATE lol_matches SET ` + strings.Join(setClauses, ", ") + fmt.Sprintf(` WHERE id = $%d`, argN)
 
-	res, err := db.SQL.Exec(query, args...)
+	res, err := s.db.SQL.Exec(query, args...)
 	if err != nil {
 		logging.Error("Failed to update match in database", "matchID", matchID, "error", err)
 		return false, err
@@ -87,24 +87,24 @@ func (db *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error
 
 // InsertLolMatchWithParticipants atomically inserts a match summary and all its participants
 // in a single transaction. If any insert fails, the entire transaction is rolled back.
-func (db *DB) InsertLolMatchWithParticipants(
+func (s *Store) InsertLolMatchWithParticipants(
 	summary *model.LolMatchSummary,
 	participants []model.LolMatchParticipantSummary,
 ) error {
-	tx, err := db.SQL.Begin()
+	tx, err := s.db.SQL.Begin()
 	if err != nil {
 		logging.Error("Failed to begin transaction for match insert", "matchID", summary.ID, "error", err)
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
-	if err := db.insertLolMatchSummaryExec(tx, summary); err != nil {
+	if err := s.insertLolMatchSummaryExec(tx, summary); err != nil {
 		return err
 	}
 
 	for i, participant := range participants {
 		participant.GameID = summary.ID
-		if err := db.insertLolMatchParticipantSummaryExec(tx, &participant); err != nil {
+		if err := s.insertLolMatchParticipantSummaryExec(tx, &participant); err != nil {
 			logging.Error(
 				"Failed to insert participant, rolling back",
 				"matchID", summary.ID,
@@ -125,11 +125,11 @@ func (db *DB) InsertLolMatchWithParticipants(
 	return nil
 }
 
-func (db *DB) InsertLolMatchParticipantSummary(participant *model.LolMatchParticipantSummary) error {
-	return db.insertLolMatchParticipantSummaryExec(db.SQL, participant)
+func (s *Store) InsertLolMatchParticipantSummary(participant *model.LolMatchParticipantSummary) error {
+	return s.insertLolMatchParticipantSummaryExec(s.db.SQL, participant)
 }
 
-func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *model.LolMatchParticipantSummary) error {
+func (s *Store) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *model.LolMatchParticipantSummary) error {
 	if participant == nil {
 		return fmt.Errorf("participant summary cannot be nil")
 	}
@@ -208,7 +208,7 @@ func (db *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant
 	return err
 }
 
-func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int) ([]model.LolMatch, error) {
+func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int) ([]model.LolMatch, error) {
 	// Clamp limit
 	if limit <= 0 || limit > 100 {
 		limit = 100
@@ -277,7 +277,7 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 	args = append(args, limit, offset)
 
 	// Step 2: Execute to get match IDs
-	rows, err := db.SQL.Query(matchIDQuery, args...)
+	rows, err := s.db.SQL.Query(matchIDQuery, args...)
 	if err != nil {
 		logging.Error("Failed to query match IDs from database", "error", err)
 		return nil, err
@@ -326,7 +326,7 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 	`, strings.Join(placeholders, ", "))
 
 	// Step 4: Execute
-	fullRows, err := db.SQL.Query(fullQuery, fullArgs...)
+	fullRows, err := s.db.SQL.Query(fullQuery, fullArgs...)
 	if err != nil {
 		logging.Error("Failed to query full match data from database", "error", err)
 		return nil, err

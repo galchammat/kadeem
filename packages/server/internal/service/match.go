@@ -11,18 +11,18 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/constants"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 )
 
 type MatchService struct {
-	db   *database.DB
+	db   *riotstore.Store
 	riot *riot.Client
 }
 
-func NewMatchService(db *database.DB, riot *riot.Client) *MatchService {
+func NewMatchService(db *riotstore.Store, riot *riot.Client) *MatchService {
 	return &MatchService{db: db, riot: riot}
 }
 

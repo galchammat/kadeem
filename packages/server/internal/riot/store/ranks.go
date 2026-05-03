@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/galchammat/kadeem/internal/model"
 )
 
-func (db *DB) InsertPlayerRank(rank *model.PlayerRank) error {
+func (s *Store) InsertPlayerRank(rank *model.PlayerRank) error {
 	query := `
         INSERT INTO player_ranks 
         (puuid, timestamp, tier, rank, league_points, wins, losses, queue_id)
@@ -19,7 +19,7 @@ func (db *DB) InsertPlayerRank(rank *model.PlayerRank) error {
             wins = EXCLUDED.wins,
             losses = EXCLUDED.losses`
 
-	_, err := db.SQL.Exec(query,
+	_, err := s.db.SQL.Exec(query,
 		rank.PUUID, rank.Timestamp, rank.Tier, rank.Rank,
 		rank.LeaguePoints, rank.Wins, rank.Losses, rank.QueueId)
 
@@ -30,7 +30,7 @@ func (db *DB) InsertPlayerRank(rank *model.PlayerRank) error {
 }
 
 // GetRankAtTime fetches the rank closest to (but not after) a given timestamp
-func (db *DB) GetRankAtTime(puuid string, queueID int, timestamp int64) (*model.PlayerRank, error) {
+func (s *Store) GetRankAtTime(puuid string, queueID int, timestamp int64) (*model.PlayerRank, error) {
 	query := `
         SELECT puuid, timestamp, tier, rank, league_points, wins, losses, queue_id
         FROM player_ranks
@@ -39,7 +39,7 @@ func (db *DB) GetRankAtTime(puuid string, queueID int, timestamp int64) (*model.
         LIMIT 1`
 
 	var rank model.PlayerRank
-	err := db.SQL.QueryRow(query, puuid, queueID, timestamp).Scan(
+	err := s.db.SQL.QueryRow(query, puuid, queueID, timestamp).Scan(
 		&rank.PUUID, &rank.Timestamp, &rank.Tier, &rank.Rank,
 		&rank.LeaguePoints, &rank.Wins, &rank.Losses, &rank.QueueId)
 

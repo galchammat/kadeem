@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/galchammat/kadeem/internal/model"
 )
 
-func (db *DB) ListBroadcasts(filter *model.Broadcast, limit int, offset int) ([]model.Broadcast, error) {
+func (s *Store) ListBroadcasts(filter *model.Broadcast, limit int, offset int) ([]model.Broadcast, error) {
 	if filter == nil || filter.ChannelID == "" {
 		return nil, fmt.Errorf("channel_id is required for ListBroadcasts")
 	}
@@ -18,7 +18,7 @@ func (db *DB) ListBroadcasts(filter *model.Broadcast, limit int, offset int) ([]
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3`
 
-	rows, err := db.SQL.Query(query, filter.ChannelID, limit, offset)
+	rows, err := s.db.SQL.Query(query, filter.ChannelID, limit, offset)
 	if err != nil {
 		logging.Error("Failed to query broadcasts", "channelID", filter.ChannelID, "error", err)
 		return nil, err
@@ -51,7 +51,7 @@ func (db *DB) ListBroadcasts(filter *model.Broadcast, limit int, offset int) ([]
 	return broadcasts, nil
 }
 
-func (db *DB) InsertBroadcasts(broadcasts []model.Broadcast) error {
+func (s *Store) InsertBroadcasts(broadcasts []model.Broadcast) error {
 	if len(broadcasts) == 0 {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (db *DB) InsertBroadcasts(broadcasts []model.Broadcast) error {
 	query += strings.Join(placeholders, ", ")
 	query += ` ON CONFLICT (channel_id, url) DO NOTHING`
 
-	_, err := db.SQL.Exec(query, args...)
+	_, err := s.db.SQL.Exec(query, args...)
 	if err != nil {
 		logging.Error("Failed to insert broadcasts", "error", err)
 	}

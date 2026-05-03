@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"database/sql"
@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/galchammat/kadeem/internal/model"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTestDB(t *testing.T) (*DB, func()) {
+func setupTestDB(t *testing.T) (*Store, func()) {
 	// Create a temporary database file
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
@@ -26,7 +27,7 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 		t.Fatalf("Failed to enable foreign keys: %v", err)
 	}
 
-	db := &DB{SQL: sqlDB}
+	store := New(&platformdb.DB{SQL: sqlDB})
 
 	// Create tables
 	createMatchesTable := `
@@ -88,7 +89,7 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 		os.RemoveAll(tmpDir)
 	}
 
-	return db, cleanup
+	return store, cleanup
 }
 
 func TestListLolMatches_HandlesOrphanedMatches(t *testing.T) {
@@ -100,7 +101,7 @@ func TestListLolMatches_HandlesOrphanedMatches(t *testing.T) {
 	startedAt := int64(1600000000)
 	duration := 1800
 
-	_, err := db.SQL.Exec(
+	_, err := db.db.SQL.Exec(
 		"INSERT INTO lol_matches (id, started_at, duration) VALUES (?, ?, ?)",
 		matchID, startedAt, duration,
 	)
@@ -196,7 +197,7 @@ func TestInsertLolMatchWithParticipants_Transaction(t *testing.T) {
 
 	// Verify match was inserted
 	var count int
-	err = db.SQL.QueryRow("SELECT COUNT(*) FROM lol_matches WHERE id = ?", matchID).Scan(&count)
+	err = db.db.SQL.QueryRow("SELECT COUNT(*) FROM lol_matches WHERE id = ?", matchID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query matches: %v", err)
 	}
@@ -205,7 +206,7 @@ func TestInsertLolMatchWithParticipants_Transaction(t *testing.T) {
 	}
 
 	// Verify participant was inserted
-	err = db.SQL.QueryRow("SELECT COUNT(*) FROM participants WHERE match_id = ?", matchID).Scan(&count)
+	err = db.db.SQL.QueryRow("SELECT COUNT(*) FROM participants WHERE match_id = ?", matchID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Failed to query participants: %v", err)
 	}

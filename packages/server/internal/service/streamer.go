@@ -5,18 +5,18 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/constants"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
 type StreamerService struct {
-	db     *database.DB
+	db     *twitchstore.Store
 	twitch *twitch.TwitchClient
 }
 
-func NewStreamerService(db *database.DB, twitchClient *twitch.TwitchClient) *StreamerService {
+func NewStreamerService(db *twitchstore.Store, twitchClient *twitch.TwitchClient) *StreamerService {
 	return &StreamerService{db: db, twitch: twitchClient}
 }
 

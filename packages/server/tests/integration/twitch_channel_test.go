@@ -5,10 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/model"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,13 +18,14 @@ func testAddStreamer(t *testing.T) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
 		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
 	}
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		t.Fatal("Failed to connect to test database:", err)
 	}
 	defer db.SQL.Close()
+	store := twitchstore.New(db)
 
-	id, err := db.SaveStreamer(model.Streamer{
+	id, err := store.SaveStreamer(model.Streamer{
 		Name: "tarzaned",
 	})
 	if err != nil {
@@ -41,16 +43,17 @@ func testAddTwitchChannel(t *testing.T) {
 		t.Skip("Skipping integration test; set RUN_INTEGRATION_TESTS=true to run it")
 	}
 
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		t.Fatal("Failed to connect to test database:", err)
 	}
 	defer db.SQL.Close()
+	store := twitchstore.New(db)
 
 	twitchClient := twitch.NewTwitchClient(context.Background())
-	streamerSvc := service.NewStreamerService(db, twitchClient)
+	streamerSvc := service.NewStreamerService(store, twitchClient)
 
-	streamers, err := db.ListStreamers(1000, 0)
+	streamers, err := store.ListStreamers(1000, 0)
 	if err != nil {
 		t.Fatal("Failed to list streamers:", err)
 	}

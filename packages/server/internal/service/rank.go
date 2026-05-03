@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 )
 
 type RankService struct {
-	db   *database.DB
+	db   *riotstore.Store
 	riot *riot.Client
 }
 
-func NewRankService(db *database.DB, riot *riot.Client) *RankService {
+func NewRankService(db *riotstore.Store, riot *riot.Client) *RankService {
 	return &RankService{db: db, riot: riot}
 }
 

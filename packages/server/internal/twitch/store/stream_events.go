@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 // ListStreamEvents returns stream events matching the filter, ordered by timestamp descending.
-func (db *DB) ListStreamEvents(filter *model.StreamEventFilter, limit, offset int) ([]model.StreamEvent, error) {
+func (s *Store) ListStreamEvents(filter *model.StreamEventFilter, limit, offset int) ([]model.StreamEvent, error) {
 	query := `SELECT se.id, se.channel_id, se.event_type, se.title, se.description,
 	                 se.timestamp, se.value, se.external_id
 	          FROM stream_events se`
@@ -56,7 +56,7 @@ func (db *DB) ListStreamEvents(filter *model.StreamEventFilter, limit, offset in
 	query += fmt.Sprintf(" ORDER BY se.timestamp DESC LIMIT $%d OFFSET $%d", argN, argN+1)
 	args = append(args, limit, offset)
 
-	rows, err := db.SQL.Query(query, args...)
+	rows, err := s.db.SQL.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list stream events: %w", err)
 	}
@@ -77,12 +77,12 @@ func (db *DB) ListStreamEvents(filter *model.StreamEventFilter, limit, offset in
 }
 
 // UpsertStreamEvents inserts stream events, ignoring duplicates by (channel_id, external_id).
-func (db *DB) UpsertStreamEvents(events []model.StreamEvent) error {
+func (s *Store) UpsertStreamEvents(events []model.StreamEvent) error {
 	if len(events) == 0 {
 		return nil
 	}
 
-	tx, err := db.SQL.Begin()
+	tx, err := s.db.SQL.Begin()
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}

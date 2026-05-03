@@ -7,23 +7,26 @@ import (
 
 	"github.com/galchammat/kadeem/internal/api/middleware"
 	apiModels "github.com/galchammat/kadeem/internal/api/models"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 	"github.com/galchammat/kadeem/internal/service"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/go-chi/chi/v5"
 )
 
 type RiotHandler struct {
-	db       *database.DB
+	db       *riotstore.Store
+	twitch   *twitchstore.Store
 	accounts *service.AccountService
 	matches  *service.MatchService
 	ranks    *service.RankService
 }
 
-func NewRiotHandler(db *database.DB, accounts *service.AccountService, matches *service.MatchService, ranks *service.RankService) *RiotHandler {
+func NewRiotHandler(db *riotstore.Store, twitchStore *twitchstore.Store, accounts *service.AccountService, matches *service.MatchService, ranks *service.RankService) *RiotHandler {
 	return &RiotHandler{
 		db:       db,
+		twitch:   twitchStore,
 		accounts: accounts,
 		matches:  matches,
 		ranks:    ranks,
@@ -45,7 +48,7 @@ func (h *RiotHandler) AddAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	streamer, err := h.db.GetStreamerByID(req.StreamerID)
+	streamer, err := h.twitch.GetStreamerByID(req.StreamerID)
 	if err != nil {
 		logging.Error("Failed to look up streamer", "streamerID", req.StreamerID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to add account")

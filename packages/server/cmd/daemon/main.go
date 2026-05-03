@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/api"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/joho/godotenv"
 )
 
@@ -24,7 +26,9 @@ func init() {
 }
 
 type daemon struct {
-	db           *database.DB
+	db           *platformdb.DB
+	riotStore    *riotstore.Store
+	twitchStore  *twitchstore.Store
 	matches      *service.MatchService
 	ranks        *service.RankService
 	streamEvents *service.StreamEventsService
@@ -34,7 +38,7 @@ func main() {
 	logging.Init(os.Stderr, slog.LevelInfo)
 	logging.Info("Starting Kadeem daemon")
 
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		logging.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
@@ -43,11 +47,15 @@ func main() {
 
 	riotClient := riot.NewClient()
 	twitchClient := twitch.NewTwitchClient(context.Background())
+	riotStore := riotstore.New(db)
+	twitchStore := twitchstore.New(db)
 	d := &daemon{
 		db:           db,
-		matches:      service.NewMatchService(db, riotClient),
-		ranks:        service.NewRankService(db, riotClient),
-		streamEvents: service.NewStreamEventsService(db, twitchClient),
+		riotStore:    riotStore,
+		twitchStore:  twitchStore,
+		matches:      service.NewMatchService(riotStore, riotClient),
+		ranks:        service.NewRankService(riotStore, riotClient),
+		streamEvents: service.NewStreamEventsService(twitchStore, twitchClient),
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -81,7 +89,7 @@ func main() {
 			port = "8080"
 		}
 		logging.Info("Starting API server", "port", port)
-		if err := api.StartServer(ctx, db, port); err != nil {
+		if err := api.StartServer(ctx, db, riotStore, twitchStore, port); err != nil {
 			logging.Error("API server stopped", "error", err)
 		}
 	}()
@@ -125,7 +133,7 @@ func (d *daemon) runSyncLoop(ctx context.Context, interval time.Duration, name s
 
 func (d *daemon) syncMatches() {
 	logging.Info("Starting match sync")
-	accounts, err := d.db.GetTrackedAccountsForSync()
+	accounts, err := d.riotStore.GetTrackedAccountsForSync()
 	if err != nil {
 		logging.Error("Failed to list accounts for sync", "error", err)
 		return
@@ -142,7 +150,7 @@ func (d *daemon) syncMatches() {
 
 func (d *daemon) syncRanks() {
 	logging.Info("Starting rank sync")
-	accounts, err := d.db.GetTrackedAccountsForSync()
+	accounts, err := d.riotStore.GetTrackedAccountsForSync()
 	if err != nil {
 		logging.Error("Failed to list accounts for rank sync", "error", err)
 		return
@@ -160,7 +168,7 @@ func (d *daemon) syncRanks() {
 func (d *daemon) syncStreamEvents() {
 	logging.Info("Starting stream events sync")
 	platform := "twitch"
-	channels, err := d.db.ListChannels(&model.ChannelFilter{Platform: &platform}, 1000, 0)
+	channels, err := d.twitchStore.ListChannels(&model.ChannelFilter{Platform: &platform}, 1000, 0)
 	if err != nil {
 		logging.Error("Failed to list channels for stream events sync", "error", err)
 		return

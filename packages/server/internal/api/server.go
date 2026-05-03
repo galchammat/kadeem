@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/api/handler"
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/datadragon"
+	riotstore "github.com/galchammat/kadeem/internal/riot/store"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -30,7 +32,7 @@ type Server struct {
 }
 
 // NewServer creates a new API server
-func NewServer(db *database.DB, port string) *Server {
+func NewServer(db *platformdb.DB, riotStore *riotstore.Store, twitchStore *twitchstore.Store, port string) *Server {
 	// Create clients
 	ctx := context.Background()
 	riotClient := riot.NewClient()
@@ -38,11 +40,11 @@ func NewServer(db *database.DB, port string) *Server {
 	twitchClient := twitch.NewTwitchClient(ctx)
 
 	// Create services
-	accountSvc := service.NewAccountService(db, riotClient)
-	matchSvc := service.NewMatchService(db, riotClient)
-	rankSvc := service.NewRankService(db, riotClient)
-	streamerSvc := service.NewStreamerService(db, twitchClient)
-	streamEventsSvc := service.NewStreamEventsService(db, twitchClient)
+	accountSvc := service.NewAccountService(riotStore, riotClient)
+	matchSvc := service.NewMatchService(riotStore, riotClient)
+	rankSvc := service.NewRankService(riotStore, riotClient)
+	streamerSvc := service.NewStreamerService(twitchStore, twitchClient)
+	streamEventsSvc := service.NewStreamEventsService(twitchStore, twitchClient)
 
 	// Get frontend domain from env
 	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
@@ -69,7 +71,7 @@ func NewServer(db *database.DB, port string) *Server {
 		allowedOrigins:    allowedOrigins,
 		jwksURL:           jwksURL,
 		healthHandler:     handler.NewHealthHandler(version, db, dataDragonClient),
-		riotHandler:       handler.NewRiotHandler(db, accountSvc, matchSvc, rankSvc),
+		riotHandler:       handler.NewRiotHandler(riotStore, twitchStore, accountSvc, matchSvc, rankSvc),
 		dataDragonHandler: handler.NewDataDragonHandler(dataDragonClient),
 		livestreamHandler: handler.NewLivestreamHandler(streamerSvc),
 		eventsHandler:     handler.NewEventsHandler(streamEventsSvc),
@@ -104,8 +106,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 // StartServer starts the API server (for daemon integration)
-func StartServer(ctx context.Context, db *database.DB, port string) error {
-	server := NewServer(db, port)
+func StartServer(ctx context.Context, db *platformdb.DB, riotStore *riotstore.Store, twitchStore *twitchstore.Store, port string) error {
+	server := NewServer(db, riotStore, twitchStore, port)
 
 	go func() {
 		if err := server.Start(); err != nil && err != http.ErrServerClosed {

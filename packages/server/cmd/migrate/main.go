@@ -11,8 +11,8 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 
-	"github.com/galchammat/kadeem/internal/database"
 	"github.com/galchammat/kadeem/internal/logging"
+	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 )
 
 func init() {
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	logging.Info("Starting database migration...", "command", command)
-	db, err := database.OpenDB()
+	db, err := platformdb.OpenDB()
 	if err != nil {
 		logging.Error("Error opening database", "error", err)
 		os.Exit(1)
