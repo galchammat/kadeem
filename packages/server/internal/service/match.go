@@ -60,7 +60,7 @@ func (s *MatchService) SyncMatches(account model.LolAccount) error {
 		}
 
 		// Download the replay if record does not exist or has no replay
-		if existingMatch == nil || existingMatch.ReplayURL == nil {
+		if existingMatch == nil || existingMatch.Summary.ReplayS3Key == nil {
 			logging.Debug("Downloading replay", "MatchID", matchID, "URL", url)
 			if err := s.SyncMatchReplay(matchID, url); err != nil {
 				logging.Warn("Skipping replay download due to error", "MatchID", matchID)
@@ -111,10 +111,11 @@ func (s *MatchService) SyncMatchSummary(matchID int64, fullMatchID, region strin
 
 // SyncMatchReplay downloads a replay file and marks it synced in DB.
 func (s *MatchService) SyncMatchReplay(matchID int64, replayURL string) error {
-	if err := downloadReplay(matchID, replayURL); err != nil {
+	replayPath, err := downloadReplay(matchID, replayURL)
+	if err != nil {
 		return fmt.Errorf("error downloading replay: %v", err)
 	}
-	_, err := s.db.UpdateLolMatch(matchID, map[string]any{"replay_synced": true})
+	_, err = s.db.UpdateLolMatch(matchID, map[string]any{"replay_s3_key": replayPath})
 	return err
 }
 
@@ -175,37 +176,37 @@ func replayExists(filePath string) bool {
 	return err == nil && info.Size() > 1024*1024 // > 1MB
 }
 
-func downloadReplay(matchID int64, replayURL string) error {
+func downloadReplay(matchID int64, replayURL string) (string, error) {
 	if replayURL == "" {
-		return fmt.Errorf("replay URL cannot be empty")
+		return "", fmt.Errorf("replay URL cannot be empty")
 	}
 
 	replaysDir := replayStorageDir()
 	if err := os.MkdirAll(replaysDir, 0o755); err != nil {
 		logging.Error("Failed to create replays directory", "path", replaysDir, "error", err)
-		return err
+		return "", err
 	}
 
 	filePath := filepath.Join(replaysDir, fmt.Sprintf("%d.rofl", matchID))
 	if replayExists(filePath) {
-		return nil
+		return filePath, nil
 	}
 
 	resp, err := http.Get(replayURL)
 	if err != nil {
 		logging.Error("Failed to download replay from URL", "matchID", matchID, "url", replayURL, "error", err)
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("replay download failed with status code %d", resp.StatusCode)
+		return "", fmt.Errorf("replay download failed with status code %d", resp.StatusCode)
 	}
 
 	outFile, err := os.Create(filePath)
 	if err != nil {
 		logging.Error("Failed to create replay file", "matchID", matchID, "path", filePath, "error", err)
-		return err
+		return "", err
 	}
 	defer outFile.Close()
 
@@ -213,8 +214,8 @@ func downloadReplay(matchID int64, replayURL string) error {
 		logging.Error("Failed to write replay data to file", "matchID", matchID, "path", filePath, "error", err)
 		_ = outFile.Close()
 		_ = os.Remove(filePath)
-		return err
+		return "", err
 	}
 
-	return nil
+	return filePath, nil
 }

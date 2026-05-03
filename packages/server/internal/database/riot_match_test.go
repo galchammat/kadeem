@@ -35,7 +35,9 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 			started_at BIGINT NOT NULL,
 			duration INTEGER NOT NULL,
 			queue_id INTEGER NOT NULL DEFAULT 0,
-			replay_synced BOOLEAN DEFAULT FALSE
+			replay_s3_key TEXT,
+			replay_sync_error TEXT,
+			replay_sync_attempted_at TIMESTAMP
 		);
 	`
 	if _, err := sqlDB.Exec(createMatchesTable); err != nil {
@@ -99,8 +101,8 @@ func TestListLolMatches_HandlesOrphanedMatches(t *testing.T) {
 	duration := 1800
 
 	_, err := db.SQL.Exec(
-		"INSERT INTO lol_matches (id, started_at, duration, replay_synced) VALUES (?, ?, ?, ?)",
-		matchID, startedAt, duration, false,
+		"INSERT INTO lol_matches (id, started_at, duration) VALUES (?, ?, ?)",
+		matchID, startedAt, duration,
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert orphaned match: %v", err)

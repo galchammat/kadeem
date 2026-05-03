@@ -25,11 +25,6 @@ func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatc
 		return fmt.Errorf("match summary is missing required fields")
 	}
 
-	replaySynced := false
-	if summary.ReplaySynced != nil {
-		replaySynced = *summary.ReplaySynced
-	}
-
 	queueId := 0
 	if summary.QueueId != nil {
 		queueId = *summary.QueueId
@@ -37,15 +32,14 @@ func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatc
 
 	query := `
 		INSERT INTO lol_matches
-		(id, started_at, duration, queue_id, replay_synced)
-		VALUES ($1, $2, $3, $4, $5)
+		(id, started_at, duration, queue_id)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE SET
 			started_at = EXCLUDED.started_at,
 			duration = EXCLUDED.duration,
-			queue_id = EXCLUDED.queue_id,
-			replay_synced = EXCLUDED.replay_synced`
+			queue_id = EXCLUDED.queue_id`
 
-	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, queueId, replaySynced)
+	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, queueId)
 	if err != nil {
 		logging.Error("Failed to insert match summary into database", "matchID", summary.ID, "error", err)
 	}
@@ -54,10 +48,12 @@ func (db *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatc
 
 // allowedMatchColumns is the set of columns that can be updated via UpdateLolMatch.
 var allowedMatchColumns = map[string]bool{
-	"started_at":    true,
-	"duration":      true,
-	"queue_id":      true,
-	"replay_synced": true,
+	"started_at":               true,
+	"duration":                 true,
+	"queue_id":                 true,
+	"replay_s3_key":            true,
+	"replay_sync_error":        true,
+	"replay_sync_attempted_at": true,
 }
 
 func (db *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
@@ -249,10 +245,12 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 			args = append(args, *filter.StartedAtMax)
 			argN++
 		}
-		if filter.ReplaySynced != nil {
-			where = append(where, fmt.Sprintf("m.replay_synced = $%d", argN))
-			args = append(args, *filter.ReplaySynced)
-			argN++
+		if filter.HasReplay != nil {
+			if *filter.HasReplay {
+				where = append(where, "m.replay_s3_key IS NOT NULL")
+			} else {
+				where = append(where, "m.replay_s3_key IS NULL")
+			}
 		}
 		if filter.ChampionID != nil {
 			where = append(where, fmt.Sprintf("p.champion_id = $%d", argN))
@@ -312,7 +310,8 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 
 	fullQuery := fmt.Sprintf(`
 		SELECT 
-			m.id, m.started_at, m.duration, m.queue_id, m.replay_synced,
+			m.id, m.started_at, m.duration, m.queue_id,
+			m.replay_s3_key, m.replay_sync_error, m.replay_sync_attempted_at,
 			p.match_id, p.champion_id, p.champ_level, p.kills, p.deaths, p.assists,
 			p.total_minions_killed, p.double_kills, p.triple_kills,
 			p.quadra_kills, p.penta_kills, p.item0, p.item1, p.item2,
@@ -371,10 +370,14 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 			nullTotalDamageTaken            sql.NullInt64
 			nullWin                         sql.NullBool
 			nullQueueId                     sql.NullInt64
+			nullReplayS3Key                 sql.NullString
+			nullReplaySyncError             sql.NullString
+			nullReplaySyncAttemptedAt       sql.NullTime
 		)
 
 		err := fullRows.Scan(
-			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId, &summary.ReplaySynced,
+			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
+			&nullReplayS3Key, &nullReplaySyncError, &nullReplaySyncAttemptedAt,
 			&nullMatchID, &nullChampionID, &nullChampLevel, &nullKills,
 			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
 			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
@@ -394,6 +397,18 @@ func (db *DB) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int
 			if nullQueueId.Valid {
 				qid := int(nullQueueId.Int64)
 				summary.QueueId = &qid
+			}
+			if nullReplayS3Key.Valid {
+				replayS3Key := nullReplayS3Key.String
+				summary.ReplayS3Key = &replayS3Key
+			}
+			if nullReplaySyncError.Valid {
+				replaySyncError := nullReplaySyncError.String
+				summary.ReplaySyncError = &replaySyncError
+			}
+			if nullReplaySyncAttemptedAt.Valid {
+				replaySyncAttemptedAt := nullReplaySyncAttemptedAt.Time
+				summary.ReplaySyncAttemptedAt = &replaySyncAttemptedAt
 			}
 			matchMap[summary.ID] = &model.LolMatch{
 				Summary:      summary,

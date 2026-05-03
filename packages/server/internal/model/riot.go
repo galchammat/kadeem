@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type LolApiReplaysResponse struct {
 	URLs []string `json:"matchFileURLs"`
 }
@@ -16,15 +18,16 @@ type LolAccount struct {
 type LolMatch struct {
 	Summary      LolMatchSummary              `json:"summary" db:"-"`
 	Participants []LolMatchParticipantSummary `json:"participants" db:"-"`
-	ReplayURL    *string                      `json:"replay,omitempty" db:"replay"`
 }
 
 type LolMatchSummary struct {
-	ID           int64  `json:"gameId" db:"match_id"`
-	StartedAt    *int64 `json:"startedAt" db:"started_at"`
-	Duration     *int   `json:"duration" db:"duration"`
-	QueueId      *int   `json:"queueId" db:"queue_id"`
-	ReplaySynced *bool  `json:"replaySynced" db:"replay_synced"`
+	ID                    int64      `json:"gameId" db:"match_id"`
+	StartedAt             *int64     `json:"startedAt" db:"started_at"`
+	Duration              *int       `json:"duration" db:"duration"`
+	QueueId               *int       `json:"queueId" db:"queue_id"`
+	ReplayS3Key           *string    `json:"replayS3Key,omitempty" db:"replay_s3_key"`
+	ReplaySyncError       *string    `json:"replaySyncError,omitempty" db:"replay_sync_error"`
+	ReplaySyncAttemptedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
 }
 
 type LolMatchParticipantSummary struct {
@@ -64,7 +67,7 @@ type LolMatchFilter struct {
 	MatchID      *int64
 	StartedAtMin *int64
 	StartedAtMax *int64
-	ReplaySynced *bool
+	HasReplay    *bool
 
 	// Participant filters
 	PUUID      *string
