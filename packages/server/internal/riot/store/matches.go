@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -8,6 +9,20 @@ import (
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/model"
 )
+
+func (s *Store) SaveMatches(ctx context.Context, matches []model.LolMatch) error {
+	for _, match := range matches {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		if err := s.InsertLolMatchWithParticipants(&match.Summary, match.Participants); err != nil {
+			return fmt.Errorf("save match %d: %w", match.Summary.ID, err)
+		}
+	}
+
+	return nil
+}
 
 // SQLExecutor interface allows functions to accept either *sql.DB or *sql.Tx
 type SQLExecutor interface {

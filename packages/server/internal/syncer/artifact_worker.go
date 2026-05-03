@@ -93,6 +93,23 @@ func (w *ArtifactWorker) RunForever(ctx context.Context) error {
 	}
 }
 
+// ProcessPending claims and processes one batch of pending artifacts.
+func (w *ArtifactWorker) ProcessPending(ctx context.Context) (int, error) {
+	artifacts, err := w.store.ClaimPending(ctx, w.cfg.Workers)
+	if err != nil {
+		return 0, fmt.Errorf("claim artifacts: %w", err)
+	}
+
+	for _, artifact := range artifacts {
+		if err := ctx.Err(); err != nil {
+			return len(artifacts), err
+		}
+		w.process(ctx, artifact)
+	}
+
+	return len(artifacts), nil
+}
+
 func (w *ArtifactWorker) runWorker(ctx context.Context, jobs <-chan Artifact) {
 	for {
 		select {
