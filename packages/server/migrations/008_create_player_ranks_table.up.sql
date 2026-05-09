@@ -1,10 +1,3 @@
--- Add queue_id to lol_matches
-ALTER TABLE lol_matches ADD COLUMN queue_id INTEGER;
-
--- Add champ_level to participants
-ALTER TABLE participants ADD COLUMN champ_level INTEGER NOT NULL DEFAULT 1;
-
--- Create rank history table
 CREATE TABLE IF NOT EXISTS player_ranks (
     puuid VARCHAR(78) NOT NULL,
     timestamp BIGINT NOT NULL,

@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS broadcasts (
     viewable VARCHAR(20) NOT NULL,
     created_at BIGINT NOT NULL,
     published_at BIGINT NOT NULL,
-    duration INTEGER
+    duration INTEGER,
+    CONSTRAINT broadcasts_channel_id_url_unique UNIQUE (channel_id, url)
 );

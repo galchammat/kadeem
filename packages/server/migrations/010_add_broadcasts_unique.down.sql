@@ -1,2 +1,0 @@
-ALTER TABLE broadcasts
-DROP CONSTRAINT broadcasts_channel_id_url_unique;
