@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/riot/models"
@@ -25,33 +26,38 @@ func (c *Client) FetchMatchIDs(puuid, region string, startTime *int64) ([]string
 	if puuid == "" {
 		return nil, fmt.Errorf("puuid cannot be empty")
 	}
+	if startTime == nil {
+		defaultStartTime := time.Now().Unix() - 100
+		startTime = &defaultStartTime
+	}
 
+	const count = 100
+	start := 0
 	endpoint := fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid)
-	url := c.buildURL(region, endpoint)
+	matchIDs := []string{}
 
-	// Add query parameters if provided
-	query := ""
-	if startTime != nil {
-		query = fmt.Sprintf("?start=%d", *startTime)
-	}
-	// Always append count=100 (maximum allowed by Riot API)
-	if query == "" {
-		query = "?count=100"
-	} else {
-		query = fmt.Sprintf("%s&count=100", query)
-	}
-	url = url + query
+	for {
+		query := fmt.Sprintf("?start=%d&startTime=%d&count=%d", start, *startTime, count)
+		url := c.buildURL(region, endpoint) + query
 
-	body, _, err := c.makeRequest(url)
-	if err != nil {
-		logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
-		return nil, err
-	}
+		body, _, err := c.makeRequest(url)
+		if err != nil {
+			logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
+			return nil, err
+		}
 
-	var matchIDs []string
-	if err := json.Unmarshal(body, &matchIDs); err != nil {
-		logging.Error("Failed to unmarshal match IDs", "error", err)
-		return nil, err
+		var pageMatchIDs []string
+		if err := json.Unmarshal(body, &pageMatchIDs); err != nil {
+			logging.Error("Failed to unmarshal match IDs", "error", err)
+			return nil, err
+		}
+
+		if len(pageMatchIDs) == 0 {
+			break
+		}
+
+		matchIDs = append(matchIDs, pageMatchIDs...)
+		start += count
 	}
 
 	return matchIDs, nil
