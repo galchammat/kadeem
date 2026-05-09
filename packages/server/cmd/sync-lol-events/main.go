@@ -8,11 +8,11 @@ import (
 	"syscall"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot"
-	riotapi "github.com/galchammat/kadeem/internal/riot/api"
-	riotmodels "github.com/galchammat/kadeem/internal/riot/models"
-	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
+	"github.com/galchammat/kadeem/internal/platform/database"
+	"github.com/galchammat/kadeem/internal/riot"
+	"github.com/galchammat/kadeem/internal/riot/api"
+	"github.com/galchammat/kadeem/internal/riot/models"
+	"github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/syncer"
 	"github.com/joho/godotenv"
 )
@@ -27,27 +27,27 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, err := platformdb.OpenDB()
+	db, err := database.OpenDB()
 	if err != nil {
 		logging.Error("failed to connect to database", "error", err)
 		os.Exit(1)
 	}
 	defer db.SQL.Close()
 
-	store := riotpostgres.New(db)
-	accounts, err := store.GetTrackedAccountsForSync()
+	store := postgres.New(db)
+	accounts, err := store.ListRiotAccounts(nil, 1000, 0)
 	if err != nil {
 		logging.Error("failed to list accounts for sync", "error", err)
 		os.Exit(1)
 	}
 
-	source, err := riot.NewMatchSyncer(riotapi.NewClient(), store, accounts)
+	source, err := riot.NewMatchSyncer(api.NewClient(), store, accounts)
 	if err != nil {
 		logging.Error("failed to create lol event source", "error", err)
 		os.Exit(1)
 	}
 
-	metadataSyncer, err := syncer.NewMetadataSyncer[riotmodels.Match](syncer.MetadataSyncerConfig{Logger: slog.Default()}, source)
+	metadataSyncer, err := syncer.NewMetadataSyncer[models.Match](syncer.MetadataSyncerConfig{Logger: slog.Default()}, source)
 	if err != nil {
 		logging.Error("failed to create metadata syncer", "error", err)
 		os.Exit(1)

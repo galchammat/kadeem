@@ -1,7 +1,7 @@
 -- Create junction table for user → riot account tracking
 CREATE TABLE user_tracked_accounts (
     user_id UUID NOT NULL,
-    account_puuid VARCHAR(78) NOT NULL REFERENCES league_of_legends_accounts(puuid) ON DELETE CASCADE,
+    account_puuid VARCHAR(78) NOT NULL REFERENCES lol_accounts(puuid) ON DELETE CASCADE,
     tracked_at TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (user_id, account_puuid)
 );

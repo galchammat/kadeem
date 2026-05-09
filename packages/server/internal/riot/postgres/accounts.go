@@ -13,7 +13,7 @@ import (
 func (s *DB) SaveRiotAccount(account *riot.Account) error {
 	logging.Debug("updating account", "account", account)
 	query := `
-        INSERT INTO league_of_legends_accounts 
+        INSERT INTO lol_accounts 
         (puuid, streamer_id, tag_line, game_name, region) 
         VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (puuid) DO UPDATE SET
@@ -32,7 +32,7 @@ func (s *DB) SaveRiotAccount(account *riot.Account) error {
 
 // GetRiotAccount retrieves an account by PUUID
 func (s *DB) GetRiotAccount(puuid string) (*riot.Account, error) {
-	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = $1`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM lol_accounts WHERE puuid = $1`
 
 	var account riot.Account
 	err := s.db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
@@ -46,7 +46,7 @@ func (s *DB) GetRiotAccount(puuid string) (*riot.Account, error) {
 
 // FindRiotAccount finds an account by game name, tag line, and region
 func (s *DB) FindRiotAccount(gameName, tagLine, region string) (*riot.Account, error) {
-	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts 
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM lol_accounts 
 	          WHERE game_name = $1 AND tag_line = $2 AND region = $3`
 
 	var account riot.Account
@@ -90,7 +90,7 @@ func (s *DB) FindOrCreateRiotAccount(gameName, tagLine, region string, streamerI
 // ListTrackedAccounts returns accounts a user is tracking with pagination
 func (s *DB) ListTrackedAccounts(userID string, limit, offset int) ([]riot.Account, error) {
 	query := `SELECT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
-	          FROM league_of_legends_accounts a
+	          FROM lol_accounts a
 	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid
 	          WHERE uta.user_id = $1
 	          ORDER BY uta.tracked_at DESC
@@ -154,7 +154,7 @@ func (s *DB) IsTrackingAccount(userID string, accountPUUID string) (bool, error)
 // GetTrackedAccountsForSync returns all accounts with at least one tracker (for background jobs)
 func (s *DB) GetTrackedAccountsForSync() ([]riot.Account, error) {
 	query := `SELECT DISTINCT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
-	          FROM league_of_legends_accounts a
+	          FROM lol_accounts a
 	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid`
 
 	rows, err := s.db.SQL.Query(query)
@@ -182,7 +182,7 @@ func (s *DB) GetTrackedAccountsForSync() ([]riot.Account, error) {
 
 // ListRiotAccounts lists accounts with optional filtering and pagination (for admin/internal use)
 func (s *DB) ListRiotAccounts(filter *riot.Account, limit, offset int) ([]riot.Account, error) {
-	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
+	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM lol_accounts`
 	var where []string
 	var args []any
 	argCounter := 1
@@ -245,7 +245,7 @@ func (s *DB) ListRiotAccounts(filter *riot.Account, limit, offset int) ([]riot.A
 
 // DeleteRiotAccount deletes an account by PUUID (admin only)
 func (s *DB) DeleteRiotAccount(puuid string) error {
-	query := `DELETE FROM league_of_legends_accounts WHERE puuid = $1`
+	query := `DELETE FROM lol_accounts WHERE puuid = $1`
 	_, err := s.db.SQL.Exec(query, puuid)
 	if err != nil {
 		logging.Error("Failed to delete Riot account from database", "puuid", puuid, "error", err)
@@ -279,7 +279,7 @@ func (s *DB) UpdateRiotAccount(PUUID string, updates map[string]any) (bool, erro
 	}
 	args = append(args, PUUID)
 
-	query := `UPDATE league_of_legends_accounts SET ` + strings.Join(setClauses, ", ") + fmt.Sprintf(` WHERE puuid = $%d`, argN)
+	query := `UPDATE lol_accounts SET ` + strings.Join(setClauses, ", ") + fmt.Sprintf(` WHERE puuid = $%d`, argN)
 
 	res, err := s.db.SQL.Exec(query, args...)
 	if err != nil {
