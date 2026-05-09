@@ -60,7 +60,7 @@ func (s *MatchService) SyncMatches(account models.Account) error {
 		}
 
 		// Download the replay if record does not exist or has no replay
-		if existingMatch == nil || existingMatch.Summary.ReplayS3Key == nil {
+		if existingMatch == nil || existingMatch.Summary.ReplayURI == nil {
 			logging.Debug("Downloading replay", "MatchID", matchID, "URL", url)
 			if err := s.SyncMatchReplay(matchID, url); err != nil {
 				logging.Warn("Skipping replay download due to error", "MatchID", matchID)
@@ -115,7 +115,7 @@ func (s *MatchService) SyncMatchReplay(matchID int64, replayURL string) error {
 	if err != nil {
 		return fmt.Errorf("error downloading replay: %v", err)
 	}
-	_, err = s.db.UpdateLolMatch(matchID, map[string]any{"replay_s3_key": replayPath})
+	_, err = s.db.UpdateLolMatch(matchID, map[string]any{"replay_uri": replayPath, "replay_status": "synced"})
 	return err
 }
 

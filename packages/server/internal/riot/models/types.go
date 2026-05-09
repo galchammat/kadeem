@@ -16,7 +16,9 @@ type MatchSummary struct {
 	StartedAt             *int64     `json:"startedAt" db:"started_at"`
 	Duration              *int       `json:"duration" db:"duration"`
 	QueueID               *int       `json:"queueId" db:"queue_id"`
-	ReplayS3Key           *string    `json:"replayS3Key,omitempty" db:"replay_s3_key"`
+	Status                string     `json:"status" db:"status"`
+	ReplayStatus          string     `json:"replayStatus" db:"replay_status"`
+	ReplayURI             *string    `json:"replayUri,omitempty" db:"replay_uri"`
 	ReplaySyncError       *string    `json:"replaySyncError,omitempty" db:"replay_sync_error"`
 	ReplaySyncAttemptedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
 }

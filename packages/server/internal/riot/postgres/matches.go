@@ -24,6 +24,35 @@ func (s *DB) SaveMatches(ctx context.Context, matches []riot.Match) error {
 	return nil
 }
 
+func (s *DB) SaveMatchIDs(ctx context.Context, matchIDs []int64) error {
+	tx, err := s.db.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin save match ids: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	for _, matchID := range matchIDs {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO lol_matches (id, status, replay_status)
+			VALUES ($1, 'pending', 'pending')
+			ON CONFLICT (id) DO NOTHING
+		`, matchID)
+		if err != nil {
+			return fmt.Errorf("save match id %d: %w", matchID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit save match ids: %w", err)
+	}
+
+	return nil
+}
+
 // SQLExecutor interface allows functions to accept either *sql.DB or *sql.Tx
 type SQLExecutor interface {
 	Exec(query string, args ...any) (sql.Result, error)
@@ -36,7 +65,7 @@ func (s *DB) InsertLolMatchSummary(summary *riot.MatchSummary) error {
 }
 
 func (s *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *riot.MatchSummary) error {
-	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
+	if summary == nil {
 		return fmt.Errorf("match summary is missing required fields")
 	}
 
@@ -47,12 +76,13 @@ func (s *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *riot.MatchSumm
 
 	query := `
 		INSERT INTO lol_matches
-		(id, started_at, duration, queue_id)
-		VALUES ($1, $2, $3, $4)
+		(id, started_at, duration, queue_id, status)
+		VALUES ($1, $2, $3, $4, 'synced')
 		ON CONFLICT (id) DO UPDATE SET
 			started_at = EXCLUDED.started_at,
 			duration = EXCLUDED.duration,
-			queue_id = EXCLUDED.queue_id`
+			queue_id = EXCLUDED.queue_id,
+			status = EXCLUDED.status`
 
 	_, err := exec.Exec(query, summary.ID, *summary.StartedAt, *summary.Duration, queueId)
 	if err != nil {
@@ -66,7 +96,9 @@ var allowedMatchColumns = map[string]bool{
 	"started_at":               true,
 	"duration":                 true,
 	"queue_id":                 true,
-	"replay_s3_key":            true,
+	"status":                   true,
+	"replay_status":            true,
+	"replay_uri":               true,
 	"replay_sync_error":        true,
 	"replay_sync_attempted_at": true,
 }
@@ -262,9 +294,9 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 		}
 		if filter.HasReplay != nil {
 			if *filter.HasReplay {
-				where = append(where, "m.replay_s3_key IS NOT NULL")
+				where = append(where, "m.replay_uri IS NOT NULL")
 			} else {
-				where = append(where, "m.replay_s3_key IS NULL")
+				where = append(where, "m.replay_uri IS NULL")
 			}
 		}
 		if filter.ChampionID != nil {
@@ -326,7 +358,8 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 	fullQuery := fmt.Sprintf(`
 		SELECT 
 			m.id, m.started_at, m.duration, m.queue_id,
-			m.replay_s3_key, m.replay_sync_error, m.replay_sync_attempted_at,
+			m.status, m.replay_status, m.replay_uri,
+			m.replay_sync_error, m.replay_sync_attempted_at,
 			p.match_id, p.champion_id, p.champ_level, p.kills, p.deaths, p.assists,
 			p.total_minions_killed, p.double_kills, p.triple_kills,
 			p.quadra_kills, p.penta_kills, p.item0, p.item1, p.item2,
@@ -385,14 +418,15 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 			nullTotalDamageTaken            sql.NullInt64
 			nullWin                         sql.NullBool
 			nullQueueId                     sql.NullInt64
-			nullReplayS3Key                 sql.NullString
+			nullReplayURI                   sql.NullString
 			nullReplaySyncError             sql.NullString
 			nullReplaySyncAttemptedAt       sql.NullTime
 		)
 
 		err := fullRows.Scan(
 			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
-			&nullReplayS3Key, &nullReplaySyncError, &nullReplaySyncAttemptedAt,
+			&summary.Status, &summary.ReplayStatus, &nullReplayURI,
+			&nullReplaySyncError, &nullReplaySyncAttemptedAt,
 			&nullMatchID, &nullChampionID, &nullChampLevel, &nullKills,
 			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
 			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
@@ -413,9 +447,9 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 				qid := int(nullQueueId.Int64)
 				summary.QueueID = &qid
 			}
-			if nullReplayS3Key.Valid {
-				replayS3Key := nullReplayS3Key.String
-				summary.ReplayS3Key = &replayS3Key
+			if nullReplayURI.Valid {
+				replayURI := nullReplayURI.String
+				summary.ReplayURI = &replayURI
 			}
 			if nullReplaySyncError.Valid {
 				replaySyncError := nullReplaySyncError.String

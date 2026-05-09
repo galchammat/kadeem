@@ -23,44 +23,53 @@ type MatchDetailResponse struct {
 // startTime is optional (unix timestamp in milliseconds, exclusive lower bound).
 // Always uses count=100 (maximum allowed by Riot API).
 func (c *Client) FetchMatchIDs(puuid, region string, startTime *int64) ([]string, error) {
+	const count = 100
+	matchIDs := []string{}
+
+	for start := 0; ; start += count {
+		pageMatchIDs, err := c.FetchMatchIDPage(puuid, region, startTime, start, count)
+		if err != nil {
+			return nil, err
+		}
+		if len(pageMatchIDs) == 0 {
+			break
+		}
+
+		matchIDs = append(matchIDs, pageMatchIDs...)
+	}
+
+	return matchIDs, nil
+}
+
+func (c *Client) FetchMatchIDPage(puuid, region string, startTime *int64, start, count int) ([]string, error) {
 	if puuid == "" {
 		return nil, fmt.Errorf("puuid cannot be empty")
+	}
+	if count <= 0 || count > 100 {
+		return nil, fmt.Errorf("count must be between 1 and 100")
 	}
 	if startTime == nil {
 		defaultStartTime := time.Now().Unix() - 100
 		startTime = &defaultStartTime
 	}
 
-	const count = 100
-	start := 0
 	endpoint := fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid)
-	matchIDs := []string{}
+	query := fmt.Sprintf("?start=%d&startTime=%d&count=%d", start, *startTime, count)
+	url := c.buildURL(region, endpoint) + query
 
-	for {
-		query := fmt.Sprintf("?start=%d&startTime=%d&count=%d", start, *startTime, count)
-		url := c.buildURL(region, endpoint) + query
-
-		body, _, err := c.makeRequest(url)
-		if err != nil {
-			logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
-			return nil, err
-		}
-
-		var pageMatchIDs []string
-		if err := json.Unmarshal(body, &pageMatchIDs); err != nil {
-			logging.Error("Failed to unmarshal match IDs", "error", err)
-			return nil, err
-		}
-
-		if len(pageMatchIDs) == 0 {
-			break
-		}
-
-		matchIDs = append(matchIDs, pageMatchIDs...)
-		start += count
+	body, _, err := c.makeRequest(url)
+	if err != nil {
+		logging.Error("Failed to fetch match IDs from Riot API", "puuid", puuid, "url", url, "error", err)
+		return nil, err
 	}
 
-	return matchIDs, nil
+	var pageMatchIDs []string
+	if err := json.Unmarshal(body, &pageMatchIDs); err != nil {
+		logging.Error("Failed to unmarshal match IDs", "error", err)
+		return nil, err
+	}
+
+	return pageMatchIDs, nil
 }
 
 // FetchMatchDetail fetches full match detail for a given match ID.

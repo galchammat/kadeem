@@ -33,10 +33,12 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 	createMatchesTable := `
 		CREATE TABLE IF NOT EXISTS lol_matches (
 			id BIGINT PRIMARY KEY,
-			started_at BIGINT NOT NULL,
-			duration INTEGER NOT NULL,
+			started_at BIGINT,
+			duration INTEGER,
 			queue_id INTEGER NOT NULL DEFAULT 0,
-			replay_s3_key TEXT,
+			status TEXT NOT NULL DEFAULT 'pending',
+			replay_status TEXT NOT NULL DEFAULT 'pending',
+			replay_uri TEXT,
 			replay_sync_error TEXT,
 			replay_sync_attempted_at TIMESTAMP
 		);
