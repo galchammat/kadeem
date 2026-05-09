@@ -1,4 +1,4 @@
-package riot
+package syncer
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	"github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
@@ -21,11 +21,11 @@ type MatchIDStore interface {
 }
 
 type MatchIDSyncer struct {
-	client *riotapi.Client
+	client *api.Client
 	store  MatchIDStore
 }
 
-func NewMatchIDSyncer(client *riotapi.Client, store MatchIDStore) (*MatchIDSyncer, error) {
+func NewMatchIDSyncer(client *api.Client, store MatchIDStore) (*MatchIDSyncer, error) {
 	if client == nil {
 		return nil, fmt.Errorf("riot client is nil")
 	}

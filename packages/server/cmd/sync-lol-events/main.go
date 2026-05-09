@@ -9,9 +9,9 @@ import (
 
 	"github.com/galchammat/kadeem/internal/logging"
 	"github.com/galchammat/kadeem/internal/platform/database"
-	"github.com/galchammat/kadeem/internal/riot"
 	"github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/postgres"
+	"github.com/galchammat/kadeem/internal/riot/syncer"
 	"github.com/joho/godotenv"
 )
 
@@ -33,7 +33,7 @@ func main() {
 	defer db.SQL.Close()
 
 	store := postgres.New(db)
-	matchIDSyncer, err := riot.NewMatchIDSyncer(api.NewClient(), store)
+	matchIDSyncer, err := syncer.NewMatchIDSyncer(api.NewClient(), store)
 	if err != nil {
 		logging.Error("failed to create lol match id syncer", "error", err)
 		os.Exit(1)
