@@ -13,8 +13,9 @@ import (
 
 	"github.com/galchammat/kadeem/internal/logging"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riot "github.com/galchammat/kadeem/internal/riot"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/syncer"
 	"github.com/joho/godotenv"
 )
@@ -71,16 +72,10 @@ func main() {
 	}
 	defer db.SQL.Close()
 
-	store := riotstore.New(db)
-	accounts, err := store.GetTrackedAccountsForSync()
+	riotDB := riotpostgres.New(db)
+	accounts, err := riotDB.GetTrackedAccountsForSync()
 	if err != nil {
 		logging.Error("failed to list accounts for replay sync", "error", err)
-		os.Exit(1)
-	}
-
-	replayStore, err := riot.NewReplayStore(db.SQL)
-	if err != nil {
-		logging.Error("failed to create replay store", "error", err)
 		os.Exit(1)
 	}
 
@@ -88,13 +83,13 @@ func main() {
 	if artifactRoot == "" {
 		artifactRoot = "artifacts"
 	}
-	replayHandler, err := riot.NewReplayHandler(riot.NewClient(), localReplayWriter{root: artifactRoot}, accounts)
+	replayHandler, err := riot.NewReplayHandler(riotapi.NewClient(), localReplayWriter{root: artifactRoot}, accounts)
 	if err != nil {
 		logging.Error("failed to create replay handler", "error", err)
 		os.Exit(1)
 	}
 
-	worker, err := syncer.NewArtifactWorker(syncer.ArtifactWorkerConfig{Logger: slog.Default()}, replayStore, replayHandler)
+	worker, err := syncer.NewArtifactWorker(syncer.ArtifactWorkerConfig{Logger: slog.Default()}, riotDB.ReplayArtifactOps(), replayHandler)
 	if err != nil {
 		logging.Error("failed to create artifact worker", "error", err)
 		os.Exit(1)

@@ -1,36 +1,27 @@
-package model
+package models
 
 import "time"
 
-type LolApiReplaysResponse struct {
+type APIReplaysResponse struct {
 	URLs []string `json:"matchFileURLs"`
 }
 
-type LolAccount struct {
-	PUUID      string `json:"puuid" db:"puuid,primarykey"`
-	StreamerID int    `json:"streamerId,omitempty" db:"streamer_id"`
-	TagLine    string `json:"tagLine" db:"tag_line"`
-	GameName   string `json:"gameName" db:"game_name"`
-	Region     string `json:"region,omitempty" db:"region"`
-	SyncedAt   *int64 `json:"syncedAt" db:"synced_at"`
+type Match struct {
+	Summary      MatchSummary              `json:"summary" db:"-"`
+	Participants []MatchParticipantSummary `json:"participants" db:"-"`
 }
 
-type LolMatch struct {
-	Summary      LolMatchSummary              `json:"summary" db:"-"`
-	Participants []LolMatchParticipantSummary `json:"participants" db:"-"`
-}
-
-type LolMatchSummary struct {
+type MatchSummary struct {
 	ID                    int64      `json:"gameId" db:"match_id"`
 	StartedAt             *int64     `json:"startedAt" db:"started_at"`
 	Duration              *int       `json:"duration" db:"duration"`
-	QueueId               *int       `json:"queueId" db:"queue_id"`
+	QueueID               *int       `json:"queueId" db:"queue_id"`
 	ReplayS3Key           *string    `json:"replayS3Key,omitempty" db:"replay_s3_key"`
 	ReplaySyncError       *string    `json:"replaySyncError,omitempty" db:"replay_sync_error"`
 	ReplaySyncAttemptedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
 }
 
-type LolMatchParticipantSummary struct {
+type MatchParticipantSummary struct {
 	GameID                      int64  `json:"gameId" db:"match_id"`
 	ChampionID                  int    `json:"championId" db:"champion_id"`
 	ChampLevel                  int    `json:"champLevel" db:"champ_level"`
@@ -61,17 +52,33 @@ type LolMatchParticipantSummary struct {
 	Win                         bool   `json:"win" db:"win"`
 }
 
-// LolMatchFilter provides filtering options for listing League of Legends matches
-type LolMatchFilter struct {
-	// Match/Summary filters
+type MatchFilter struct {
 	MatchID      *int64
 	StartedAtMin *int64
 	StartedAtMax *int64
 	HasReplay    *bool
+	PUUID        *string
+	ChampionID   *int
+	Lane         *string
+	Win          *bool
+}
 
-	// Participant filters
-	PUUID      *string
-	ChampionID *int
-	Lane       *string
-	Win        *bool
+type Account struct {
+	PUUID      string `json:"puuid" db:"puuid,primarykey"`
+	StreamerID int    `json:"streamerId,omitempty" db:"streamer_id"`
+	TagLine    string `json:"tagLine" db:"tag_line"`
+	GameName   string `json:"gameName" db:"game_name"`
+	Region     string `json:"region,omitempty" db:"region"`
+	SyncedAt   *int64 `json:"syncedAt" db:"synced_at"`
+}
+
+type PlayerRank struct {
+	PUUID        string `json:"puuid" db:"puuid"`
+	Timestamp    int64  `json:"timestamp" db:"timestamp"`
+	Tier         string `json:"tier" db:"tier"`
+	Rank         string `json:"rank" db:"rank"`
+	LeaguePoints int    `json:"leaguePoints" db:"league_points"`
+	Wins         int    `json:"wins" db:"wins"`
+	Losses       int    `json:"losses" db:"losses"`
+	QueueID      int    `json:"queueId" db:"queue_id"`
 }

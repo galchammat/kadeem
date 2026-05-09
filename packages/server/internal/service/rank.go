@@ -5,22 +5,22 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	"github.com/galchammat/kadeem/internal/riot/models"
+	riotstore "github.com/galchammat/kadeem/internal/riot/postgres"
 )
 
 type RankService struct {
-	db   *riotstore.Store
+	db   *riotstore.DB
 	riot *riot.Client
 }
 
-func NewRankService(db *riotstore.Store, riot *riot.Client) *RankService {
+func NewRankService(db *riotstore.DB, riot *riot.Client) *RankService {
 	return &RankService{db: db, riot: riot}
 }
 
 // SyncRank fetches current rank for an account and stores a snapshot.
-func (s *RankService) SyncRank(account *model.LolAccount) error {
+func (s *RankService) SyncRank(account *models.Account) error {
 	summonerID, err := s.riot.FetchSummonerID(account.PUUID, account.Region)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (s *RankService) SyncRank(account *model.LolAccount) error {
 			continue
 		}
 
-		rank := &model.PlayerRank{
+		rank := &models.PlayerRank{
 			PUUID:        account.PUUID,
 			Timestamp:    timestamp,
 			Tier:         entry.Tier,
@@ -46,7 +46,7 @@ func (s *RankService) SyncRank(account *model.LolAccount) error {
 			LeaguePoints: entry.LeaguePoints,
 			Wins:         entry.Wins,
 			Losses:       entry.Losses,
-			QueueId:      queueID,
+			QueueID:      queueID,
 		}
 
 		if err := s.db.InsertPlayerRank(rank); err != nil {

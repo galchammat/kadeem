@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/galchammat/kadeem/internal/model"
+	riotmodels "github.com/galchammat/kadeem/internal/riot/models"
+	twitchmodels "github.com/galchammat/kadeem/internal/twitch/models"
 )
 
 func TestComputeMatchSyncStartTime_WithSyncedAt(t *testing.T) {
@@ -52,7 +53,7 @@ func TestComputeBroadcastSyncStartTime_WithSyncedAt(t *testing.T) {
 }
 
 func TestComputeBroadcastSyncStartTime_NilStartsAtZero(t *testing.T) {
-	channel := model.Channel{
+	channel := twitchmodels.Channel{
 		SyncedAt: nil,
 	}
 
@@ -68,7 +69,7 @@ func TestComputeBroadcastSyncStartTime_NilStartsAtZero(t *testing.T) {
 
 func TestComputeBroadcastSyncStartTime_ExclusiveBoundary(t *testing.T) {
 	syncedAtTime := int64(1609459200)
-	channel := model.Channel{
+	channel := twitchmodels.Channel{
 		SyncedAt: &syncedAtTime,
 	}
 
@@ -85,7 +86,7 @@ func TestComputeBroadcastSyncStartTime_ExclusiveBoundary(t *testing.T) {
 func TestSyncBoundaryTimestampConsistency(t *testing.T) {
 	now := time.Now().Unix()
 
-	account := model.LolAccount{
+	account := riotmodels.Account{
 		SyncedAt: &now,
 	}
 

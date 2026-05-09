@@ -1,4 +1,4 @@
-package twitch
+package api
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 
 	clientcredentials "golang.org/x/oauth2/clientcredentials"
 )
@@ -51,7 +51,7 @@ func (c *TwitchClient) buildURL(endpoint string) string {
 	return fmt.Sprintf("%s%s", c.baseUrl, endpoint)
 }
 
-func (c *TwitchClient) makeRequest(endpoint string) (*model.TwitchResponse, int, error) {
+func (c *TwitchClient) makeRequest(endpoint string) (*models.APIResponse, int, error) {
 	url := c.buildURL(endpoint)
 	req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
 	if err != nil {
@@ -78,7 +78,7 @@ func (c *TwitchClient) makeRequest(endpoint string) (*model.TwitchResponse, int,
 		return nil, resp.StatusCode, err
 	}
 
-	var response model.TwitchResponse
+	var response models.APIResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		logging.Error("Failed to unmarshal Twitch response", "url", url, "error", err)
 		return nil, resp.StatusCode, err

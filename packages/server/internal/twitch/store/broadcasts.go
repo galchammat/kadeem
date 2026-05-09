@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 )
 
-func (s *Store) ListBroadcasts(filter *model.Broadcast, limit int, offset int) ([]model.Broadcast, error) {
+func (s *Store) ListBroadcasts(filter *twitch.Broadcast, limit int, offset int) ([]twitch.Broadcast, error) {
 	if filter == nil || filter.ChannelID == "" {
 		return nil, fmt.Errorf("channel_id is required for ListBroadcasts")
 	}
@@ -25,9 +25,9 @@ func (s *Store) ListBroadcasts(filter *model.Broadcast, limit int, offset int) (
 	}
 	defer rows.Close()
 
-	var broadcasts []model.Broadcast
+	var broadcasts []twitch.Broadcast
 	for rows.Next() {
-		var b model.Broadcast
+		var b twitch.Broadcast
 		if err := rows.Scan(
 			&b.ID,
 			&b.ChannelID,
@@ -51,7 +51,7 @@ func (s *Store) ListBroadcasts(filter *model.Broadcast, limit int, offset int) (
 	return broadcasts, nil
 }
 
-func (s *Store) InsertBroadcasts(broadcasts []model.Broadcast) error {
+func (s *Store) InsertBroadcasts(broadcasts []twitch.Broadcast) error {
 	if len(broadcasts) == 0 {
 		return nil
 	}

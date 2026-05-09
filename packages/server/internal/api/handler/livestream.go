@@ -8,8 +8,8 @@ import (
 	"github.com/galchammat/kadeem/internal/api/middleware"
 	apiModels "github.com/galchammat/kadeem/internal/api/models"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	"github.com/galchammat/kadeem/internal/service"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -91,7 +91,7 @@ func (h *LivestreamHandler) AddChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel := model.Channel{
+	channel := twitch.Channel{
 		StreamerID:  int64(req.StreamerID),
 		ChannelName: req.ChannelName,
 		ID:          req.ChannelID,
@@ -152,7 +152,7 @@ func (h *LivestreamHandler) SyncBroadcasts(w http.ResponseWriter, r *http.Reques
 		_ = userID
 	}
 
-	channel := model.Channel{ID: channelID}
+	channel := twitch.Channel{ID: channelID}
 
 	err := h.streamers.SyncBroadcasts(channel)
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *LivestreamHandler) ListBroadcasts(w http.ResponseWriter, r *http.Reques
 		_ = userID
 	}
 
-	filter := &model.Broadcast{ChannelID: channelID}
+	filter := &twitch.Broadcast{ChannelID: channelID}
 	broadcasts, err := h.streamers.ListBroadcasts(filter, limit, offset)
 	if err != nil {
 		logging.Error("Failed to list broadcasts", "channelID", channelID, "error", err)

@@ -1,4 +1,4 @@
-package store
+package postgres
 
 import (
 	"context"
@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
 )
 
-func (s *Store) SaveMatches(ctx context.Context, matches []model.LolMatch) error {
+func (s *DB) SaveMatches(ctx context.Context, matches []riot.Match) error {
 	for _, match := range matches {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -31,18 +31,18 @@ type SQLExecutor interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-func (s *Store) InsertLolMatchSummary(summary *model.LolMatchSummary) error {
+func (s *DB) InsertLolMatchSummary(summary *riot.MatchSummary) error {
 	return s.insertLolMatchSummaryExec(s.db.SQL, summary)
 }
 
-func (s *Store) insertLolMatchSummaryExec(exec SQLExecutor, summary *model.LolMatchSummary) error {
+func (s *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *riot.MatchSummary) error {
 	if summary == nil || summary.StartedAt == nil || summary.Duration == nil {
 		return fmt.Errorf("match summary is missing required fields")
 	}
 
 	queueId := 0
-	if summary.QueueId != nil {
-		queueId = *summary.QueueId
+	if summary.QueueID != nil {
+		queueId = *summary.QueueID
 	}
 
 	query := `
@@ -71,7 +71,7 @@ var allowedMatchColumns = map[string]bool{
 	"replay_sync_attempted_at": true,
 }
 
-func (s *Store) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
+func (s *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
 	var setClauses []string
 	var args []any
 	argN := 1
@@ -102,9 +102,9 @@ func (s *Store) UpdateLolMatch(matchID int64, updates map[string]any) (bool, err
 
 // InsertLolMatchWithParticipants atomically inserts a match summary and all its participants
 // in a single transaction. If any insert fails, the entire transaction is rolled back.
-func (s *Store) InsertLolMatchWithParticipants(
-	summary *model.LolMatchSummary,
-	participants []model.LolMatchParticipantSummary,
+func (s *DB) InsertLolMatchWithParticipants(
+	summary *riot.MatchSummary,
+	participants []riot.MatchParticipantSummary,
 ) error {
 	tx, err := s.db.SQL.Begin()
 	if err != nil {
@@ -140,11 +140,11 @@ func (s *Store) InsertLolMatchWithParticipants(
 	return nil
 }
 
-func (s *Store) InsertLolMatchParticipantSummary(participant *model.LolMatchParticipantSummary) error {
+func (s *DB) InsertLolMatchParticipantSummary(participant *riot.MatchParticipantSummary) error {
 	return s.insertLolMatchParticipantSummaryExec(s.db.SQL, participant)
 }
 
-func (s *Store) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *model.LolMatchParticipantSummary) error {
+func (s *DB) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participant *riot.MatchParticipantSummary) error {
 	if participant == nil {
 		return fmt.Errorf("participant summary cannot be nil")
 	}
@@ -223,7 +223,7 @@ func (s *Store) insertLolMatchParticipantSummaryExec(exec SQLExecutor, participa
 	return err
 }
 
-func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset int) ([]model.LolMatch, error) {
+func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]riot.Match, error) {
 	// Clamp limit
 	if limit <= 0 || limit > 100 {
 		limit = 100
@@ -312,7 +312,7 @@ func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset i
 	}
 
 	if len(matchIDs) == 0 {
-		return []model.LolMatch{}, nil
+		return []riot.Match{}, nil
 	}
 
 	// Step 3: Fetch full match data for the selected IDs
@@ -349,11 +349,11 @@ func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset i
 	defer fullRows.Close()
 
 	// Step 5: Scan and group by match ID
-	matchMap := make(map[int64]*model.LolMatch)
+	matchMap := make(map[int64]*riot.Match)
 	var orderedMatchIDs []int64
 
 	for fullRows.Next() {
-		var summary model.LolMatchSummary
+		var summary riot.MatchSummary
 
 		var (
 			nullMatchID                     sql.NullInt64
@@ -411,7 +411,7 @@ func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset i
 		if _, exists := matchMap[summary.ID]; !exists {
 			if nullQueueId.Valid {
 				qid := int(nullQueueId.Int64)
-				summary.QueueId = &qid
+				summary.QueueID = &qid
 			}
 			if nullReplayS3Key.Valid {
 				replayS3Key := nullReplayS3Key.String
@@ -425,15 +425,15 @@ func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset i
 				replaySyncAttemptedAt := nullReplaySyncAttemptedAt.Time
 				summary.ReplaySyncAttemptedAt = &replaySyncAttemptedAt
 			}
-			matchMap[summary.ID] = &model.LolMatch{
+			matchMap[summary.ID] = &riot.Match{
 				Summary:      summary,
-				Participants: []model.LolMatchParticipantSummary{},
+				Participants: []riot.MatchParticipantSummary{},
 			}
 			orderedMatchIDs = append(orderedMatchIDs, summary.ID)
 		}
 
 		if nullMatchID.Valid {
-			participant := model.LolMatchParticipantSummary{
+			participant := riot.MatchParticipantSummary{
 				GameID:                      nullMatchID.Int64,
 				ChampionID:                  int(nullChampionID.Int64),
 				ChampLevel:                  int(nullChampLevel.Int64),
@@ -476,7 +476,7 @@ func (s *Store) ListLolMatches(filter *model.LolMatchFilter, limit int, offset i
 	}
 
 	// Step 6: Convert to ordered slice
-	result := make([]model.LolMatch, 0, len(orderedMatchIDs))
+	result := make([]riot.Match, 0, len(orderedMatchIDs))
 	for _, id := range orderedMatchIDs {
 		result = append(result, *matchMap[id])
 	}

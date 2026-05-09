@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/service"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +25,7 @@ func testAddStreamer(t *testing.T) {
 	defer db.SQL.Close()
 	store := twitchstore.New(db)
 
-	id, err := store.SaveStreamer(model.Streamer{
+	id, err := store.SaveStreamer(twitch.Streamer{
 		Name: "tarzaned",
 	})
 	if err != nil {
@@ -50,7 +50,7 @@ func testAddTwitchChannel(t *testing.T) {
 	defer db.SQL.Close()
 	store := twitchstore.New(db)
 
-	twitchClient := twitch.NewTwitchClient(context.Background())
+	twitchClient := twitchapi.NewTwitchClient(context.Background())
 	streamerSvc := service.NewStreamerService(store, twitchClient)
 
 	streamers, err := store.ListStreamers(1000, 0)
@@ -68,7 +68,7 @@ func testAddTwitchChannel(t *testing.T) {
 		t.Fatal("Test streamer 'tarzaned' not found in database")
 	}
 
-	testChannelInput := model.Channel{
+	testChannelInput := twitch.Channel{
 		StreamerID:  streamerID,
 		Platform:    "twitch",
 		ChannelName: "tarzaned",

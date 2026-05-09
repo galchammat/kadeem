@@ -1,4 +1,4 @@
-package twitch
+package api
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 )
 
 type hypeTrainItem struct {
@@ -36,7 +36,7 @@ type clipItem struct {
 }
 
 // FetchHypeTrainEvents fetches ended hype train events for the given broadcaster.
-func (c *TwitchClient) FetchHypeTrainEvents(broadcasterID string) ([]model.StreamEvent, error) {
+func (c *TwitchClient) FetchHypeTrainEvents(broadcasterID string) ([]models.StreamEvent, error) {
 	params := url.Values{}
 	params.Set("broadcaster_id", broadcasterID)
 	params.Set("first", "100")
@@ -54,7 +54,7 @@ func (c *TwitchClient) FetchHypeTrainEvents(broadcasterID string) ([]model.Strea
 		return nil, fmt.Errorf("unmarshal hype train events: %w", err)
 	}
 
-	var events []model.StreamEvent
+	var events []models.StreamEvent
 	for _, raw := range rawMessages {
 		var item hypeTrainItem
 		if err := json.Unmarshal(raw, &item); err != nil {
@@ -79,9 +79,9 @@ func (c *TwitchClient) FetchHypeTrainEvents(broadcasterID string) ([]model.Strea
 		}
 
 		externalID := item.ID
-		events = append(events, model.StreamEvent{
+		events = append(events, models.StreamEvent{
 			ChannelID:   broadcasterID,
-			EventType:   model.StreamEventHypeTrain,
+			EventType:   models.StreamEventHypeTrain,
 			Title:       fmt.Sprintf("Hype Train Level %d", item.EventData.Level),
 			Description: description,
 			Timestamp:   ts.Unix(),
@@ -93,7 +93,7 @@ func (c *TwitchClient) FetchHypeTrainEvents(broadcasterID string) ([]model.Strea
 }
 
 // FetchTopClips fetches recent top clips for the given broadcaster.
-func (c *TwitchClient) FetchTopClips(broadcasterID string) ([]model.StreamEvent, error) {
+func (c *TwitchClient) FetchTopClips(broadcasterID string) ([]models.StreamEvent, error) {
 	params := url.Values{}
 	params.Set("broadcaster_id", broadcasterID)
 	params.Set("first", "20")
@@ -111,7 +111,7 @@ func (c *TwitchClient) FetchTopClips(broadcasterID string) ([]model.StreamEvent,
 		return nil, fmt.Errorf("unmarshal clips: %w", err)
 	}
 
-	var events []model.StreamEvent
+	var events []models.StreamEvent
 	for _, raw := range rawMessages {
 		var item clipItem
 		if err := json.Unmarshal(raw, &item); err != nil {
@@ -127,9 +127,9 @@ func (c *TwitchClient) FetchTopClips(broadcasterID string) ([]model.StreamEvent,
 
 		views := strconv.Itoa(item.ViewCount)
 		externalID := item.ID
-		events = append(events, model.StreamEvent{
+		events = append(events, models.StreamEvent{
 			ChannelID:   broadcasterID,
-			EventType:   model.StreamEventClip,
+			EventType:   models.StreamEventClip,
 			Title:       item.Title,
 			Description: fmt.Sprintf("by %s · %d views · %.0fs", item.CreatorName, item.ViewCount, item.Duration),
 			Timestamp:   ts.Unix(),

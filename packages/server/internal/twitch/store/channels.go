@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 )
 
 // SaveStreamer saves a streamer to the database (shared pool)
-func (s *Store) SaveStreamer(streamer model.Streamer) (int64, error) {
+func (s *Store) SaveStreamer(streamer twitch.Streamer) (int64, error) {
 	var id int64
 	err := s.db.SQL.QueryRow(
 		`INSERT INTO streamers (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
@@ -24,8 +24,8 @@ func (s *Store) SaveStreamer(streamer model.Streamer) (int64, error) {
 }
 
 // GetStreamerByName retrieves a streamer by name
-func (s *Store) GetStreamerByName(name string) (*model.Streamer, error) {
-	var streamer model.Streamer
+func (s *Store) GetStreamerByName(name string) (*twitch.Streamer, error) {
+	var streamer twitch.Streamer
 	err := s.db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE name = $1`, name).Scan(&streamer.ID, &streamer.Name)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -38,8 +38,8 @@ func (s *Store) GetStreamerByName(name string) (*model.Streamer, error) {
 }
 
 // GetStreamerByID retrieves a streamer by ID
-func (s *Store) GetStreamerByID(id int) (*model.Streamer, error) {
-	var streamer model.Streamer
+func (s *Store) GetStreamerByID(id int) (*twitch.Streamer, error) {
+	var streamer twitch.Streamer
 	err := s.db.SQL.QueryRow(`SELECT id, name FROM streamers WHERE id = $1`, id).Scan(&streamer.ID, &streamer.Name)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -52,7 +52,7 @@ func (s *Store) GetStreamerByID(id int) (*model.Streamer, error) {
 }
 
 // FindOrCreateStreamer finds or creates a streamer (idempotent)
-func (s *Store) FindOrCreateStreamer(name string) (*model.Streamer, error) {
+func (s *Store) FindOrCreateStreamer(name string) (*twitch.Streamer, error) {
 	streamer, err := s.GetStreamerByName(name)
 	if err != nil {
 		return nil, err
@@ -61,16 +61,16 @@ func (s *Store) FindOrCreateStreamer(name string) (*model.Streamer, error) {
 		return streamer, nil
 	}
 
-	id, err := s.SaveStreamer(model.Streamer{Name: name})
+	id, err := s.SaveStreamer(twitch.Streamer{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.Streamer{ID: id, Name: name}, nil
+	return &twitch.Streamer{ID: id, Name: name}, nil
 }
 
 // ListTrackedStreamers returns streamers a user is tracking with pagination
-func (s *Store) ListTrackedStreamers(userID string, limit, offset int) ([]model.Streamer, error) {
+func (s *Store) ListTrackedStreamers(userID string, limit, offset int) ([]twitch.Streamer, error) {
 	query := `SELECT s.id, s.name 
 	          FROM streamers s
 	          INNER JOIN user_tracked_streamers uts ON s.id = uts.streamer_id
@@ -85,9 +85,9 @@ func (s *Store) ListTrackedStreamers(userID string, limit, offset int) ([]model.
 	}
 	defer rows.Close()
 
-	var streamers []model.Streamer
+	var streamers []twitch.Streamer
 	for rows.Next() {
-		var s model.Streamer
+		var s twitch.Streamer
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
 			logging.Error("Failed to scan tracked streamer row", "error", err)
 			return nil, err
@@ -134,7 +134,7 @@ func (s *Store) IsTrackingStreamer(userID string, streamerID int64) (bool, error
 }
 
 // GetTrackedStreamersForSync returns all streamers with at least one tracker (for background jobs)
-func (s *Store) GetTrackedStreamersForSync() ([]model.Streamer, error) {
+func (s *Store) GetTrackedStreamersForSync() ([]twitch.Streamer, error) {
 	query := `SELECT DISTINCT s.id, s.name 
 	          FROM streamers s
 	          INNER JOIN user_tracked_streamers uts ON s.id = uts.streamer_id`
@@ -146,9 +146,9 @@ func (s *Store) GetTrackedStreamersForSync() ([]model.Streamer, error) {
 	}
 	defer rows.Close()
 
-	var streamers []model.Streamer
+	var streamers []twitch.Streamer
 	for rows.Next() {
-		var s model.Streamer
+		var s twitch.Streamer
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
 			logging.Error("Failed to scan streamer row for sync", "error", err)
 			return nil, err
@@ -177,7 +177,7 @@ func (s *Store) DeleteStreamer(name string) (bool, error) {
 }
 
 // ListStreamers lists all streamers with pagination (for admin/internal use)
-func (s *Store) ListStreamers(limit, offset int) ([]model.Streamer, error) {
+func (s *Store) ListStreamers(limit, offset int) ([]twitch.Streamer, error) {
 	rows, err := s.db.SQL.Query("SELECT id, name FROM streamers ORDER BY name LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		logging.Error("Failed to query streamers from database", "error", err)
@@ -185,9 +185,9 @@ func (s *Store) ListStreamers(limit, offset int) ([]model.Streamer, error) {
 	}
 	defer rows.Close()
 
-	var streamers []model.Streamer
+	var streamers []twitch.Streamer
 	for rows.Next() {
-		var s model.Streamer
+		var s twitch.Streamer
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
 			logging.Error("Failed to scan streamer row", "error", err)
 			return nil, err
@@ -202,7 +202,7 @@ func (s *Store) ListStreamers(limit, offset int) ([]model.Streamer, error) {
 }
 
 // ListChannels lists channels with optional filtering and pagination
-func (s *Store) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]model.Channel, error) {
+func (s *Store) ListChannels(filter *twitch.ChannelFilter, limit, offset int) ([]twitch.Channel, error) {
 	query := `SELECT id, streamer_id, platform, channel_name, avatar_url, synced_at FROM channels`
 	var where []string
 	var args []any
@@ -244,9 +244,9 @@ func (s *Store) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]
 	}
 	defer rows.Close()
 
-	var channels []model.Channel
+	var channels []twitch.Channel
 	for rows.Next() {
-		var ch model.Channel
+		var ch twitch.Channel
 		var syncedAt sql.NullTime
 		if err := rows.Scan(&ch.ID, &ch.StreamerID, &ch.Platform, &ch.ChannelName, &ch.AvatarURL, &syncedAt); err != nil {
 			logging.Error("Failed to scan channel row", "error", err)
@@ -265,7 +265,7 @@ func (s *Store) ListChannels(filter *model.ChannelFilter, limit, offset int) ([]
 	return channels, nil
 }
 
-func (s *Store) SaveChannel(channel model.Channel) (bool, error) {
+func (s *Store) SaveChannel(channel twitch.Channel) (bool, error) {
 	res, err := s.db.SQL.Exec(
 		`INSERT INTO channels (streamer_id, platform, channel_name, id, avatar_url) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
 		channel.StreamerID, channel.Platform, channel.ChannelName, channel.ID, channel.AvatarURL,

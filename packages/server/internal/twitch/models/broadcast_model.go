@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 func (b *Broadcast) UnmarshalJSON(data []byte) error {
 	type Alias Broadcast
 	aux := struct {
-		ID             any    `json:"id"` // explicitly ignore
+		ID             any    `json:"id"`
 		ChannelID      string `json:"channel_id"`
 		UserID         string `json:"user_id"`
 		CreatedAtStr   string `json:"created_at"`
@@ -26,16 +26,13 @@ func (b *Broadcast) UnmarshalJSON(data []byte) error {
 	case aux.UserID != "":
 		b.ChannelID = aux.UserID
 	}
-	// Parse created_at and published_at if present
 	if aux.CreatedAtStr != "" {
-		t, err := time.Parse(time.RFC3339, aux.CreatedAtStr)
-		if err == nil {
+		if t, err := time.Parse(time.RFC3339, aux.CreatedAtStr); err == nil {
 			b.CreatedAt = t.Unix()
 		}
 	}
 	if aux.PublishedAtStr != "" {
-		t, err := time.Parse(time.RFC3339, aux.PublishedAtStr)
-		if err == nil {
+		if t, err := time.Parse(time.RFC3339, aux.PublishedAtStr); err == nil {
 			b.PublishedAt = t.Unix()
 		}
 	}

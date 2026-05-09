@@ -1,4 +1,4 @@
-package riot
+package api
 
 var apiRegionMap = map[string]string{
 	"NA":   "americas",

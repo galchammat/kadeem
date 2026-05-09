@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/service"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
@@ -26,9 +26,9 @@ func TestListBroadcasts(t *testing.T) {
 	defer db.SQL.Close()
 	store := twitchstore.New(db)
 
-	twitchClient := twitch.NewTwitchClient(context.Background())
+	twitchClient := twitchapi.NewTwitchClient(context.Background())
 	streamerSvc := service.NewStreamerService(store, twitchClient)
-	broadcasts, err := streamerSvc.ListBroadcasts(&model.Broadcast{ChannelID: channelID}, limit, offset)
+	broadcasts, err := streamerSvc.ListBroadcasts(&twitch.Broadcast{ChannelID: channelID}, limit, offset)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

@@ -4,23 +4,24 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/galchammat/kadeem/internal/model"
 	"github.com/galchammat/kadeem/internal/syncer"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 )
 
-var _ syncer.Source[model.StreamEvent] = (*StreamEventSyncer)(nil)
+var _ syncer.Source[models.StreamEvent] = (*StreamEventSyncer)(nil)
 
 type StreamEventStore interface {
-	ListChannels(filter *model.ChannelFilter, limit, offset int) ([]model.Channel, error)
-	UpsertStreamEvents(events []model.StreamEvent) error
+	ListChannels(filter *models.ChannelFilter, limit, offset int) ([]models.Channel, error)
+	UpsertStreamEvents(events []models.StreamEvent) error
 }
 
 type StreamEventSyncer struct {
-	client *TwitchClient
+	client *twitchapi.TwitchClient
 	store  StreamEventStore
 }
 
-func NewStreamEventSyncer(client *TwitchClient, store StreamEventStore) (*StreamEventSyncer, error) {
+func NewStreamEventSyncer(client *twitchapi.TwitchClient, store StreamEventStore) (*StreamEventSyncer, error) {
 	if client == nil {
 		return nil, fmt.Errorf("twitch client is nil")
 	}
@@ -33,7 +34,7 @@ func NewStreamEventSyncer(client *TwitchClient, store StreamEventStore) (*Stream
 
 func (s *StreamEventSyncer) Sync(ctx context.Context) error {
 	platform := "twitch"
-	channels, err := s.store.ListChannels(&model.ChannelFilter{Platform: &platform}, 1000, 0)
+	channels, err := s.store.ListChannels(&models.ChannelFilter{Platform: &platform}, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list twitch channels: %w", err)
 	}

@@ -13,8 +13,8 @@ type ArtifactHandler interface {
 	Process(ctx context.Context, artifact Artifact) (s3Key string, err error)
 }
 
-type ArtifactStore interface {
-	// ClaimPending marks record as "processing" and MarkDone
+type ArtifactOps interface {
+	// ClaimPending claims pending artifact operations for processing.
 	ClaimPending(ctx context.Context, limit int) ([]Artifact, error)
 	MarkDone(ctx context.Context, id string, s3Key string) error
 	MarkFailed(ctx context.Context, id string, err error) error

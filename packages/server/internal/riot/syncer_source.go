@@ -4,23 +4,24 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/galchammat/kadeem/internal/model"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	"github.com/galchammat/kadeem/internal/riot/models"
 	"github.com/galchammat/kadeem/internal/syncer"
 )
 
-var _ syncer.Source[model.LolMatch] = (*MatchSyncer)(nil)
+var _ syncer.Source[models.Match] = (*MatchSyncer)(nil)
 
 type MatchStore interface {
-	SaveMatches(ctx context.Context, matches []model.LolMatch) error
+	SaveMatches(ctx context.Context, matches []models.Match) error
 }
 
 type MatchSyncer struct {
-	client   *Client
+	client   *riotapi.Client
 	store    MatchStore
-	accounts []model.LolAccount
+	accounts []models.Account
 }
 
-func NewMatchSyncer(client *Client, store MatchStore, accounts []model.LolAccount) (*MatchSyncer, error) {
+func NewMatchSyncer(client *riotapi.Client, store MatchStore, accounts []models.Account) (*MatchSyncer, error) {
 	if client == nil {
 		return nil, fmt.Errorf("riot client is nil")
 	}
@@ -36,7 +37,7 @@ func NewMatchSyncer(client *Client, store MatchStore, accounts []model.LolAccoun
 }
 
 func (s *MatchSyncer) Sync(ctx context.Context) error {
-	var matches []model.LolMatch
+	var matches []models.Match
 	for _, account := range s.accounts {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -62,8 +63,8 @@ func (s *MatchSyncer) Sync(ctx context.Context) error {
 				participants[i].GameID = detail.Info.ID
 			}
 
-			matches = append(matches, model.LolMatch{
-				Summary: model.LolMatchSummary{
+			matches = append(matches, models.Match{
+				Summary: models.MatchSummary{
 					ID:        detail.Info.ID,
 					StartedAt: &detail.Info.StartedAt,
 					Duration:  &detail.Info.Duration,

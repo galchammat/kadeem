@@ -1,4 +1,4 @@
-package store
+package postgres
 
 import (
 	"database/sql"
@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTestDB(t *testing.T) (*Store, func()) {
+func setupTestDB(t *testing.T) (*DB, func()) {
 	// Create a temporary database file
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
@@ -112,7 +112,7 @@ func TestListLolMatches_HandlesOrphanedMatches(t *testing.T) {
 	// Try to list matches - this should NOT crash
 	limit := 10
 	offset := 0
-	matches, err := db.ListLolMatches(&model.LolMatchFilter{}, limit, offset)
+	matches, err := db.ListLolMatches(&riot.MatchFilter{}, limit, offset)
 
 	if err != nil {
 		t.Fatalf("ListLolMatches failed with orphaned match: %v", err)
@@ -151,13 +151,13 @@ func TestInsertLolMatchWithParticipants_Transaction(t *testing.T) {
 	startedAt := int64(1600000000)
 	duration := 2000
 
-	summary := &model.LolMatchSummary{
+	summary := &riot.MatchSummary{
 		ID:        matchID,
 		StartedAt: &startedAt,
 		Duration:  &duration,
 	}
 
-	participants := []model.LolMatchParticipantSummary{
+	participants := []riot.MatchParticipantSummary{
 		{
 			GameID:                      matchID,
 			ChampionID:                  1,
@@ -225,13 +225,13 @@ func TestListLolMatches_WithCompleteMatch(t *testing.T) {
 	startedAt := int64(1600000000)
 	duration := 2500
 
-	summary := &model.LolMatchSummary{
+	summary := &riot.MatchSummary{
 		ID:        matchID,
 		StartedAt: &startedAt,
 		Duration:  &duration,
 	}
 
-	participants := []model.LolMatchParticipantSummary{
+	participants := []riot.MatchParticipantSummary{
 		{
 			GameID:                      matchID,
 			ChampionID:                  10,
@@ -301,7 +301,7 @@ func TestListLolMatches_WithCompleteMatch(t *testing.T) {
 	// List matches
 	limit := 10
 	offset := 0
-	matches, err := db.ListLolMatches(&model.LolMatchFilter{}, limit, offset)
+	matches, err := db.ListLolMatches(&riot.MatchFilter{}, limit, offset)
 
 	if err != nil {
 		t.Fatalf("ListLolMatches failed: %v", err)

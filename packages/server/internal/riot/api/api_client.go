@@ -1,4 +1,4 @@
-package riot
+package api
 
 import (
 	"fmt"

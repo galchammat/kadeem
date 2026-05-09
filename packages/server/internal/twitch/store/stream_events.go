@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/galchammat/kadeem/internal/model"
+	twitch "github.com/galchammat/kadeem/internal/twitch/models"
 )
 
 // ListStreamEvents returns stream events matching the filter, ordered by timestamp descending.
-func (s *Store) ListStreamEvents(filter *model.StreamEventFilter, limit, offset int) ([]model.StreamEvent, error) {
+func (s *Store) ListStreamEvents(filter *twitch.StreamEventFilter, limit, offset int) ([]twitch.StreamEvent, error) {
 	query := `SELECT se.id, se.channel_id, se.event_type, se.title, se.description,
 	                 se.timestamp, se.value, se.external_id
 	          FROM stream_events se`
@@ -62,9 +62,9 @@ func (s *Store) ListStreamEvents(filter *model.StreamEventFilter, limit, offset 
 	}
 	defer rows.Close()
 
-	var events []model.StreamEvent
+	var events []twitch.StreamEvent
 	for rows.Next() {
-		var e model.StreamEvent
+		var e twitch.StreamEvent
 		if err := rows.Scan(
 			&e.ID, &e.ChannelID, &e.EventType, &e.Title, &e.Description,
 			&e.Timestamp, &e.Value, &e.ExternalID,
@@ -77,7 +77,7 @@ func (s *Store) ListStreamEvents(filter *model.StreamEventFilter, limit, offset 
 }
 
 // UpsertStreamEvents inserts stream events, ignoring duplicates by (channel_id, external_id).
-func (s *Store) UpsertStreamEvents(events []model.StreamEvent) error {
+func (s *Store) UpsertStreamEvents(events []twitch.StreamEvent) error {
 	if len(events) == 0 {
 		return nil
 	}

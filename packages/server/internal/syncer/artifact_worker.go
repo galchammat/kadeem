@@ -8,7 +8,7 @@ import (
 )
 
 type ArtifactWorker struct {
-	store   ArtifactStore
+	ops     ArtifactOps
 	handler ArtifactHandler
 	cfg     ArtifactWorkerConfig
 }
@@ -21,11 +21,11 @@ type ArtifactWorkerConfig struct {
 
 func NewArtifactWorker(
 	cfg ArtifactWorkerConfig,
-	store ArtifactStore,
+	ops ArtifactOps,
 	handler ArtifactHandler,
 ) (*ArtifactWorker, error) {
-	if store == nil {
-		return nil, fmt.Errorf("artifact store is nil")
+	if ops == nil {
+		return nil, fmt.Errorf("artifact ops is nil")
 	}
 	if handler == nil {
 		return nil, fmt.Errorf("artifact handler is nil")
@@ -42,7 +42,7 @@ func NewArtifactWorker(
 	}
 
 	return &ArtifactWorker{
-		store:   store,
+		ops:     ops,
 		handler: handler,
 		cfg:     cfg,
 	}, nil
@@ -69,7 +69,7 @@ func (w *ArtifactWorker) RunForever(ctx context.Context) error {
 			continue
 		}
 
-		artifacts, err := w.store.ClaimPending(ctx, limit)
+		artifacts, err := w.ops.ClaimPending(ctx, limit)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
@@ -95,7 +95,7 @@ func (w *ArtifactWorker) RunForever(ctx context.Context) error {
 
 // ProcessPending claims and processes one batch of pending artifacts.
 func (w *ArtifactWorker) ProcessPending(ctx context.Context) (int, error) {
-	artifacts, err := w.store.ClaimPending(ctx, w.cfg.Workers)
+	artifacts, err := w.ops.ClaimPending(ctx, w.cfg.Workers)
 	if err != nil {
 		return 0, fmt.Errorf("claim artifacts: %w", err)
 	}
@@ -127,13 +127,13 @@ func (w *ArtifactWorker) runWorker(ctx context.Context, jobs <-chan Artifact) {
 func (w *ArtifactWorker) process(ctx context.Context, artifact Artifact) {
 	s3Key, err := w.handler.Process(ctx, artifact)
 	if err != nil {
-		if markErr := w.store.MarkFailed(ctx, artifact.ID, err); markErr != nil {
+		if markErr := w.ops.MarkFailed(ctx, artifact.ID, err); markErr != nil {
 			w.cfg.Logger.Error("mark artifact failed", "id", artifact.ID, "process_error", err, "error", markErr)
 		}
 		return
 	}
 
-	if err := w.store.MarkDone(ctx, artifact.ID, s3Key); err != nil {
+	if err := w.ops.MarkDone(ctx, artifact.ID, s3Key); err != nil {
 		w.cfg.Logger.Error("mark artifact done", "id", artifact.ID, "error", err)
 	}
 }

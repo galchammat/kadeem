@@ -1,4 +1,4 @@
-package store
+package postgres
 
 import (
 	"database/sql"
@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
 )
 
 // SaveRiotAccount saves a League of Legends account to the database (shared pool)
-func (s *Store) SaveRiotAccount(account *model.LolAccount) error {
+func (s *DB) SaveRiotAccount(account *riot.Account) error {
 	logging.Debug("updating account", "account", account)
 	query := `
         INSERT INTO league_of_legends_accounts 
@@ -31,10 +31,10 @@ func (s *Store) SaveRiotAccount(account *model.LolAccount) error {
 }
 
 // GetRiotAccount retrieves an account by PUUID
-func (s *Store) GetRiotAccount(puuid string) (*model.LolAccount, error) {
+func (s *DB) GetRiotAccount(puuid string) (*riot.Account, error) {
 	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts WHERE puuid = $1`
 
-	var account model.LolAccount
+	var account riot.Account
 	err := s.db.SQL.QueryRow(query, puuid).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err != nil {
 		logging.Error("Failed to get Riot account from database", "puuid", puuid, "error", err)
@@ -45,11 +45,11 @@ func (s *Store) GetRiotAccount(puuid string) (*model.LolAccount, error) {
 }
 
 // FindRiotAccount finds an account by game name, tag line, and region
-func (s *Store) FindRiotAccount(gameName, tagLine, region string) (*model.LolAccount, error) {
+func (s *DB) FindRiotAccount(gameName, tagLine, region string) (*riot.Account, error) {
 	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts 
 	          WHERE game_name = $1 AND tag_line = $2 AND region = $3`
 
-	var account model.LolAccount
+	var account riot.Account
 	err := s.db.SQL.QueryRow(query, gameName, tagLine, region).Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -63,7 +63,7 @@ func (s *Store) FindRiotAccount(gameName, tagLine, region string) (*model.LolAcc
 }
 
 // FindOrCreateRiotAccount finds or creates an account (idempotent)
-func (s *Store) FindOrCreateRiotAccount(gameName, tagLine, region string, streamerID int) (*model.LolAccount, error) {
+func (s *DB) FindOrCreateRiotAccount(gameName, tagLine, region string, streamerID int) (*riot.Account, error) {
 	account, err := s.FindRiotAccount(gameName, tagLine, region)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (s *Store) FindOrCreateRiotAccount(gameName, tagLine, region string, stream
 	}
 
 	// Create new account
-	newAccount := &model.LolAccount{
+	newAccount := &riot.Account{
 		GameName:   gameName,
 		TagLine:    tagLine,
 		Region:     region,
@@ -88,7 +88,7 @@ func (s *Store) FindOrCreateRiotAccount(gameName, tagLine, region string, stream
 }
 
 // ListTrackedAccounts returns accounts a user is tracking with pagination
-func (s *Store) ListTrackedAccounts(userID string, limit, offset int) ([]model.LolAccount, error) {
+func (s *DB) ListTrackedAccounts(userID string, limit, offset int) ([]riot.Account, error) {
 	query := `SELECT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
 	          FROM league_of_legends_accounts a
 	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid
@@ -103,9 +103,9 @@ func (s *Store) ListTrackedAccounts(userID string, limit, offset int) ([]model.L
 	}
 	defer rows.Close()
 
-	var accounts []model.LolAccount
+	var accounts []riot.Account
 	for rows.Next() {
-		var account model.LolAccount
+		var account riot.Account
 		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan tracked account row", "error", err)
 			return nil, err
@@ -120,7 +120,7 @@ func (s *Store) ListTrackedAccounts(userID string, limit, offset int) ([]model.L
 }
 
 // TrackAccount adds a tracking relationship (idempotent)
-func (s *Store) TrackAccount(userID string, accountPUUID string) error {
+func (s *DB) TrackAccount(userID string, accountPUUID string) error {
 	query := `INSERT INTO user_tracked_accounts (user_id, account_puuid) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 	_, err := s.db.SQL.Exec(query, userID, accountPUUID)
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *Store) TrackAccount(userID string, accountPUUID string) error {
 }
 
 // UntrackAccount removes a tracking relationship
-func (s *Store) UntrackAccount(userID string, accountPUUID string) error {
+func (s *DB) UntrackAccount(userID string, accountPUUID string) error {
 	query := `DELETE FROM user_tracked_accounts WHERE user_id = $1 AND account_puuid = $2`
 	_, err := s.db.SQL.Exec(query, userID, accountPUUID)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *Store) UntrackAccount(userID string, accountPUUID string) error {
 }
 
 // IsTrackingAccount checks if user is tracking an account
-func (s *Store) IsTrackingAccount(userID string, accountPUUID string) (bool, error) {
+func (s *DB) IsTrackingAccount(userID string, accountPUUID string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM user_tracked_accounts WHERE user_id = $1 AND account_puuid = $2)`
 	var exists bool
 	err := s.db.SQL.QueryRow(query, userID, accountPUUID).Scan(&exists)
@@ -152,7 +152,7 @@ func (s *Store) IsTrackingAccount(userID string, accountPUUID string) (bool, err
 }
 
 // GetTrackedAccountsForSync returns all accounts with at least one tracker (for background jobs)
-func (s *Store) GetTrackedAccountsForSync() ([]model.LolAccount, error) {
+func (s *DB) GetTrackedAccountsForSync() ([]riot.Account, error) {
 	query := `SELECT DISTINCT a.puuid, a.tag_line, a.game_name, a.region, a.synced_at, a.streamer_id 
 	          FROM league_of_legends_accounts a
 	          INNER JOIN user_tracked_accounts uta ON a.puuid = uta.account_puuid`
@@ -164,9 +164,9 @@ func (s *Store) GetTrackedAccountsForSync() ([]model.LolAccount, error) {
 	}
 	defer rows.Close()
 
-	var accounts []model.LolAccount
+	var accounts []riot.Account
 	for rows.Next() {
-		var account model.LolAccount
+		var account riot.Account
 		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan account row for sync", "error", err)
 			return nil, err
@@ -181,7 +181,7 @@ func (s *Store) GetTrackedAccountsForSync() ([]model.LolAccount, error) {
 }
 
 // ListRiotAccounts lists accounts with optional filtering and pagination (for admin/internal use)
-func (s *Store) ListRiotAccounts(filter *model.LolAccount, limit, offset int) ([]model.LolAccount, error) {
+func (s *DB) ListRiotAccounts(filter *riot.Account, limit, offset int) ([]riot.Account, error) {
 	query := `SELECT puuid, tag_line, game_name, region, synced_at, streamer_id FROM league_of_legends_accounts`
 	var where []string
 	var args []any
@@ -226,9 +226,9 @@ func (s *Store) ListRiotAccounts(filter *model.LolAccount, limit, offset int) ([
 	}
 	defer rows.Close()
 
-	var accounts []model.LolAccount
+	var accounts []riot.Account
 	for rows.Next() {
-		var account model.LolAccount
+		var account riot.Account
 		if err := rows.Scan(&account.PUUID, &account.TagLine, &account.GameName, &account.Region, &account.SyncedAt, &account.StreamerID); err != nil {
 			logging.Error("Failed to scan Riot account row", "error", err)
 			return nil, err
@@ -244,7 +244,7 @@ func (s *Store) ListRiotAccounts(filter *model.LolAccount, limit, offset int) ([
 }
 
 // DeleteRiotAccount deletes an account by PUUID (admin only)
-func (s *Store) DeleteRiotAccount(puuid string) error {
+func (s *DB) DeleteRiotAccount(puuid string) error {
 	query := `DELETE FROM league_of_legends_accounts WHERE puuid = $1`
 	_, err := s.db.SQL.Exec(query, puuid)
 	if err != nil {
@@ -261,7 +261,7 @@ var allowedAccountColumns = map[string]bool{
 	"synced_at": true,
 }
 
-func (s *Store) UpdateRiotAccount(PUUID string, updates map[string]any) (bool, error) {
+func (s *DB) UpdateRiotAccount(PUUID string, updates map[string]any) (bool, error) {
 	var setClauses []string
 	var args []any
 	argN := 1

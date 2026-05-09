@@ -1,20 +1,20 @@
-package riot
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
 // MatchDetailResponse represents the Riot API response for match details.
 type MatchDetailResponse struct {
 	Info struct {
-		ID           int64                                          `json:"gameId"`
-		StartedAt    int64                                          `json:"gameStartTimestamp"`
-		Duration     int                                            `json:"gameDuration"`
-		Participants []model.LolMatchParticipantSummary `json:"participants"`
+		ID           int64                            `json:"gameId"`
+		StartedAt    int64                            `json:"gameStartTimestamp"`
+		Duration     int                              `json:"gameDuration"`
+		Participants []models.MatchParticipantSummary `json:"participants"`
 	} `json:"info"`
 }
 
@@ -85,7 +85,7 @@ func (c *Client) FetchReplayURLs(puuid, region string) ([]string, error) {
 		return nil, fmt.Errorf("error fetching replay URLs: %v Status Code: %d", err, statusCode)
 	}
 
-	var replays model.LolApiReplaysResponse
+	var replays models.APIReplaysResponse
 	if err := json.Unmarshal(body, &replays); err != nil {
 		logging.Error("Failed to unmarshal replay URLs response", "puuid", puuid, "error", err)
 		return nil, err

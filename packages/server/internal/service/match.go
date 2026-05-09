@@ -12,22 +12,22 @@ import (
 
 	"github.com/galchammat/kadeem/internal/constants"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	"github.com/galchammat/kadeem/internal/riot/models"
+	riotstore "github.com/galchammat/kadeem/internal/riot/postgres"
 )
 
 type MatchService struct {
-	db   *riotstore.Store
+	db   *riotstore.DB
 	riot *riot.Client
 }
 
-func NewMatchService(db *riotstore.Store, riot *riot.Client) *MatchService {
+func NewMatchService(db *riotstore.DB, riot *riot.Client) *MatchService {
 	return &MatchService{db: db, riot: riot}
 }
 
 // SyncMatches syncs replays and match summaries for an account.
-func (s *MatchService) SyncMatches(account model.LolAccount) error {
+func (s *MatchService) SyncMatches(account models.Account) error {
 	logging.Debug("Syncing matches for account", "ID", account.PUUID)
 
 	replayURLs, err := s.riot.FetchReplayURLs(account.PUUID, account.Region)
@@ -42,11 +42,11 @@ func (s *MatchService) SyncMatches(account model.LolAccount) error {
 			return fmt.Errorf("failed to parse matchID from replay URL: %s", url)
 		}
 
-		existingMatches, err := s.db.ListLolMatches(&model.LolMatchFilter{MatchID: &matchID}, 1, 0)
+		existingMatches, err := s.db.ListLolMatches(&models.MatchFilter{MatchID: &matchID}, 1, 0)
 		if err != nil {
 			return fmt.Errorf("error while checking for an existing match. MatchID: %d. Error: %w", matchID, err)
 		}
-		var existingMatch *model.LolMatch
+		var existingMatch *models.Match
 		if len(existingMatches) != 0 {
 			existingMatch = &existingMatches[0]
 		}
@@ -84,7 +84,7 @@ func (s *MatchService) SyncMatchSummary(matchID int64, fullMatchID, region strin
 		return err
 	}
 
-	summary := model.LolMatchSummary{
+	summary := models.MatchSummary{
 		ID:        response.Info.ID,
 		StartedAt: &response.Info.StartedAt,
 		Duration:  &response.Info.Duration,
@@ -120,7 +120,7 @@ func (s *MatchService) SyncMatchReplay(matchID int64, replayURL string) error {
 }
 
 // ListMatches lists matches with auto-sync if stale.
-func (s *MatchService) ListMatches(filter *model.LolMatchFilter, account *model.LolAccount, limit, offset int) ([]model.LolMatch, error) {
+func (s *MatchService) ListMatches(filter *models.MatchFilter, account *models.Account, limit, offset int) ([]models.Match, error) {
 	if account != nil &&
 		(account.SyncedAt == nil || time.Since(time.Unix(*account.SyncedAt, 0)) > constants.SyncRefreshInMinutes*time.Minute) {
 		if err := s.SyncMatches(*account); err != nil {

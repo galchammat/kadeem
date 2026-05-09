@@ -8,22 +8,22 @@ import (
 	"github.com/galchammat/kadeem/internal/api/middleware"
 	apiModels "github.com/galchammat/kadeem/internal/api/models"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/service"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/go-chi/chi/v5"
 )
 
 type RiotHandler struct {
-	db       *riotstore.Store
+	db       *riotpostgres.DB
 	twitch   *twitchstore.Store
 	accounts *service.AccountService
 	matches  *service.MatchService
 	ranks    *service.RankService
 }
 
-func NewRiotHandler(db *riotstore.Store, twitchStore *twitchstore.Store, accounts *service.AccountService, matches *service.MatchService, ranks *service.RankService) *RiotHandler {
+func NewRiotHandler(db *riotpostgres.DB, twitchStore *twitchstore.Store, accounts *service.AccountService, matches *service.MatchService, ranks *service.RankService) *RiotHandler {
 	return &RiotHandler{
 		db:       db,
 		twitch:   twitchStore,
@@ -233,7 +233,7 @@ func (h *RiotHandler) ListMatches(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
-	var account *model.LolAccount
+	var account *riot.Account
 	if puuid != "" {
 		acc, err := h.db.GetRiotAccount(puuid)
 		if err != nil {
@@ -249,7 +249,7 @@ func (h *RiotHandler) ListMatches(w http.ResponseWriter, r *http.Request) {
 		account = acc
 	}
 
-	filter := &model.LolMatchFilter{}
+	filter := &riot.MatchFilter{}
 	if puuid != "" {
 		filter.PUUID = &puuid
 	}

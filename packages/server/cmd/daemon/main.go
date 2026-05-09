@@ -11,12 +11,12 @@ import (
 
 	"github.com/galchammat/kadeem/internal/api"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/service"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	twitchmodels "github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/joho/godotenv"
 )
@@ -27,7 +27,7 @@ func init() {
 
 type daemon struct {
 	db           *platformdb.DB
-	riotStore    *riotstore.Store
+	riotStore    *riotpostgres.DB
 	twitchStore  *twitchstore.Store
 	matches      *service.MatchService
 	ranks        *service.RankService
@@ -45,9 +45,9 @@ func main() {
 	}
 	defer db.SQL.Close()
 
-	riotClient := riot.NewClient()
-	twitchClient := twitch.NewTwitchClient(context.Background())
-	riotStore := riotstore.New(db)
+	riotClient := riotapi.NewClient()
+	twitchClient := twitchapi.NewTwitchClient(context.Background())
+	riotStore := riotpostgres.New(db)
 	twitchStore := twitchstore.New(db)
 	d := &daemon{
 		db:           db,
@@ -168,7 +168,7 @@ func (d *daemon) syncRanks() {
 func (d *daemon) syncStreamEvents() {
 	logging.Info("Starting stream events sync")
 	platform := "twitch"
-	channels, err := d.twitchStore.ListChannels(&model.ChannelFilter{Platform: &platform}, 1000, 0)
+	channels, err := d.twitchStore.ListChannels(&twitchmodels.ChannelFilter{Platform: &platform}, 1000, 0)
 	if err != nil {
 		logging.Error("Failed to list channels for stream events sync", "error", err)
 		return

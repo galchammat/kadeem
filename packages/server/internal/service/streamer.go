@@ -6,38 +6,38 @@ import (
 
 	"github.com/galchammat/kadeem/internal/constants"
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
 type StreamerService struct {
 	db     *twitchstore.Store
-	twitch *twitch.TwitchClient
+	twitch *twitchapi.TwitchClient
 }
 
-func NewStreamerService(db *twitchstore.Store, twitchClient *twitch.TwitchClient) *StreamerService {
+func NewStreamerService(db *twitchstore.Store, twitchClient *twitchapi.TwitchClient) *StreamerService {
 	return &StreamerService{db: db, twitch: twitchClient}
 }
 
-func (s *StreamerService) ListStreamersWithDetails() ([]model.StreamerView, error) {
-	var streamerViews []model.StreamerView
+func (s *StreamerService) ListStreamersWithDetails() ([]models.StreamerView, error) {
+	var streamerViews []models.StreamerView
 	streamers, err := s.db.ListStreamers(1000, 0)
 	if err != nil {
 		return nil, err
 	}
 	for _, streamer := range streamers {
-		var streamerView = model.StreamerView{
+		var streamerView = models.StreamerView{
 			StreamerID:   streamer.ID,
 			StreamerName: streamer.Name,
 		}
 		var lastLive int64
-		channels, err := s.db.ListChannels(&model.ChannelFilter{StreamerID: &streamer.ID}, 1000, 0)
+		channels, err := s.db.ListChannels(&models.ChannelFilter{StreamerID: &streamer.ID}, 1000, 0)
 		if err != nil {
 			return nil, err
 		}
 		for _, channel := range channels {
-			broadcasts, err := s.ListBroadcasts(&model.Broadcast{ChannelID: channel.ID}, 1, 0)
+			broadcasts, err := s.ListBroadcasts(&models.Broadcast{ChannelID: channel.ID}, 1, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -53,7 +53,7 @@ func (s *StreamerService) ListStreamersWithDetails() ([]model.StreamerView, erro
 }
 
 func (s *StreamerService) AddStreamer(name string) (int64, error) {
-	streamer := model.Streamer{Name: name}
+	streamer := models.Streamer{Name: name}
 	return s.db.SaveStreamer(streamer)
 }
 
@@ -61,8 +61,8 @@ func (s *StreamerService) DeleteStreamer(name string) (bool, error) {
 	return s.db.DeleteStreamer(name)
 }
 
-func (s *StreamerService) AddChannel(channelInput model.Channel) (bool, error) {
-	var channel model.Channel
+func (s *StreamerService) AddChannel(channelInput models.Channel) (bool, error) {
+	var channel models.Channel
 	var err error
 	switch channelInput.Platform {
 	case "twitch":
@@ -80,14 +80,14 @@ func (s *StreamerService) DeleteChannel(channelID string) (bool, error) {
 	return s.db.DeleteChannel(channelID)
 }
 
-func (s *StreamerService) SyncBroadcasts(channel model.Channel) error {
+func (s *StreamerService) SyncBroadcasts(channel models.Channel) error {
 	var startTime int64
 	if channel.SyncedAt != nil {
 		startTime = *channel.SyncedAt
 	}
 	logging.Info("Syncing broadcasts for channel", "ID", channel.ID, "name", channel.ChannelName)
 
-	var broadcasts []model.Broadcast
+	var broadcasts []models.Broadcast
 	var err error
 	switch channel.Platform {
 	case "twitch":
@@ -107,12 +107,12 @@ func (s *StreamerService) SyncBroadcasts(channel model.Channel) error {
 	return err
 }
 
-func (s *StreamerService) ListBroadcasts(filter *model.Broadcast, limit, offset int) ([]model.Broadcast, error) {
+func (s *StreamerService) ListBroadcasts(filter *models.Broadcast, limit, offset int) ([]models.Broadcast, error) {
 	if filter == nil || filter.ChannelID == "" {
 		return nil, fmt.Errorf("channelID must be specified")
 	}
 
-	channels, err := s.db.ListChannels(&model.ChannelFilter{ID: &filter.ChannelID}, 1, 0)
+	channels, err := s.db.ListChannels(&models.ChannelFilter{ID: &filter.ChannelID}, 1, 0)
 	if err != nil {
 		return nil, err
 	}

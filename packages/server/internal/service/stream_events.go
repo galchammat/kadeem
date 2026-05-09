@@ -3,19 +3,19 @@ package service
 import (
 	"fmt"
 
-	"github.com/galchammat/kadeem/internal/model"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
 // StreamEventsService manages stream event syncing and retrieval.
 type StreamEventsService struct {
 	db     *twitchstore.Store
-	twitch *twitch.TwitchClient
+	twitch *twitchapi.TwitchClient
 }
 
 // NewStreamEventsService creates a new StreamEventsService.
-func NewStreamEventsService(db *twitchstore.Store, twitchClient *twitch.TwitchClient) *StreamEventsService {
+func NewStreamEventsService(db *twitchstore.Store, twitchClient *twitchapi.TwitchClient) *StreamEventsService {
 	return &StreamEventsService{db: db, twitch: twitchClient}
 }
 
@@ -39,8 +39,8 @@ func (s *StreamEventsService) SyncChannelEvents(channelID string) error {
 }
 
 // ListChannelEvents returns stream events for a specific channel within the given time range.
-func (s *StreamEventsService) ListChannelEvents(channelID string, from, to int64, limit, offset int) ([]model.StreamEvent, error) {
-	filter := &model.StreamEventFilter{
+func (s *StreamEventsService) ListChannelEvents(channelID string, from, to int64, limit, offset int) ([]models.StreamEvent, error) {
+	filter := &models.StreamEventFilter{
 		ChannelID:    &channelID,
 		TimestampMin: &from,
 		TimestampMax: &to,
@@ -49,8 +49,8 @@ func (s *StreamEventsService) ListChannelEvents(channelID string, from, to int64
 }
 
 // ListStreamerEvents returns stream events for all channels of a streamer within the given time range.
-func (s *StreamEventsService) ListStreamerEvents(streamerID int64, from, to int64, limit, offset int) ([]model.StreamEvent, error) {
-	filter := &model.StreamEventFilter{
+func (s *StreamEventsService) ListStreamerEvents(streamerID int64, from, to int64, limit, offset int) ([]models.StreamEvent, error) {
+	filter := &models.StreamEventFilter{
 		StreamerID:   &streamerID,
 		TimestampMin: &from,
 		TimestampMax: &to,

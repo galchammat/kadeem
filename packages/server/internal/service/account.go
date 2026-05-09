@@ -5,17 +5,17 @@ import (
 	"reflect"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	"github.com/galchammat/kadeem/internal/riot/models"
+	riotstore "github.com/galchammat/kadeem/internal/riot/postgres"
 )
 
 type AccountService struct {
-	db   *riotstore.Store
+	db   *riotstore.DB
 	riot *riot.Client
 }
 
-func NewAccountService(db *riotstore.Store, riot *riot.Client) *AccountService {
+func NewAccountService(db *riotstore.DB, riot *riot.Client) *AccountService {
 	return &AccountService{db: db, riot: riot}
 }
 
@@ -30,7 +30,7 @@ func (s *AccountService) AddAccount(region, gameName, tagLine string, streamerID
 }
 
 // ReconcileAccount checks if account data has changed on Riot servers and updates DB.
-func (s *AccountService) ReconcileAccount(account *model.LolAccount) error {
+func (s *AccountService) ReconcileAccount(account *models.Account) error {
 	fetched, err := s.riot.FetchAccountByPUUID(account.Region, account.PUUID)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (s *AccountService) ReconcileAccount(account *model.LolAccount) error {
 }
 
 // ListAccounts lists accounts with optional reconciliation.
-func (s *AccountService) ListAccounts(filter *model.LolAccount) ([]model.LolAccount, error) {
+func (s *AccountService) ListAccounts(filter *models.Account) ([]models.Account, error) {
 	accounts, err := s.db.ListRiotAccounts(filter, 1000, 0)
 	if err != nil {
 		return nil, err
@@ -103,6 +103,6 @@ func (s *AccountService) DeleteAccount(puuid string) error {
 }
 
 // GetPlayerRankAtTime fetches the rank closest to a given timestamp.
-func (s *AccountService) GetPlayerRankAtTime(puuid string, queueID int, timestamp int64) (*model.PlayerRank, error) {
+func (s *AccountService) GetPlayerRankAtTime(puuid string, queueID int, timestamp int64) (*models.PlayerRank, error) {
 	return s.db.GetRankAtTime(puuid, queueID, timestamp)
 }

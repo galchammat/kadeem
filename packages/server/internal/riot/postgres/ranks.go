@@ -1,13 +1,13 @@
-package store
+package postgres
 
 import (
 	"fmt"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
 )
 
-func (s *Store) InsertPlayerRank(rank *model.PlayerRank) error {
+func (s *DB) InsertPlayerRank(rank *riot.PlayerRank) error {
 	query := `
         INSERT INTO player_ranks 
         (puuid, timestamp, tier, rank, league_points, wins, losses, queue_id)
@@ -21,7 +21,7 @@ func (s *Store) InsertPlayerRank(rank *model.PlayerRank) error {
 
 	_, err := s.db.SQL.Exec(query,
 		rank.PUUID, rank.Timestamp, rank.Tier, rank.Rank,
-		rank.LeaguePoints, rank.Wins, rank.Losses, rank.QueueId)
+		rank.LeaguePoints, rank.Wins, rank.Losses, rank.QueueID)
 
 	if err != nil {
 		logging.Error("Failed to insert player rank", "puuid", rank.PUUID, "error", err)
@@ -30,7 +30,7 @@ func (s *Store) InsertPlayerRank(rank *model.PlayerRank) error {
 }
 
 // GetRankAtTime fetches the rank closest to (but not after) a given timestamp
-func (s *Store) GetRankAtTime(puuid string, queueID int, timestamp int64) (*model.PlayerRank, error) {
+func (s *DB) GetRankAtTime(puuid string, queueID int, timestamp int64) (*riot.PlayerRank, error) {
 	query := `
         SELECT puuid, timestamp, tier, rank, league_points, wins, losses, queue_id
         FROM player_ranks
@@ -38,10 +38,10 @@ func (s *Store) GetRankAtTime(puuid string, queueID int, timestamp int64) (*mode
         ORDER BY timestamp DESC
         LIMIT 1`
 
-	var rank model.PlayerRank
+	var rank riot.PlayerRank
 	err := s.db.SQL.QueryRow(query, puuid, queueID, timestamp).Scan(
 		&rank.PUUID, &rank.Timestamp, &rank.Tier, &rank.Rank,
-		&rank.LeaguePoints, &rank.Wins, &rank.Losses, &rank.QueueId)
+		&rank.LeaguePoints, &rank.Wins, &rank.Losses, &rank.QueueID)
 
 	if err != nil {
 		logging.Error("Failed to get rank at time", "puuid", puuid, "queueID", queueID, "timestamp", timestamp, "error", err)

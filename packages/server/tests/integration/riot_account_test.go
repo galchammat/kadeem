@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/service"
 )
 
@@ -20,9 +20,9 @@ func testListRiotAccounts(t *testing.T) {
 		t.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.SQL.Close()
-	store := riotstore.New(db)
+	store := riotpostgres.New(db)
 
-	accountSvc := service.NewAccountService(store, riot.NewClient())
+	accountSvc := service.NewAccountService(store, riotapi.NewClient())
 	accounts, err := accountSvc.ListAccounts(nil)
 	if err != nil {
 		t.Fatalf("Failed to list accounts: %v", err)
@@ -41,9 +41,9 @@ func testAddRiotAccount(t *testing.T) {
 		t.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.SQL.Close()
-	store := riotstore.New(db)
+	store := riotpostgres.New(db)
 
-	accountSvc := service.NewAccountService(store, riot.NewClient())
+	accountSvc := service.NewAccountService(store, riotapi.NewClient())
 	err = accountSvc.AddAccount("NA", "the thirsty rock", "NA1", 0)
 	if err != nil {
 		t.Fatalf("Failed to add account: %v", err)

@@ -10,11 +10,11 @@ import (
 	"github.com/galchammat/kadeem/internal/api/handler"
 	"github.com/galchammat/kadeem/internal/logging"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot/api"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/datadragon"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/service"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/go-chi/chi/v5"
 )
@@ -32,12 +32,12 @@ type Server struct {
 }
 
 // NewServer creates a new API server
-func NewServer(db *platformdb.DB, riotStore *riotstore.Store, twitchStore *twitchstore.Store, port string) *Server {
+func NewServer(db *platformdb.DB, riotStore *riotpostgres.DB, twitchStore *twitchstore.Store, port string) *Server {
 	// Create clients
 	ctx := context.Background()
-	riotClient := riot.NewClient()
+	riotClient := riotapi.NewClient()
 	dataDragonClient := datadragon.NewDataDragonClient(ctx, "bin/datadragon")
-	twitchClient := twitch.NewTwitchClient(ctx)
+	twitchClient := twitchapi.NewTwitchClient(ctx)
 
 	// Create services
 	accountSvc := service.NewAccountService(riotStore, riotClient)
@@ -106,7 +106,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 // StartServer starts the API server (for daemon integration)
-func StartServer(ctx context.Context, db *platformdb.DB, riotStore *riotstore.Store, twitchStore *twitchstore.Store, port string) error {
+func StartServer(ctx context.Context, db *platformdb.DB, riotStore *riotpostgres.DB, twitchStore *twitchstore.Store, port string) error {
 	server := NewServer(db, riotStore, twitchStore, port)
 
 	go func() {

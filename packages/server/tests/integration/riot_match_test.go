@@ -4,10 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
-	riot "github.com/galchammat/kadeem/internal/riot/api"
-	riotstore "github.com/galchammat/kadeem/internal/riot/store"
+	riotapi "github.com/galchammat/kadeem/internal/riot/api"
+	riot "github.com/galchammat/kadeem/internal/riot/models"
+	riotpostgres "github.com/galchammat/kadeem/internal/riot/postgres"
 	"github.com/galchammat/kadeem/internal/service"
 	"github.com/galchammat/kadeem/tests/logs"
 )
@@ -23,9 +23,9 @@ func TestListLolMatches(t *testing.T) {
 		tlog.Fatalf("Failed to open database", "error", err)
 	}
 	defer db.SQL.Close()
-	store := riotstore.New(db)
+	store := riotpostgres.New(db)
 
-	matchSvc := service.NewMatchService(store, riot.NewClient())
+	matchSvc := service.NewMatchService(store, riotapi.NewClient())
 	testPuuid := "OXR0AfpBu2Z-fFGu8KCE1sNzJLJbTpgClA42okBn-VsEVTwjJwMZu306s5JTLBmxPkVe2SSBIGe9ww"
 
 	account, err := store.GetRiotAccount(testPuuid)
@@ -33,7 +33,7 @@ func TestListLolMatches(t *testing.T) {
 		tlog.Fatalf("Failed to get riot account", "error", err)
 	}
 
-	filter := model.LolMatchFilter{PUUID: &testPuuid}
+	filter := riot.MatchFilter{PUUID: &testPuuid}
 	matches, err := matchSvc.ListMatches(&filter, account, 10, 0)
 	if err != nil {
 		tlog.Fatalf("Error fetching matches", "error", err)

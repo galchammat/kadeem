@@ -1,4 +1,4 @@
-package twitch
+package api
 
 import (
 	"encoding/json"
@@ -6,10 +6,10 @@ import (
 	"net/url"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
+	"github.com/galchammat/kadeem/internal/twitch/models"
 )
 
-func (c *TwitchClient) FetchBroadcasts(channelID string, startTime int64) ([]model.Broadcast, error) {
+func (c *TwitchClient) FetchBroadcasts(channelID string, startTime int64) ([]models.Broadcast, error) {
 	// Build query params
 	params := url.Values{}
 	params.Set("user_id", channelID)
@@ -21,7 +21,7 @@ func (c *TwitchClient) FetchBroadcasts(channelID string, startTime int64) ([]mod
 
 	response, statusCode, err := c.makeRequest(endpoint)
 	if err != nil || statusCode != 200 {
-		return []model.Broadcast{}, fmt.Errorf("failed to fetch broadcasts: status=%d, error=%w", statusCode, err)
+		return []models.Broadcast{}, fmt.Errorf("failed to fetch broadcasts: status=%d, error=%w", statusCode, err)
 	}
 
 	var rawMessages []json.RawMessage
@@ -29,9 +29,9 @@ func (c *TwitchClient) FetchBroadcasts(channelID string, startTime int64) ([]mod
 		return nil, fmt.Errorf("failed to unmarshal broadcasts: %w", err)
 	}
 
-	broadcasts := make([]model.Broadcast, 0, len(rawMessages))
+	broadcasts := make([]models.Broadcast, 0, len(rawMessages))
 	for _, raw := range rawMessages {
-		var b model.Broadcast
+		var b models.Broadcast
 		if err := json.Unmarshal(raw, &b); err != nil {
 			logging.Warn("Failed to unmarshal broadcast", "error", err)
 			continue

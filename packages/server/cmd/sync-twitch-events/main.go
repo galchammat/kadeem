@@ -8,10 +8,11 @@ import (
 	"syscall"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/model"
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/syncer"
 	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
+	twitchmodels "github.com/galchammat/kadeem/internal/twitch/models"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 	"github.com/joho/godotenv"
 )
@@ -34,13 +35,13 @@ func main() {
 	defer db.SQL.Close()
 
 	store := twitchstore.New(db)
-	source, err := twitch.NewStreamEventSyncer(twitch.NewTwitchClient(ctx), store)
+	source, err := twitch.NewStreamEventSyncer(twitchapi.NewTwitchClient(ctx), store)
 	if err != nil {
 		logging.Error("failed to create twitch event source", "error", err)
 		os.Exit(1)
 	}
 
-	metadataSyncer, err := syncer.NewMetadataSyncer[model.StreamEvent](syncer.MetadataSyncerConfig{Logger: slog.Default()}, source)
+	metadataSyncer, err := syncer.NewMetadataSyncer[twitchmodels.StreamEvent](syncer.MetadataSyncerConfig{Logger: slog.Default()}, source)
 	if err != nil {
 		logging.Error("failed to create metadata syncer", "error", err)
 		os.Exit(1)

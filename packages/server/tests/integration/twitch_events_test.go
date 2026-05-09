@@ -7,7 +7,7 @@ import (
 
 	platformdb "github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/service"
-	"github.com/galchammat/kadeem/internal/twitch"
+	twitchapi "github.com/galchammat/kadeem/internal/twitch/api"
 	twitchstore "github.com/galchammat/kadeem/internal/twitch/store"
 )
 
@@ -25,7 +25,7 @@ func TestSyncStreamEvents(t *testing.T) {
 	defer db.SQL.Close()
 	store := twitchstore.New(db)
 
-	twitchClient := twitch.NewTwitchClient(context.Background())
+	twitchClient := twitchapi.NewTwitchClient(context.Background())
 	svc := service.NewStreamEventsService(store, twitchClient)
 
 	t.Run("SyncChannelEvents", func(t *testing.T) {
