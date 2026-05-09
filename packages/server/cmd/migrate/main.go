@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -72,11 +74,25 @@ func main() {
 	// Execute the appropriate command
 	switch command {
 	case "up":
+		var seed bool
+		upFlags := flag.NewFlagSet("up", flag.ExitOnError)
+		upFlags.BoolVar(&seed, "seed", true, "run database seeders")
+		_ = upFlags.Parse(os.Args[2:])
+
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 			logging.Error("Error applying migrations", "error", err)
 			os.Exit(1)
 		}
 		logging.Info("Database migrations applied successfully")
+
+		if !seed {
+			break
+		}
+		if err := seedDatabase(db.SQL); err != nil {
+			logging.Error("Error seeding database", "error", err)
+			os.Exit(1)
+		}
+		logging.Info("Database seeds applied successfully")
 
 	case "down":
 		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
@@ -161,6 +177,35 @@ func main() {
 		}
 		logging.Info("All tables dropped successfully")
 	}
+}
+
+func seedDatabase(db *sql.DB) error {
+	_, err := db.Exec(`
+		INSERT INTO streamers (name)
+		VALUES ('detdert')
+		ON CONFLICT (name) DO NOTHING;
+
+		INSERT INTO lol_accounts (puuid, streamer_id, tag_line, game_name, region)
+		SELECT 'pW3T6n48BCogg9YmegHQYjP7VEcIkLpJr0qEHpBXkguC4n82ECaqqFUWqYktNd0hoUy1jNewKysJGw', id, '12MAJ', 'TWTV DETDERT', 'EUW'
+		FROM streamers
+		WHERE name = 'detdert'
+		ON CONFLICT (puuid) DO UPDATE SET
+			streamer_id = EXCLUDED.streamer_id,
+			tag_line = EXCLUDED.tag_line,
+			game_name = EXCLUDED.game_name,
+			region = EXCLUDED.region;
+
+		INSERT INTO channels (id, streamer_id, platform, channel_name, avatar_url)
+		SELECT '59573061', id, 'twitch', 'detderT', 'https://static-cdn.jtvnw.net/jtv_user_pictures/e31b6b19-18db-42ba-8cdf-67d19c934a7c-profile_image-70x70.png'
+		FROM streamers
+		WHERE name = 'detdert'
+		ON CONFLICT (id) DO UPDATE SET
+			streamer_id = EXCLUDED.streamer_id,
+			platform = EXCLUDED.platform,
+			channel_name = EXCLUDED.channel_name,
+			avatar_url = EXCLUDED.avatar_url;
+	`)
+	return err
 }
 
 // Simple logger that implements migrate.Logger interface
