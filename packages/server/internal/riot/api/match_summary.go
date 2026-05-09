@@ -56,6 +56,7 @@ func (c *Client) FetchMatchIDPage(puuid, region string, startTime *int64, start,
 	endpoint := fmt.Sprintf("/lol/match/v5/matches/by-puuid/%s/ids", puuid)
 	query := fmt.Sprintf("?start=%d&startTime=%d&count=%d", start, *startTime, count)
 	url := c.buildURL(region, endpoint) + query
+	fmt.Println(url)
 
 	body, _, err := c.makeRequest(url)
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 )
 
 const matchIDPageSize = 100
+const defaultLookback = 60 * 60 * 24 * 14
 
 type MatchIDStore interface {
 	ListRiotAccounts(filter *models.Account, limit, offset int) ([]models.Account, error)
@@ -55,12 +56,17 @@ func (s *MatchIDSyncer) Sync(ctx context.Context) error {
 }
 
 func (s *MatchIDSyncer) syncAccount(ctx context.Context, account models.Account) error {
+	startTime := account.SyncedAt
+	if startTime == nil {
+		defaultStartTime := time.Now().Unix() - defaultLookback
+		startTime = &defaultStartTime
+	}
 	for start := 0; ; start += matchIDPageSize {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		page, err := s.client.FetchMatchIDPage(account.PUUID, account.Region, account.SyncedAt, start, matchIDPageSize)
+		page, err := s.client.FetchMatchIDPage(account.PUUID, account.Region, startTime, start, matchIDPageSize)
 		if err != nil {
 			return fmt.Errorf("fetch match id page for puuid %q start %d: %w", account.PUUID, start, err)
 		}
