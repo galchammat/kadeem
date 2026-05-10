@@ -5,14 +5,13 @@ import (
 	"fmt"
 
 	"github.com/galchammat/kadeem/internal/riot/api"
-	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
 type MatchDetailsStore interface {
 	ClaimPendingMatch(ctx context.Context) (id *int64, region *string, err error)
 	AckMatch(ctx context.Context, matchId int64, region string) error
 	NackMatch(ctx context.Context, matchId int64, region string) error
-	SaveMatchDetails(ctx context.Context, match models.Match) error
+	SaveMatchDetails(ctx context.Context, matchID int64, region string, startedAt int64, duration int, queueID int) error
 }
 
 type MatchDetailsSyncer struct {
@@ -60,10 +59,16 @@ func (s *MatchDetailsSyncer) SyncMatch(ctx context.Context) (bool, error) {
 	}
 	fmt.Println(matchResponse)
 
-	err = s.store.SaveMatchDetails(ctx, models.Match{})
+	err = s.store.SaveMatchDetails(ctx, *matchID, *region, matchResponse.Info.StartedAt, matchResponse.Info.Duration, matchResponse.Info.QueueID)
 	if err != nil {
 		s.store.NackMatch(ctx, *matchID, *region)
-		return false, fmt.Errorf("FetchMatchDetails failed: %w", err)
+		return false, fmt.Errorf("SaveMatchDetails failed: %w", err)
+	}
+
+	err = s.store.SaveMatchParticipants(ctx, *matchID, *region, matchResponse.Info.Participants)
+	if err != nil {
+		s.store.NackMatch(ctx, *matchID, *region)
+		return false, fmt.Errorf("SaveMatchParticipants failed: %w", err)
 	}
 
 	s.store.AckMatch(ctx, *matchID, *region)

@@ -186,7 +186,7 @@ func seedDatabase(db *sql.DB) error {
 		ON CONFLICT (name) DO NOTHING;
 
 		INSERT INTO lol_accounts (puuid, streamer_id, tag_line, game_name, region)
-		SELECT 'pW3T6n48BCogg9YmegHQYjP7VEcIkLpJr0qEHpBXkguC4n82ECaqqFUWqYktNd0hoUy1jNewKysJGw', id, '12MAJ', 'TWTV DETDERT', 'EUW'
+		SELECT 'pW3T6n48BCogg9YmegHQYjP7VEcIkLpJr0qEHpBXkguC4n82ECaqqFUWqYktNd0hoUy1jNewKysJGw', id, '12MAJ', 'TWTV DETDERT', 'EUW1'
 		FROM streamers
 		WHERE name = 'detdert'
 		ON CONFLICT (puuid) DO UPDATE SET

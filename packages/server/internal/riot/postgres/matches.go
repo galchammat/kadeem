@@ -24,7 +24,7 @@ func (s *DB) SaveMatches(ctx context.Context, matches []riot.Match) error {
 	return nil
 }
 
-func (s *DB) SaveMatchIDs(ctx context.Context, matchIDs []int64) error {
+func (s *DB) SaveMatchIDs(ctx context.Context, matchIDs []int64, region string) error {
 	tx, err := s.db.SQL.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin save match ids: %w", err)
@@ -37,10 +37,10 @@ func (s *DB) SaveMatchIDs(ctx context.Context, matchIDs []int64) error {
 		}
 
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO lol_matches (id, status, replay_status)
-			VALUES ($1, 'pending', 'pending')
-			ON CONFLICT (id) DO NOTHING
-		`, matchID)
+			INSERT INTO lol_matches (id, region, status, replay_status)
+			VALUES ($1, $2, 'pending', 'pending')
+			ON CONFLICT (id, region) DO NOTHING
+		`, matchID, region)
 		if err != nil {
 			return fmt.Errorf("save match id %d: %w", matchID, err)
 		}
@@ -93,13 +93,13 @@ func (s *DB) insertLolMatchSummaryExec(exec SQLExecutor, summary *riot.MatchSumm
 
 // allowedMatchColumns is the set of columns that can be updated via UpdateLolMatch.
 var allowedMatchColumns = map[string]bool{
-	"started_at":               true,
-	"duration":                 true,
-	"queue_id":                 true,
-	"status":                   true,
-    "replay_status":            true,
-    "replay_uri":               true,
-    "replay_updated_at":        true,
+	"started_at":        true,
+	"duration":          true,
+	"queue_id":          true,
+	"status":            true,
+	"replay_status":     true,
+	"replay_uri":        true,
+	"replay_updated_at": true,
 }
 
 func (s *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
@@ -418,13 +418,13 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 			nullWin                         sql.NullBool
 			nullQueueId                     sql.NullInt64
 			nullReplayURI                   sql.NullString
-            nullReplayUpdatedAt             sql.NullTime
-        )
+			nullReplayUpdatedAt             sql.NullTime
+		)
 
 		err := fullRows.Scan(
-            &summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
-            &summary.Status, &summary.ReplayStatus, &nullReplayURI,
-            &nullReplayUpdatedAt,
+			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
+			&summary.Status, &summary.ReplayStatus, &nullReplayURI,
+			&nullReplayUpdatedAt,
 			&nullMatchID, &nullChampionID, &nullChampLevel, &nullKills,
 			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
 			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
@@ -445,14 +445,14 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 				qid := int(nullQueueId.Int64)
 				summary.QueueID = &qid
 			}
-            if nullReplayURI.Valid {
-                replayURI := nullReplayURI.String
-                summary.ReplayURI = &replayURI
-            }
-            if nullReplayUpdatedAt.Valid {
-                replayUpdatedAt := nullReplayUpdatedAt.Time
-                summary.ReplayUpdatedAt = &replayUpdatedAt
-            }
+			if nullReplayURI.Valid {
+				replayURI := nullReplayURI.String
+				summary.ReplayURI = &replayURI
+			}
+			if nullReplayUpdatedAt.Valid {
+				replayUpdatedAt := nullReplayUpdatedAt.Time
+				summary.ReplayUpdatedAt = &replayUpdatedAt
+			}
 			matchMap[summary.ID] = &riot.Match{
 				Summary:      summary,
 				Participants: []riot.MatchParticipantSummary{},

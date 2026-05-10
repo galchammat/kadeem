@@ -3,8 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-
-	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
 func (s *DB) ClaimPendingMatch(ctx context.Context) (*int64, *string, error) {
@@ -14,13 +12,14 @@ func (s *DB) ClaimPendingMatch(ctx context.Context) (*int64, *string, error) {
 	err := s.db.SQL.QueryRowContext(ctx, `
 	WITH claimed AS (
 		SELECT id
-		FROM matches
+		FROM lol_matches
 		WHERE status = 'pending'
 		FOR UPDATE SKIP LOCKED
 		LIMIT 1
 	)
-	UPDATE matches m
-	SET status = 'processing'
+	UPDATE lol_matches m
+	SET status = 'processing',
+		updated_at = NOW()
 	FROM claimed
 	WHERE m.id = claimed.id
 	RETURNING m.id, m.region
@@ -35,7 +34,8 @@ func (s *DB) ClaimPendingMatch(ctx context.Context) (*int64, *string, error) {
 func (s *DB) AckMatch(ctx context.Context, matchId int64, region string) error {
 	_, err := s.db.SQL.ExecContext(ctx, `
 		UPDATE lol_matches
-		SET status = 'completed'
+		SET status = 'completed',
+			updated_at = NOW()
 		WHERE id = $1
 		  AND region = $2
 	`, matchId, region)
@@ -46,7 +46,8 @@ func (s *DB) AckMatch(ctx context.Context, matchId int64, region string) error {
 func (s *DB) NackMatch(ctx context.Context, matchId int64, region string) error {
 	_, err := s.db.SQL.ExecContext(ctx, `
 		UPDATE lol_matches
-		SET status = 'failed'
+		SET status = 'failed',
+			updated_at = NOW()
 		WHERE id = $1
 		  AND region = $2
 	`, matchId, region)
@@ -54,6 +55,16 @@ func (s *DB) NackMatch(ctx context.Context, matchId int64, region string) error 
 	return err
 }
 
-func (s *DB) SaveMatchDetails(ctx context.Context, match models.Match) error {
-	return nil
+func (s *DB) SaveMatchDetails(ctx context.Context, matchID int64, region string, startedAt int64, duration int, queueID int) error {
+	_, err := s.db.SQL.ExecContext(ctx, `
+		UPDATE lol_matches
+		SET started_at = $1,
+			duration = $2,
+			queue_id = $3
+		WHERE id = $4
+		  AND region = $5
+	`, startedAt, duration, queueID, matchID, region)
+
+	return err
+
 }

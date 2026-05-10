@@ -13,6 +13,7 @@ import (
 type MatchDetailResponse struct {
 	Info struct {
 		ID           int64                            `json:"gameId"`
+		QueueID      int                              `json:"queueId"`
 		StartedAt    int64                            `json:"gameStartTimestamp"`
 		Duration     int                              `json:"gameDuration"`
 		Participants []models.MatchParticipantSummary `json:"participants"`
@@ -22,25 +23,6 @@ type MatchDetailResponse struct {
 // FetchMatchIDs fetches match IDs for a PUUID from the Riot API.
 // startTime is optional (unix timestamp in milliseconds, exclusive lower bound).
 // Always uses count=100 (maximum allowed by Riot API).
-func (c *Client) FetchMatchIDs(puuid, region string, startTime *int64) ([]string, error) {
-	const count = 100
-	matchIDs := []string{}
-
-	for start := 0; ; start += count {
-		pageMatchIDs, err := c.FetchMatchIDPage(puuid, region, startTime, start, count)
-		if err != nil {
-			return nil, err
-		}
-		if len(pageMatchIDs) == 0 {
-			break
-		}
-
-		matchIDs = append(matchIDs, pageMatchIDs...)
-	}
-
-	return matchIDs, nil
-}
-
 func (c *Client) FetchMatchIDPage(puuid, region string, startTime *int64, start, count int) ([]string, error) {
 	if puuid == "" {
 		return nil, fmt.Errorf("puuid cannot be empty")

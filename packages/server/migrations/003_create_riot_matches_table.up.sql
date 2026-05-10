@@ -12,6 +12,4 @@ CREATE TABLE IF NOT EXISTS lol_matches (
 );
 
 CREATE INDEX IF NOT EXISTS idx_lol_matches_started_at ON lol_matches(started_at DESC);
-CREATE INDEX IF NOT EXISTS idx_lol_matches_replay_pending
-ON lol_matches(id DESC)
-WHERE replay_status = 'pending';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_lol_matches_id ON lol_matches(id, region)

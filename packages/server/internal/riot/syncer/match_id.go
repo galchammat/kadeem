@@ -13,12 +13,12 @@ import (
 )
 
 const matchIDPageSize = 100
-const defaultLookbackDays = 2
+const defaultLookbackDays = 1
 const defaultLookback = 60 * 60 * 24 * defaultLookbackDays
 
 type MatchIDStore interface {
 	ListRiotAccounts(filter *models.Account, limit, offset int) ([]models.Account, error)
-	SaveMatchIDs(ctx context.Context, matchIDs []int64) error
+	SaveMatchIDs(ctx context.Context, matchIDs []int64, region string) error
 	UpdateRiotAccount(puuid string, updates map[string]any) (bool, error)
 }
 
@@ -80,7 +80,7 @@ func (s *MatchIDSyncer) syncAccount(ctx context.Context, account models.Account)
 			return err
 		}
 
-		if err := s.store.SaveMatchIDs(ctx, matchIDs); err != nil {
+		if err := s.store.SaveMatchIDs(ctx, matchIDs, account.Region); err != nil {
 			return fmt.Errorf("save match id page for puuid %q start %d: %w", account.PUUID, start, err)
 		}
 
