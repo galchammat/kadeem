@@ -9,9 +9,9 @@ import (
 )
 
 type MatchDetailsStore interface {
-	ClaimPendingMatchID(ctx context.Context) (id *int64, region string, err error)
-	AckMatch(ctx context.Context, matchId int, region string) error
-	NackMatch(ctx context.Context, matchId int, region string) error
+	ClaimPendingMatch(ctx context.Context) (id *int64, region *string, err error)
+	AckMatch(ctx context.Context, matchId int64, region string) error
+	NackMatch(ctx context.Context, matchId int64, region string) error
 	SaveMatchDetails(ctx context.Context, match models.Match) error
 }
 
@@ -31,20 +31,40 @@ func NewMatchDetailsSyncer(client *api.Client, store MatchDetailsStore) (*MatchD
 	return &MatchDetailsSyncer{client: client, store: store}, nil
 }
 
-func (s *MatchDetailsSyncer) Sync(ctx context.Context) error {
-	s.SyncMatch(ctx)
+func (s *MatchDetailsSyncer) WorkerLoop(ctx context.Context) error {
+	for true {
+		matchFound, err := s.SyncMatch(ctx)
+		if err != nil {
+			return fmt.Errorf("SyncMatch failed %w", err)
+		}
+		if !matchFound {
+			return nil
+		}
+	}
 	return nil
 }
 
 func (s *MatchDetailsSyncer) SyncMatch(ctx context.Context) (bool, error) {
-	matchID, region, err := s.store.ClaimPendingMatchID(ctx)
+	matchID, region, err := s.store.ClaimPendingMatch(ctx)
 	if err != nil {
 		return false, fmt.Errorf("claim pending match: %w", err)
 	}
 	if matchID == nil {
 		return false, nil
 	}
-	matchResponse, err := s.client.FetchMatchDetails(*matchID, region)
+
+	matchResponse, err := s.client.FetchMatchDetails(*matchID, *region)
+	if err != nil {
+		s.store.NackMatch(ctx, *matchID, *region)
+		return false, fmt.Errorf("FetchMatchDetails failed: %w", err)
+	}
 	fmt.Println(matchResponse)
+
+	err = s.store.SaveMatchDetails(ctx, models.Match{})
+	if err != nil {
+		s.store.NackMatch(ctx, *matchID, *region)
+		return false, fmt.Errorf("FetchMatchDetails failed: %w", err)
+	}
+
 	return true, nil
 }

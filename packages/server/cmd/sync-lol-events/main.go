@@ -34,6 +34,7 @@ func main() {
 
 	store := postgres.New(db)
 	apiClient := api.NewClient()
+
 	matchIDSyncer, err := syncer.NewMatchIDSyncer(apiClient, store)
 	if err != nil {
 		logging.Error("failed to create lol match id syncer", "error", err)

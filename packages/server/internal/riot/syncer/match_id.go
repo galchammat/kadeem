@@ -13,7 +13,8 @@ import (
 )
 
 const matchIDPageSize = 100
-const defaultLookback = 60 * 60 * 24 * 14
+const defaultLookbackDays = 2
+const defaultLookback = 60 * 60 * 24 * defaultLookbackDays
 
 type MatchIDStore interface {
 	ListRiotAccounts(filter *models.Account, limit, offset int) ([]models.Account, error)
