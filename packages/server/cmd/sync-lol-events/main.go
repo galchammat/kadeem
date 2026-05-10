@@ -50,7 +50,7 @@ func main() {
 		logging.Error("failed to create lol match replay syncer", "error", err)
 		os.Exit(1)
 	}
-	if err := matchDetailsSyncer.Sync(ctx); err != nil {
+	if err := matchDetailsSyncer.WorkerLoop(ctx); err != nil {
 		logging.Error("failed to sync lol match details", "error", err)
 		os.Exit(1)
 	}

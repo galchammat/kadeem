@@ -97,10 +97,9 @@ var allowedMatchColumns = map[string]bool{
 	"duration":                 true,
 	"queue_id":                 true,
 	"status":                   true,
-	"replay_status":            true,
-	"replay_uri":               true,
-	"replay_sync_error":        true,
-	"replay_sync_attempted_at": true,
+    "replay_status":            true,
+    "replay_uri":               true,
+    "replay_updated_at":        true,
 }
 
 func (s *DB) UpdateLolMatch(matchID int64, updates map[string]any) (bool, error) {
@@ -358,8 +357,8 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 	fullQuery := fmt.Sprintf(`
 		SELECT 
 			m.id, m.started_at, m.duration, m.queue_id,
-			m.status, m.replay_status, m.replay_uri,
-			m.replay_sync_error, m.replay_sync_attempted_at,
+            m.status, m.replay_status, m.replay_uri,
+            m.replay_updated_at,
 			p.match_id, p.champion_id, p.champ_level, p.kills, p.deaths, p.assists,
 			p.total_minions_killed, p.double_kills, p.triple_kills,
 			p.quadra_kills, p.penta_kills, p.item0, p.item1, p.item2,
@@ -419,14 +418,13 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 			nullWin                         sql.NullBool
 			nullQueueId                     sql.NullInt64
 			nullReplayURI                   sql.NullString
-			nullReplaySyncError             sql.NullString
-			nullReplaySyncAttemptedAt       sql.NullTime
-		)
+            nullReplayUpdatedAt             sql.NullTime
+        )
 
 		err := fullRows.Scan(
-			&summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
-			&summary.Status, &summary.ReplayStatus, &nullReplayURI,
-			&nullReplaySyncError, &nullReplaySyncAttemptedAt,
+            &summary.ID, &summary.StartedAt, &summary.Duration, &nullQueueId,
+            &summary.Status, &summary.ReplayStatus, &nullReplayURI,
+            &nullReplayUpdatedAt,
 			&nullMatchID, &nullChampionID, &nullChampLevel, &nullKills,
 			&nullDeaths, &nullAssists, &nullTotalMinionsKilled,
 			&nullDoubleKills, &nullTripleKills, &nullQuadraKills,
@@ -447,18 +445,14 @@ func (s *DB) ListLolMatches(filter *riot.MatchFilter, limit int, offset int) ([]
 				qid := int(nullQueueId.Int64)
 				summary.QueueID = &qid
 			}
-			if nullReplayURI.Valid {
-				replayURI := nullReplayURI.String
-				summary.ReplayURI = &replayURI
-			}
-			if nullReplaySyncError.Valid {
-				replaySyncError := nullReplaySyncError.String
-				summary.ReplaySyncError = &replaySyncError
-			}
-			if nullReplaySyncAttemptedAt.Valid {
-				replaySyncAttemptedAt := nullReplaySyncAttemptedAt.Time
-				summary.ReplaySyncAttemptedAt = &replaySyncAttemptedAt
-			}
+            if nullReplayURI.Valid {
+                replayURI := nullReplayURI.String
+                summary.ReplayURI = &replayURI
+            }
+            if nullReplayUpdatedAt.Valid {
+                replayUpdatedAt := nullReplayUpdatedAt.Time
+                summary.ReplayUpdatedAt = &replayUpdatedAt
+            }
 			matchMap[summary.ID] = &riot.Match{
 				Summary:      summary,
 				Participants: []riot.MatchParticipantSummary{},

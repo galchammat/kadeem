@@ -32,7 +32,7 @@ func (s *DB) ClaimPendingMatch(ctx context.Context) (*int64, *string, error) {
 	return matchID, region, nil
 }
 
-func (s *DB) AckMatch(ctx context.Context, matchId int, region string) error {
+func (s *DB) AckMatch(ctx context.Context, matchId int64, region string) error {
 	_, err := s.db.SQL.ExecContext(ctx, `
 		UPDATE lol_matches
 		SET status = 'completed'
@@ -43,7 +43,7 @@ func (s *DB) AckMatch(ctx context.Context, matchId int, region string) error {
 	return err
 }
 
-func (s *DB) NackMatch(ctx context.Context, matchId int, region string) error {
+func (s *DB) NackMatch(ctx context.Context, matchId int64, region string) error {
 	_, err := s.db.SQL.ExecContext(ctx, `
 		UPDATE lol_matches
 		SET status = 'failed'
@@ -54,6 +54,6 @@ func (s *DB) NackMatch(ctx context.Context, matchId int, region string) error {
 	return err
 }
 
-func SaveMatchDetails(ctx context.Context, match models.Match) error {
+func (s *DB) SaveMatchDetails(ctx context.Context, match models.Match) error {
 	return nil
 }

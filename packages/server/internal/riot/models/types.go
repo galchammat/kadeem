@@ -21,7 +21,7 @@ type MatchSummary struct {
 	UpdatedAt       *time.Time `json:"updatedAt" db:"updated_at"`
 	ReplayStatus    string     `json:"replayStatus" db:"replay_status"`
 	ReplayURI       *string    `json:"replayUri,omitempty" db:"replay_uri"`
-	ReplayUpdatedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
+    ReplayUpdatedAt *time.Time `json:"replayUpdatedAt,omitempty" db:"replay_updated_at"`
 }
 
 type MatchParticipantSummary struct {

@@ -66,5 +66,6 @@ func (s *MatchDetailsSyncer) SyncMatch(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("FetchMatchDetails failed: %w", err)
 	}
 
+	s.store.AckMatch(ctx, *matchID, *region)
 	return true, nil
 }
