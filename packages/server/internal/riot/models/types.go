@@ -12,15 +12,16 @@ type Match struct {
 }
 
 type MatchSummary struct {
-	ID                    int64      `json:"gameId" db:"match_id"`
-	StartedAt             *int64     `json:"startedAt" db:"started_at"`
-	Duration              *int       `json:"duration" db:"duration"`
-	QueueID               *int       `json:"queueId" db:"queue_id"`
-	Status                string     `json:"status" db:"status"`
-	ReplayStatus          string     `json:"replayStatus" db:"replay_status"`
-	ReplayURI             *string    `json:"replayUri,omitempty" db:"replay_uri"`
-	ReplaySyncError       *string    `json:"replaySyncError,omitempty" db:"replay_sync_error"`
-	ReplaySyncAttemptedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
+	ID              int64      `json:"gameId" db:"match_id"`
+	Region          string     `json:"region" db:"region"`
+	StartedAt       *int64     `json:"startedAt" db:"started_at"`
+	Duration        *int       `json:"duration" db:"duration"`
+	QueueID         *int       `json:"queueId" db:"queue_id"`
+	Status          string     `json:"status" db:"status"`
+	UpdatedAt       *time.Time `json:"updatedAt" db:"updated_at"`
+	ReplayStatus    string     `json:"replayStatus" db:"replay_status"`
+	ReplayURI       *string    `json:"replayUri,omitempty" db:"replay_uri"`
+	ReplayUpdatedAt *time.Time `json:"replaySyncAttemptedAt,omitempty" db:"replay_sync_attempted_at"`
 }
 
 type MatchParticipantSummary struct {

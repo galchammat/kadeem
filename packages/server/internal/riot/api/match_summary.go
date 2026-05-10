@@ -74,7 +74,8 @@ func (c *Client) FetchMatchIDPage(puuid, region string, startTime *int64, start,
 }
 
 // FetchMatchDetail fetches full match detail for a given match ID.
-func (c *Client) FetchMatchDetail(fullMatchID, region string) (*MatchDetailResponse, error) {
+func (c *Client) FetchMatchDetails(matchID int64, region string) (*MatchDetailResponse, error) {
+	fullMatchID := fmt.Sprintf("%s_%d", region, matchID)
 	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", fullMatchID))
 	body, _, err := c.makeRequest(url)
 	if err != nil {

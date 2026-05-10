@@ -33,14 +33,24 @@ func main() {
 	defer db.SQL.Close()
 
 	store := postgres.New(db)
-	matchIDSyncer, err := syncer.NewMatchIDSyncer(api.NewClient(), store)
+	apiClient := api.NewClient()
+	matchIDSyncer, err := syncer.NewMatchIDSyncer(apiClient, store)
 	if err != nil {
 		logging.Error("failed to create lol match id syncer", "error", err)
 		os.Exit(1)
 	}
-
 	if err := matchIDSyncer.Sync(ctx); err != nil {
 		logging.Error("failed to sync lol match ids", "error", err)
+		os.Exit(1)
+	}
+
+	matchDetailsSyncer, err := syncer.NewMatchDetailsSyncer(apiClient, store)
+	if err != nil {
+		logging.Error("failed to create lol match replay syncer", "error", err)
+		os.Exit(1)
+	}
+	if err := matchDetailsSyncer.Sync(ctx); err != nil {
+		logging.Error("failed to sync lol match details", "error", err)
 		os.Exit(1)
 	}
 
