@@ -54,17 +54,3 @@ func (s *DB) NackMatch(ctx context.Context, matchId int64, region string) error 
 
 	return err
 }
-
-func (s *DB) SaveMatchDetails(ctx context.Context, matchID int64, region string, startedAt int64, duration int, queueID int) error {
-	_, err := s.db.SQL.ExecContext(ctx, `
-		UPDATE lol_matches
-		SET started_at = $1,
-			duration = $2,
-			queue_id = $3
-		WHERE id = $4
-		  AND region = $5
-	`, startedAt, duration, queueID, matchID, region)
-
-	return err
-
-}
