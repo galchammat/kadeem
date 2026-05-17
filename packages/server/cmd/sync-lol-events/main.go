@@ -11,7 +11,7 @@ import (
 	"github.com/galchammat/kadeem/internal/platform/database"
 	"github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/postgres"
-	"github.com/galchammat/kadeem/internal/riot/syncer"
+	"github.com/galchammat/kadeem/internal/riot/syncer/match"
 	"github.com/joho/godotenv"
 )
 
@@ -35,23 +35,13 @@ func main() {
 	store := postgres.New(db)
 	apiClient := api.NewClient()
 
-	matchIDSyncer, err := syncer.NewMatchIDSyncer(apiClient, store)
+	matchSyncer, err := matchsync.NewMatchSyncer(apiClient, store)
 	if err != nil {
 		logging.Error("failed to create lol match id syncer", "error", err)
 		os.Exit(1)
 	}
-	if err := matchIDSyncer.Sync(ctx); err != nil {
+	if err := matchSyncer.Sync(ctx); err != nil {
 		logging.Error("failed to sync lol match ids", "error", err)
-		os.Exit(1)
-	}
-
-	matchDetailsSyncer, err := syncer.NewMatchDetailsSyncer(apiClient, store)
-	if err != nil {
-		logging.Error("failed to create lol match replay syncer", "error", err)
-		os.Exit(1)
-	}
-	if err := matchDetailsSyncer.WorkerLoop(ctx); err != nil {
-		logging.Error("failed to sync lol match details", "error", err)
 		os.Exit(1)
 	}
 
