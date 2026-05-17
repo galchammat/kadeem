@@ -9,17 +9,6 @@ import (
 	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
-// MatchDetailResponse represents the Riot API response for match details.
-type MatchDetailResponse struct {
-	Info struct {
-		ID           int64                            `json:"gameId"`
-		QueueID      int                              `json:"queueId"`
-		StartedAt    int64                            `json:"gameStartTimestamp"`
-		Duration     int                              `json:"gameDuration"`
-		Participants []models.MatchParticipantSummary `json:"participants"`
-	} `json:"info"`
-}
-
 // FetchMatchIDs fetches match IDs for a PUUID from the Riot API.
 // startTime is optional (unix timestamp in milliseconds, exclusive lower bound).
 // Always uses count=100 (maximum allowed by Riot API).
@@ -56,7 +45,7 @@ func (c *Client) FetchMatchIDPage(puuid, region string, startTime *int64, start,
 }
 
 // FetchMatchDetail fetches full match detail for a given match ID.
-func (c *Client) FetchMatchDetails(matchID int64, region string) (*MatchDetailResponse, error) {
+func (c *Client) FetchMatchDetails(matchID int64, region string) (*models.MatchDetails, error) {
 	fullMatchID := fmt.Sprintf("%s_%d", region, matchID)
 	url := c.buildURL(region, fmt.Sprintf("/lol/match/v5/matches/%s", fullMatchID))
 	body, _, err := c.makeRequest(url)
@@ -65,7 +54,7 @@ func (c *Client) FetchMatchDetails(matchID int64, region string) (*MatchDetailRe
 		return nil, err
 	}
 
-	var response MatchDetailResponse
+	var response models.MatchDetails
 	if err := json.Unmarshal(body, &response); err != nil {
 		logging.Error("Failed to unmarshal match detail", "fullMatchID", fullMatchID, "error", err)
 		return nil, err

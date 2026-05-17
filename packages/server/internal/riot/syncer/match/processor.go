@@ -38,13 +38,15 @@ type Result struct {
 	Status  Status
 	Err     error
 
-	Payload any
+	MatchSummary riotmodels.MatchSummary
+	Participants []riotmodels.MatchParticipantSummary
+	Events       []any
 }
 
 func (s *MatchSyncer) processMatches(
 	ctx context.Context,
 	fullMatchIDs []string,
-) ([]Result, error) {
+) error {
 	jobs := make(chan Job, len(fullMatchIDs)*2)
 	results := make(chan Result, len(fullMatchIDs)*2)
 
@@ -80,7 +82,7 @@ func (s *MatchSyncer) processMatches(
 
 	for _, fullMatchID := range fullMatchIDs {
 		jobs <- Job{FullMatchID: fullMatchID, Op: Details}
-		jobs <- Job{FullMatchID: fullMatchID, Op: Timeline}
+		// jobs <- Job{FullMatchID: fullMatchID, Op: Timeline}
 	}
 	close(jobs)
 
@@ -89,16 +91,22 @@ func (s *MatchSyncer) processMatches(
 		close(results)
 	}()
 
-	out := make([]Result, 0, len(fullMatchIDs)*2)
+	count := len(fullMatchIDs)
+	matchSummaries := make([]riotmodels.MatchSummary, count)
+	participants := make([]riotmodels.MatchParticipantSummary, count)
+	events := make([]any, count)
+
 	for result := range results {
-		out = append(out, result)
+		matchSummaries = append(matchSummaries, result.MatchSummary)
+		participants = append(participants, result.Participants...)
+		events = append(events, result.Events...)
 	}
 
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return out, nil
+	return nil
 }
 
 func (s *MatchSyncer) processJob(ctx context.Context, job Job) (Result, error) {
@@ -109,7 +117,7 @@ func (s *MatchSyncer) processJob(ctx context.Context, job Job) (Result, error) {
 	region, rawMatchID := parts[0], parts[1]
 	matchID, err := strconv.ParseInt(rawMatchID, 10, 64)
 	if err != nil {
-		return Result{}, fmt.Errorf("Failed to parse matchID %s. %w", rawMatchID, err)
+		return Result{}, fmt.Errorf("failed to parse matchID %s. %w", rawMatchID, err)
 	}
 
 	result := Result{
@@ -120,9 +128,11 @@ func (s *MatchSyncer) processJob(ctx context.Context, job Job) (Result, error) {
 
 	switch job.Op {
 	case Details:
-		result.Payload, result.Err = s.client.FetchMatchDetails(matchID, region)
+		matchDetails, err := s.client.FetchMatchDetails(matchID, region)
+		result.Err = err
+		result.MatchSummary, result.Participants = mapMatchDetails(*matchDetails)
 	case Timeline:
-		result.Payload, result.Err = nil, nil
+		result.Events, result.Err = nil, nil
 	default:
 		result.Err = fmt.Errorf("unknown op %q", job.Op)
 	}
