@@ -37,11 +37,11 @@ func main() {
 
 	matchSyncer, err := matchsync.NewMatchSyncer(apiClient, store)
 	if err != nil {
-		logging.Error("failed to create lol match id syncer", "error", err)
+		logging.Error("failed to create lol match syncer", "error", err)
 		os.Exit(1)
 	}
 	if err := matchSyncer.Sync(ctx); err != nil {
-		logging.Error("failed to sync lol match ids", "error", err)
+		logging.Error("failed to sync lol matches", "error", err)
 		os.Exit(1)
 	}
 

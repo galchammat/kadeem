@@ -47,8 +47,12 @@ func (s *MatchSyncer) processMatches(
 	ctx context.Context,
 	fullMatchIDs []string,
 ) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	jobs := make(chan Job, len(fullMatchIDs)*2)
 	results := make(chan Result, len(fullMatchIDs)*2)
+	fatalErr := make(chan error, 1)
 
 	const workerCount = 10
 	var wg sync.WaitGroup
@@ -68,6 +72,11 @@ func (s *MatchSyncer) processMatches(
 
 				result, err := s.processJob(ctx, job)
 				if err != nil {
+					select {
+					case fatalErr <- err:
+					default:
+					}
+					cancel()
 					return
 				}
 
@@ -97,9 +106,16 @@ func (s *MatchSyncer) processMatches(
 	events := make([]any, count)
 
 	for result := range results {
+		fmt.Println(result)
 		matchSummaries = append(matchSummaries, result.MatchSummary)
 		participants = append(participants, result.Participants...)
 		events = append(events, result.Events...)
+	}
+
+	select {
+	case err := <-fatalErr:
+		return err
+	default:
 	}
 
 	if err := ctx.Err(); err != nil {
