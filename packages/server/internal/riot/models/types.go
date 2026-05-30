@@ -96,3 +96,8 @@ type MatchDetails struct {
 		Participants []MatchParticipantSummary `json:"participants"`
 	} `json:"info"`
 }
+
+type MatchEvent struct {
+	Time      int64  `json:"time" db:"time"`
+	EventType string `json:"eventType" db:"event_type"`
+}
