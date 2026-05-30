@@ -57,7 +57,7 @@ func (s *MatchSyncer) processMatches(
 	const workerCount = 10
 	var wg sync.WaitGroup
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Add(1)
 
 		go func() {
@@ -101,13 +101,13 @@ func (s *MatchSyncer) processMatches(
 	}()
 
 	count := len(fullMatchIDs)
-	matchSummaries := make([]riotmodels.MatchSummary, count)
-	participants := make([]riotmodels.MatchParticipantSummary, count)
-	events := make([]any, count)
+	summaries := make([]riotmodels.MatchSummary, 0, count)
+	participants := make([]riotmodels.MatchParticipantSummary, 0, count)
+	events := make([]any, 0, count)
 
 	for result := range results {
 		fmt.Println(result)
-		matchSummaries = append(matchSummaries, result.MatchSummary)
+		summaries = append(summaries, result.MatchSummary)
 		participants = append(participants, result.Participants...)
 		events = append(events, result.Events...)
 	}
@@ -121,6 +121,14 @@ func (s *MatchSyncer) processMatches(
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	if err := s.store.SaveMatchSummaryBatch(ctx, summaries); err != nil {
+		return err
+	}
+	if err := s.store.SaveMatchParticipantBatch(ctx, participants); err != nil {
+		return err
+	}
+	// s.store.SaveMatchEventBatch(ctx, events)
 
 	return nil
 }
@@ -146,7 +154,12 @@ func (s *MatchSyncer) processJob(ctx context.Context, job Job) (Result, error) {
 	case Details:
 		matchDetails, err := s.client.FetchMatchDetails(matchID, region)
 		result.Err = err
+		if err != nil {
+			break
+		}
 		result.MatchSummary, result.Participants = mapMatchDetails(*matchDetails)
+		result.MatchSummary.Region = region
+		result.MatchSummary.Status = "done"
 	case Timeline:
 		result.Events, result.Err = nil, nil
 	default:

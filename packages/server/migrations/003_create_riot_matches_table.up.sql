@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS lol_matches (
 	duration INTEGER,
 	queue_id INTEGER,
 	status TEXT NOT NULL DEFAULT 'pending',
-  updated_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
 	replay_uri TEXT,
 	replay_status TEXT NOT NULL DEFAULT 'pending',
   replay_updated_at TIMESTAMPTZ

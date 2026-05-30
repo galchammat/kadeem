@@ -6,34 +6,12 @@ import (
 	"time"
 
 	"github.com/galchammat/kadeem/internal/logging"
-	"github.com/galchammat/kadeem/internal/riot/api"
 	"github.com/galchammat/kadeem/internal/riot/models"
 )
 
 const matchIDPageSize = 49
 const defaultLookbackDays = 1
 const defaultLookback = 60 * 60 * 24 * defaultLookbackDays
-
-type MatchStore interface {
-	ListRiotAccounts(filter *models.Account, limit, offset int) ([]models.Account, error)
-	UpdateRiotAccount(puuid string, updates map[string]any) (bool, error)
-}
-
-type MatchSyncer struct {
-	client *api.Client
-	store  MatchStore
-}
-
-func NewMatchSyncer(client *api.Client, store MatchStore) (*MatchSyncer, error) {
-	if client == nil {
-		return nil, fmt.Errorf("riot client is nil")
-	}
-	if store == nil {
-		return nil, fmt.Errorf("match id store is nil")
-	}
-
-	return &MatchSyncer{client: client, store: store}, nil
-}
 
 func (s *MatchSyncer) Sync(ctx context.Context) error {
 	for offset := 0; ; offset += matchIDPageSize {
@@ -74,7 +52,9 @@ func (s *MatchSyncer) syncAccount(ctx context.Context, account models.Account) e
 		}
 
 		// details and timelines
-		s.processMatches(ctx, matchIDs)
+		if err := s.processMatches(ctx, matchIDs); err != nil {
+			return err
+		}
 
 		logging.Info("synced riot match id page", "puuid", account.PUUID, "start", start, "count", len(matchIDs))
 	}
