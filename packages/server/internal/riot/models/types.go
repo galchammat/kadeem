@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/galchammat/kadeem/internal/models"
+)
 
 type APIReplaysResponse struct {
 	URLs []string `json:"matchFileURLs"`
@@ -12,16 +16,16 @@ type Match struct {
 }
 
 type MatchSummary struct {
-	ID              int64      `json:"gameId" db:"match_id"`
-	Region          string     `json:"region" db:"region"`
-	StartedAt       int64      `json:"startedAt" db:"started_at"`
-	Duration        int        `json:"duration" db:"duration"`
-	QueueID         int        `json:"queueId" db:"queue_id"`
-	Status          string     `json:"status" db:"status"`
-	UpdatedAt       *time.Time `json:"updatedAt" db:"updated_at"`
-	ReplayStatus    string     `json:"replayStatus" db:"replay_status"`
-	ReplayURI       *string    `json:"replayUri,omitempty" db:"replay_uri"`
-	ReplayUpdatedAt *time.Time `json:"replayUpdatedAt,omitempty" db:"replay_updated_at"`
+	ID              int64         `json:"gameId" db:"match_id"`
+	Region          string        `json:"region" db:"region"`
+	StartedAt       int64         `json:"startedAt" db:"started_at"`
+	Duration        int           `json:"duration" db:"duration"`
+	QueueID         int           `json:"queueId" db:"queue_id"`
+	Status          models.Status `json:"status" db:"status"`
+	UpdatedAt       *time.Time    `json:"updatedAt" db:"updated_at"`
+	ReplayStatus    string        `json:"replayStatus" db:"replay_status"`
+	ReplayURI       *string       `json:"replayUri,omitempty" db:"replay_uri"`
+	ReplayUpdatedAt *time.Time    `json:"replayUpdatedAt,omitempty" db:"replay_updated_at"`
 }
 
 type MatchParticipantSummary struct {

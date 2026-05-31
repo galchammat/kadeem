@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/galchammat/kadeem/internal/models"
 	riotmodels "github.com/galchammat/kadeem/internal/riot/models"
 )
 
@@ -23,20 +24,9 @@ type Job struct {
 	Op          Op
 }
 
-type Status string
-
-const (
-	Done  Status = "done"
-	Retry Status = "retry"
-	DLQ   Status = "dlq"
-)
-
 type Result struct {
 	MatchID int64
-	Region  string
 	Op      Op
-	Status  Status
-	Err     error
 
 	MatchSummary riotmodels.MatchSummary
 	Participants []riotmodels.MatchParticipantSummary
@@ -146,31 +136,25 @@ func (s *MatchSyncer) processJob(ctx context.Context, job Job) (Result, error) {
 
 	result := Result{
 		MatchID: matchID,
-		Region:  region,
 		Op:      job.Op,
 	}
 
 	switch job.Op {
 	case Details:
 		matchDetails, err := s.client.FetchMatchDetails(matchID, region)
-		result.Err = err
 		if err != nil {
-			break
+			result.MatchSummary.ID = matchID
+			result.MatchSummary.Region = region
+			result.MatchSummary.Status = models.StatusRetry
+			// ToDo - set to models.StatusDLQ if already Retry
+		} else {
+			result.MatchSummary, result.Participants = mapMatchDetails(*matchDetails)
+			result.MatchSummary.Status = models.StatusDone
 		}
-		result.MatchSummary, result.Participants = mapMatchDetails(*matchDetails)
-		result.MatchSummary.Region = region
-		result.MatchSummary.Status = "done"
 	case Timeline:
-		result.Events, result.Err = nil, nil
+		// Timeline processing not yet implemented
 	default:
-		result.Err = fmt.Errorf("unknown op %q", job.Op)
-	}
-
-	if result.Err != nil {
-		result.Status = Retry
-		// ToDo - set to DLQ if already Retry
-	} else {
-		result.Status = Done
+		return Result{}, fmt.Errorf("unknown op %q", job.Op)
 	}
 
 	return result, nil
